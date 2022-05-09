@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Obtaining subsets from cloud-hosted FITS files &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <title>Obtaining subsets from cloud-hosted FITS files &#8212; Astropy v5.2.dev96+g04a0cf8bb</title>
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
@@ -71,7 +71,7 @@
 	 |
       </li>
       <li>
-	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	<a href="../../../index.html">Astropy v5.2.dev96+g04a0cf8bb</a>
 	 &#187;
       </li>
       <li><a href="../index.html" accesskey="U">FITS File Handling (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.fits</span></code>)</a> &#187;</li>
@@ -106,7 +106,7 @@ installing optional dependencies.</p>
 <h2>Subsetting FITS files hosted on an HTTP web server<a class="headerlink" href="#subsetting-fits-files-hosted-on-an-http-web-server" title="Permalink to this headline">¶</a></h2>
 <p>A common use case for <code class="docutils literal notranslate"><span class="pre">fsspec</span></code> is to read subsets of FITS data from a web
 server which supports serving partial files via the
-[<em>Range Requests</em>](<a class="reference external" href="https://en.wikipedia.org/wiki/Byte_serving">https://en.wikipedia.org/wiki/Byte_serving</a>) feature of the
+<a class="reference external" href="https://en.wikipedia.org/wiki/Byte_serving">Range Requests</a> feature of the
 HTTP protocol.  Most web servers support serving portions of files in this way.</p>
 <p>For example, let’s assume you want to retrieve data from a large image obtained
 by the Hubble Space Telescope available at the following url:</p>
@@ -120,8 +120,8 @@ it.  This works fine for small files but tends to require a lot of time and
 memory for large files.</p>
 <p>You can improve the performance for large files by passing the parameters
 <code class="docutils literal notranslate"><span class="pre">use_fsspec=True</span></code> and <code class="docutils literal notranslate"><span class="pre">lazy_load_hdus=True</span></code> to <a class="reference internal" href="../api/files.html#astropy.io.fits.open" title="astropy.io.fits.open"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open</span></code></a>.  This will make
-Astropy use <code class="docutils literal notranslate"><span class="pre">fsspec</span></code> to download only the necessary parts of the FITS file.</p>
-<p>For example:</p>
+Astropy use <code class="docutils literal notranslate"><span class="pre">fsspec</span></code> to download only the necessary parts of the FITS file.
+For example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
 
 <span class="c1"># `fits.open` will download the primary header</span>
@@ -133,7 +133,7 @@ Astropy use <code class="docutils literal notranslate"><span class="pre">fsspec<
     <span class="c1"># Download a single data array</span>
     <span class="n">image</span> <span class="o">=</span> <span class="n">hdul</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
 
-    <span class="c1"># Download a small 10-by-20 pixel cutout</span>
+    <span class="c1"># Download a 10-by-20 pixel cutout by using .section</span>
     <span class="n">cutout</span> <span class="o">=</span> <span class="n">hdul</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">section</span><span class="p">[</span><span class="mi">10</span><span class="p">:</span><span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">:</span><span class="mi">50</span><span class="p">]</span>
 </pre></div>
 </div>
@@ -150,11 +150,12 @@ read into memory without downloading the entire image or cube. See the
 <a class="reference internal" href="image.html#data-sections"><span class="std std-ref">Data Sections</span></a> part of the documentation for more details.</p></li>
 </ol>
 <p>Additional tips for achieving good performance when working with remote files
-are provided in the <a class="reference internal" href="#optimizing-fsspec"><span class="std std-ref">Performance improvement tips for subsetting remote FITS files</span></a> section of this page.</p>
+are provided in the <a class="reference internal" href="#optimizing-fsspec"><span class="std std-ref">Performance improvement tips for subsetting remote FITS files</span></a> section further down
+this page.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The <a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.section" title="astropy.io.fits.ImageHDU.section"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ImageHDU.section</span></code></a> feature is only available for uncompressed FITS
-image extensions.  Attempting to use <a class="reference internal" href="../api/hdus.html#astropy.io.fits.PrimaryHDU.section" title="astropy.io.fits.PrimaryHDU.section"><code class="xref py py-obj docutils literal notranslate"><span class="pre">section</span></code></a> on a compressed image
+image extensions.  Attempting to use <code class="docutils literal notranslate"><span class="pre">.section</span></code> on a compressed image
 will yield an <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#AttributeError" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AttributeError</span></code></a>.</p>
 </div>
 </div>
@@ -176,7 +177,7 @@ in Amazon S3 cloud storage in the same way as above.  For example:</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>To open paths with prefix <code class="docutils literal notranslate"><span class="pre">s3://</span></code>, <code class="docutils literal notranslate"><span class="pre">fsspec</span></code> requires an optional dependency called
+<p>To open paths with prefix <code class="docutils literal notranslate"><span class="pre">s3://</span></code>, fsspec requires an optional dependency called
 <code class="docutils literal notranslate"><span class="pre">s3fs</span></code>.  A <code class="docutils literal notranslate"><span class="pre">ModuleNotFoundError</span></code> will be raised if this dependency is
 missing. See <a class="reference internal" href="../../../install.html#installing-astropy"><span class="std std-ref">Installing astropy</span></a> for details on installing optional
 dependencies.</p>
@@ -210,15 +211,16 @@ file or environment variables. See the <code class="docutils literal notranslate
 </div>
 <div class="section" id="using-cutout2d-with-cloud-hosted-fits-files">
 <h2>Using <a class="reference internal" href="../../../api/astropy.nddata.Cutout2D.html#astropy.nddata.Cutout2D" title="astropy.nddata.Cutout2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cutout2D</span></code></a> with cloud-hosted FITS files<a class="headerlink" href="#using-cutout2d-with-cloud-hosted-fits-files" title="Permalink to this headline">¶</a></h2>
-<p>In the examples above we used the <a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.section" title="astropy.io.fits.ImageHDU.section"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ImageHDU.section</span></code></a> attribute to download
+<p>The examples above used the <a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.section" title="astropy.io.fits.ImageHDU.section"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ImageHDU.section</span></code></a> feature to download
 small cutouts given a set of pixel coordinates. For astronomical images it is
 often more convenient to obtain cutouts based on a sky position and angular
 size rather than array coordinates. For this reason, Astropy provides the
 <a class="reference internal" href="../../../api/astropy.nddata.Cutout2D.html#astropy.nddata.Cutout2D" title="astropy.nddata.Cutout2D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.nddata.Cutout2D</span></code></a> tool which makes it easy to obtain cutouts informed
 by an image’s World Coordinate System (<a class="reference internal" href="../../../api/astropy.wcs.WCS.html#astropy.wcs.WCS" title="astropy.wcs.WCS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">WCS</span></code></a>).</p>
-<p>For example, assume you happen to know that the image used in the examples
-above contains a nice edge-on galaxy at the following position:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Approximate location of the galaxy</span>
+<p>This cutout tool can be used in combination with <code class="docutils literal notranslate"><span class="pre">fsspec</span></code> and <a class="reference internal" href="../api/hdus.html#astropy.io.fits.PrimaryHDU.section" title="astropy.io.fits.PrimaryHDU.section"><code class="xref py py-obj docutils literal notranslate"><span class="pre">section</span></code></a>.
+For example, assume you happen to know that the image we opened above contains
+a nice edge-on galaxy at the following position:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Approximate location of an edge-on galaxy</span>
 <span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
 <span class="n">position</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s1">&#39;10h01m41.13s 02d25m20.58s&#39;</span><span class="p">)</span>
 </pre></div>
@@ -260,7 +262,7 @@ in combination with <code class="docutils literal notranslate"><span class="pre"
 <code class="docutils literal notranslate"><span class="pre">use_fsspec=True</span></code> feature in combination with the <code class="docutils literal notranslate"><span class="pre">lazy_load_hdus=True</span></code>
 parameter and the <code class="docutils literal notranslate"><span class="pre">ImageHDU.section</span></code> feature to obtain good performance.</p>
 <p>There are two additional factors which significantly impact the performance
-you may encounter: (i) the structure of the FITS file, and (ii) the caching
+you will encounter, namely: (i) the structure of the FITS file, and (ii) the caching
 and block size configuration of <code class="docutils literal notranslate"><span class="pre">fsspec</span></code>.  The remainder of this section
 briefly explains these two factors.</p>
 <div class="section" id="matching-the-fits-file-structure-to-the-data-slicing-patterns">
@@ -286,10 +288,11 @@ is well-matched to your data slicing patterns.</p>
 <div class="section" id="configuring-the-fsspec-block-size-and-download-strategy">
 <h3>Configuring the <code class="docutils literal notranslate"><span class="pre">fsspec</span></code> block size and download strategy<a class="headerlink" href="#configuring-the-fsspec-block-size-and-download-strategy" title="Permalink to this headline">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">fsspec</span></code> package supports different data reading and caching strategies
-which aim to minimize the number of network requests.  In general the package
+which aim to minimize the number of network requests.  In general, fsspec
 will attempt to download data in large contiguous blocks, similar to the
-<em>read ahead</em> strategy that is employed when operating systems load local files.</p>
-<p>You can tune the performance of <code class="docutils literal notranslate"><span class="pre">fsspec</span></code>’s download strategy by passing custom
+<em>read ahead</em> strategy that is employed by operating systems when they load
+local files.</p>
+<p>You can tune the performance of fsspec’s download strategy by passing custom
 <code class="docutils literal notranslate"><span class="pre">block_size</span></code> and <code class="docutils literal notranslate"><span class="pre">cache_type</span></code> parameters to <a class="reference external" href="https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.open" title="(in fsspec v2022.3.0+15.gc18902b.dirty)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fsspec.open</span></code></a>.  You can pass
 these parameters via the <code class="docutils literal notranslate"><span class="pre">fsspec_kwargs</span></code> argument of <a class="reference internal" href="../api/files.html#astropy.io.fits.open" title="astropy.io.fits.open"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.fits.open</span></code></a>.
 For example:</p>

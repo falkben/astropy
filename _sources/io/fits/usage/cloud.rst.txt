@@ -27,7 +27,7 @@ Subsetting FITS files hosted on an HTTP web server
 
 A common use case for ``fsspec`` is to read subsets of FITS data from a web
 server which supports serving partial files via the
-[*Range Requests*](https://en.wikipedia.org/wiki/Byte_serving) feature of the
+`Range Requests <https://en.wikipedia.org/wiki/Byte_serving>`__ feature of the
 HTTP protocol.  Most web servers support serving portions of files in this way.
 
 For example, let's assume you want to retrieve data from a large image obtained
@@ -44,7 +44,6 @@ memory for large files.
 You can improve the performance for large files by passing the parameters
 ``use_fsspec=True`` and ``lazy_load_hdus=True`` to `open`.  This will make
 Astropy use ``fsspec`` to download only the necessary parts of the FITS file.
-
 For example:
 
 .. doctest-remote-data::
@@ -60,7 +59,7 @@ For example:
         # Download a single data array
         image = hdul[1].data
 
-        # Download a small 10-by-20 pixel cutout
+        # Download a 10-by-20 pixel cutout by using .section
         cutout = hdul[2].section[10:20, 30:50]
 
 The example above requires less time and memory than would be required to
@@ -76,12 +75,13 @@ two *lazy data loading* features available in Astropy:
    :ref:`astropy:data-sections` part of the documentation for more details.
 
 Additional tips for achieving good performance when working with remote files
-are provided in the :ref:`astropy:optimizing_fsspec` section of this page.
+are provided in the :ref:`astropy:optimizing_fsspec` section further down
+this page.
 
 .. note::
 
     The `ImageHDU.section` feature is only available for uncompressed FITS
-    image extensions.  Attempting to use `.section` on a compressed image
+    image extensions.  Attempting to use ``.section`` on a compressed image
     will yield an `AttributeError`.
 
 
@@ -106,7 +106,7 @@ in Amazon S3 cloud storage in the same way as above.  For example:
 
 .. note::
 
-    To open paths with prefix ``s3://``, ``fsspec`` requires an optional dependency called
+    To open paths with prefix ``s3://``, fsspec requires an optional dependency called
     ``s3fs``.  A ``ModuleNotFoundError`` will be raised if this dependency is
     missing. See :ref:`installing-astropy` for details on installing optional
     dependencies.
@@ -147,17 +147,18 @@ to provide your key as follows:
 Using :class:`~astropy.nddata.Cutout2D` with cloud-hosted FITS files
 ====================================================================
 
-In the examples above we used the `ImageHDU.section` attribute to download
+The examples above used the `ImageHDU.section` feature to download
 small cutouts given a set of pixel coordinates. For astronomical images it is
 often more convenient to obtain cutouts based on a sky position and angular
 size rather than array coordinates. For this reason, Astropy provides the
 `astropy.nddata.Cutout2D` tool which makes it easy to obtain cutouts informed
 by an image's World Coordinate System (`~astropy.wcs.WCS`).
 
-For example, assume you happen to know that the image used in the examples
-above contains a nice edge-on galaxy at the following position::
+This cutout tool can be used in combination with ``fsspec`` and `.section`.
+For example, assume you happen to know that the image we opened above contains
+a nice edge-on galaxy at the following position::
 
-    # Approximate location of the galaxy
+    # Approximate location of an edge-on galaxy
     from astropy.coordinates import SkyCoord
     position = SkyCoord('10h01m41.13s 02d25m20.58s')
 
@@ -204,7 +205,7 @@ In the examples above we explained that it is important to use the
 parameter and the ``ImageHDU.section`` feature to obtain good performance.
 
 There are two additional factors which significantly impact the performance
-you may encounter: (i) the structure of the FITS file, and (ii) the caching
+you will encounter, namely: (i) the structure of the FITS file, and (ii) the caching
 and block size configuration of ``fsspec``.  The remainder of this section
 briefly explains these two factors.
 
@@ -236,11 +237,12 @@ Configuring the ``fsspec`` block size and download strategy
 -----------------------------------------------------------
 
 The ``fsspec`` package supports different data reading and caching strategies
-which aim to minimize the number of network requests.  In general the package
+which aim to minimize the number of network requests.  In general, fsspec
 will attempt to download data in large contiguous blocks, similar to the
-*read ahead* strategy that is employed when operating systems load local files.
+*read ahead* strategy that is employed by operating systems when they load
+local files.
 
-You can tune the performance of ``fsspec``'s download strategy by passing custom
+You can tune the performance of fsspec's download strategy by passing custom
 ``block_size`` and ``cache_type`` parameters to `fsspec.open`.  You can pass
 these parameters via the ``fsspec_kwargs`` argument of `astropy.io.fits.open`.
 For example:
