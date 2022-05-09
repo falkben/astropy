@@ -1,0 +1,238 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fitting Model Sets &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Reference/API" href="reference_api.html" />
+    <link rel="prev" title="Fitting with constraints" href="example-fitting-constraints.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="reference_api.html" title="Reference/API">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="example-fitting-constraints.html" title="Fitting with constraints">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Models and Fitting (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling</span></code>)</a> &#187;</li>
+      
+      <li>Fitting Model Sets</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="fitting-model-sets">
+<span id="example-fitting-model-sets"></span><h1>Fitting Model Sets<a class="headerlink" href="#fitting-model-sets" title="Permalink to this headline">¶</a></h1>
+<p>Astropy model sets let you fit the same (linear) model to lots of independent
+data sets. It solves the linear equations simultaneously, so can avoid looping.
+But getting the data into the right shape can be a bit tricky.</p>
+<p>The time savings could be worth the effort. In the example below, if we change
+the width*height of the data cube to 500*500 it takes 140 ms on a 2015 MacBook Pro
+to fit the models using model sets. Doing the same fit by looping over the 500*500 models
+takes 1.5 minutes, more than 600 times slower.</p>
+<p>In the example below, we create a 3D data cube where the first dimension is a ramp –
+for example as from non-destructive readouts of an IR detector. So each pixel has a
+depth along a time axis, and flux that results a total number of counts that is
+increasing with time. We will be fitting a 1D polynomial vs. time to estimate the
+flux in counts/second (the slope of the fit). We will use just a small image
+of 3 rows by 4 columns, with a depth of 10 non-destructive reads.</p>
+<p>First, import the necessary libraries:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">12345</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling</span> <span class="kn">import</span> <span class="n">models</span><span class="p">,</span> <span class="n">fitting</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">depth</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span>  <span class="c1"># Time is along the depth axis</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">depth</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">*</span><span class="mf">10.</span>  <span class="c1"># e.g. readouts every 10 seconds</span>
+</pre></div>
+</div>
+<p>The number of counts in neach pixel is flux*time with the addition of some Gaussian noise:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fluxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">1.</span> <span class="o">*</span> <span class="n">width</span> <span class="o">*</span> <span class="n">height</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">fluxes</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">t</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">image</span><span class="o">*</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># Add noise</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">image</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(10, 3, 4)</span>
+</pre></div>
+</div>
+<p>Create the models and the fitter. We need N=width*height instances of the same linear,
+parametric model (model sets currently only work with linear models and fitters):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">N</span> <span class="o">=</span> <span class="n">width</span> <span class="o">*</span> <span class="n">height</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">line</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Polynomial1D</span><span class="p">(</span><span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_models</span><span class="o">=</span><span class="n">N</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fit</span> <span class="o">=</span> <span class="n">fitting</span><span class="o">.</span><span class="n">LinearLSQFitter</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;We created </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="si">}</span><span class="s2"> models&quot;</span><span class="p">)</span>
+<span class="go">We created 12 models</span>
+</pre></div>
+</div>
+<p>We need to get the data to be fit into the right shape. It’s not possible to just feed
+the 3D data cube. In this case, the time axis can be one dimensional.
+The fluxes have to be organized into an array that is of shape <code class="docutils literal notranslate"><span class="pre">width*height,depth</span></code> –  in
+other words, we are reshaping to flatten last two axes and transposing to put them first:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pixels</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">depth</span><span class="p">,</span> <span class="n">width</span><span class="o">*</span><span class="n">height</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">pixels</span><span class="o">.</span><span class="n">T</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;x axis is one dimensional: &quot;</span><span class="p">,</span><span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">x axis is one dimensional:  (10,)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;y axis is two dimensional, N by len(x): &quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">y axis is two dimensional, N by len(x):  (12, 10)</span>
+</pre></div>
+</div>
+<p>Fit the model. It fits the N models simultaneously:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">new_model</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;We fit </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">new_model</span><span class="p">)</span><span class="si">}</span><span class="s2"> models&quot;</span><span class="p">)</span>
+<span class="go">We fit 12 models</span>
+</pre></div>
+</div>
+<p>Fill an array with values computed from the best fit and reshape it to match the original:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">best_fit</span> <span class="o">=</span> <span class="n">new_model</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">model_set_axis</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">depth</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;We reshaped the best fit to dimensions: &quot;</span><span class="p">,</span> <span class="n">best_fit</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">We reshaped the best fit to dimensions:  (10, 4, 3)</span>
+</pre></div>
+</div>
+<p>Now inspect the model:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">new_model</span><span class="p">)</span> 
+<span class="go">Model: Polynomial1D</span>
+<span class="go">Inputs: (&#39;x&#39;,)</span>
+<span class="go">Outputs: (&#39;y&#39;,)</span>
+<span class="go">Model set size: 12</span>
+<span class="go">Degree: 1</span>
+<span class="go">Parameters:</span>
+<span class="go">             c0                 c1</span>
+<span class="go">    ------------------- ------------------</span>
+<span class="go">                    0.0                0.0</span>
+<span class="go">    -0.5206606340901005 1.0463998276552442</span>
+<span class="go">     0.6401930368329991 1.9818733492667582</span>
+<span class="go">     0.1134712985541639  3.049279878262541</span>
+<span class="go">    -3.3556420351251313  4.013810434122983</span>
+<span class="go">      6.782223372575449  4.755912707001437</span>
+<span class="go">      3.628220497058842  5.841397947835126</span>
+<span class="go">    -5.8828309622531565  7.016044775363114</span>
+<span class="go">    -11.676538736037775  8.072519832452022</span>
+<span class="go">      -6.17932185981594  9.103924115403503</span>
+<span class="go">    -4.7258541419613165 10.315295021908833</span>
+<span class="go">       4.95631951675311 10.911167956770575</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The new_model has a param_sets attribute with shape: &quot;</span><span class="p">,</span><span class="n">new_model</span><span class="o">.</span><span class="n">param_sets</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">The new_model has a param_sets attribute with shape:  (2, 12)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;And values that are the best-fit parameters for each pixel:</span><span class="se">\n</span><span class="si">{</span><span class="n">new_model</span><span class="o">.</span><span class="n">param_sets</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> 
+<span class="go">And values that are the best-fit parameters for each pixel:</span>
+<span class="go">[[  0.          -0.52066063   0.64019304   0.1134713   -3.35564204</span>
+<span class="go">    6.78222337   3.6282205   -5.88283096 -11.67653874  -6.17932186</span>
+<span class="go">   -4.72585414   4.95631952]</span>
+<span class="go"> [  0.           1.04639983   1.98187335   3.04927988   4.01381043</span>
+<span class="go">    4.75591271   5.84139795   7.01604478   8.07251983   9.10392412</span>
+<span class="go">   10.31529502  10.91116796]]</span>
+</pre></div>
+</div>
+<p>Plot the fit along a couple of pixels:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">plotramp</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">best_fit</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">image</span><span class="p">[:,</span> <span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">],</span> <span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;data pixel </span><span class="si">{</span><span class="n">row</span><span class="si">}</span><span class="s1">,</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">best_fit</span><span class="p">[:,</span> <span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">],</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;fit to pixel </span><span class="si">{</span><span class="n">row</span><span class="si">}</span><span class="s1">,</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time&#39;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Counts&#39;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plotramp</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">best_fit</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plotramp</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">best_fit</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> 
+</pre></div>
+</div>
+<p>The data and the best fit model are shown together on one plot.</p>
+<p>(<a class="reference external" href="../modeling/example-fitting-model-sets-1.png">png</a>, <a class="reference external" href="../modeling/example-fitting-model-sets-1.svg">svg</a>, <a class="reference external" href="../modeling/example-fitting-model-sets-1.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/example-fitting-model-sets-1.png" class="plot-directive" src="../_images/example-fitting-model-sets-1.png" />
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Fitting Model Sets</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/modeling/example-fitting-model-sets.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

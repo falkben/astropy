@@ -1,0 +1,714 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.units.physical &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.units.physical</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="sd">&quot;&quot;&quot;Defines the physical types that correspond to different units.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">from</span> <span class="nn">astropy.utils.exceptions</span> <span class="kn">import</span> <span class="n">AstropyDeprecationWarning</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">imperial</span>  <span class="c1"># noqa  # Needed for backward namespace compat, see #11975 and #11977</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">astrophys</span><span class="p">,</span> <span class="n">cgs</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">misc</span><span class="p">,</span> <span class="n">quantity</span><span class="p">,</span> <span class="n">si</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;def_physical_type&quot;</span><span class="p">,</span> <span class="s2">&quot;get_physical_type&quot;</span><span class="p">,</span> <span class="s2">&quot;PhysicalType&quot;</span><span class="p">]</span>
+
+<span class="n">_units_and_physical_types</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">dimensionless_unscaled</span><span class="p">,</span> <span class="s2">&quot;dimensionless&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;length&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;area&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;volume&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="s2">&quot;angle&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">sr</span><span class="p">,</span> <span class="s2">&quot;solid angle&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;speed&quot;</span><span class="p">,</span> <span class="s2">&quot;velocity&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;acceleration&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">Hz</span><span class="p">,</span> <span class="s2">&quot;frequency&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="s2">&quot;mass&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">mol</span><span class="p">,</span> <span class="s2">&quot;amount of substance&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="s2">&quot;temperature&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">W</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">K</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;thermal conductivity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">J</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">K</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;heat capacity&quot;</span><span class="p">,</span> <span class="s2">&quot;entropy&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">J</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">K</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">kg</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;specific heat capacity&quot;</span><span class="p">,</span> <span class="s2">&quot;specific entropy&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">N</span><span class="p">,</span> <span class="s2">&quot;force&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">J</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;energy&quot;</span><span class="p">,</span> <span class="s2">&quot;work&quot;</span><span class="p">,</span> <span class="s2">&quot;torque&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">J</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;energy flux&quot;</span><span class="p">,</span> <span class="s2">&quot;irradiance&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">Pa</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;pressure&quot;</span><span class="p">,</span> <span class="s2">&quot;energy density&quot;</span><span class="p">,</span> <span class="s2">&quot;stress&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;power&quot;</span><span class="p">,</span> <span class="s2">&quot;radiant flux&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">kg</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;mass density&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">3</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">kg</span><span class="p">,</span> <span class="s2">&quot;specific volume&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">mol</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;molar concentration&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">3</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">mol</span><span class="p">,</span> <span class="s2">&quot;molar volume&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">kg</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;momentum&quot;</span><span class="p">,</span> <span class="s2">&quot;impulse&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">kg</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;angular momentum&quot;</span><span class="p">,</span> <span class="s2">&quot;action&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">rad</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;angular speed&quot;</span><span class="p">,</span> <span class="s2">&quot;angular velocity&quot;</span><span class="p">,</span> <span class="s2">&quot;angular frequency&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">rad</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;angular acceleration&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">rad</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;plate scale&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">),</span> <span class="s2">&quot;dynamic viscosity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;diffusivity&quot;</span><span class="p">,</span> <span class="s2">&quot;kinematic viscosity&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;wavenumber&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;column density&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="s2">&quot;electrical current&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">C</span><span class="p">,</span> <span class="s2">&quot;electrical charge&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">V</span><span class="p">,</span> <span class="s2">&quot;electrical potential&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">Ohm</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;electrical resistance&quot;</span><span class="p">,</span> <span class="s2">&quot;electrical impedance&quot;</span><span class="p">,</span> <span class="s2">&quot;electrical reactance&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">Ohm</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;electrical resistivity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">S</span><span class="p">,</span> <span class="s2">&quot;electrical conductance&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">S</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;electrical conductivity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">F</span><span class="p">,</span> <span class="s2">&quot;electrical capacitance&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">C</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;electrical dipole moment&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">A</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;electrical current density&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">V</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;electrical field strength&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">C</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="p">{</span><span class="s2">&quot;electrical flux density&quot;</span><span class="p">,</span> <span class="s2">&quot;surface charge density&quot;</span><span class="p">,</span> <span class="s2">&quot;polarization density&quot;</span><span class="p">},</span>
+    <span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">C</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;electrical charge density&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">F</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;permittivity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">Wb</span><span class="p">,</span> <span class="s2">&quot;magnetic flux&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;magnetic flux density&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">A</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;magnetic field strength&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">A</span><span class="p">,</span> <span class="s2">&quot;magnetic moment&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">H</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;electromagnetic field strength&quot;</span><span class="p">,</span> <span class="s2">&quot;permeability&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">H</span><span class="p">,</span> <span class="s2">&quot;inductance&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">cd</span><span class="p">,</span> <span class="s2">&quot;luminous intensity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">lm</span><span class="p">,</span> <span class="s2">&quot;luminous flux&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">lx</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;luminous emittance&quot;</span><span class="p">,</span> <span class="s2">&quot;illuminance&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">W</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">sr</span><span class="p">,</span> <span class="s2">&quot;radiant intensity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">cd</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;luminance&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">3</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;volumetric rate&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">astrophys</span><span class="o">.</span><span class="n">Jy</span><span class="p">,</span> <span class="s2">&quot;spectral flux density&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">W</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">Hz</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;surface tension&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">J</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">3</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;spectral flux density wav&quot;</span><span class="p">,</span> <span class="s2">&quot;power density&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">astrophys</span><span class="o">.</span><span class="n">photon</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">Hz</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">cm</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;photon flux density&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">astrophys</span><span class="o">.</span><span class="n">photon</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">AA</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">cm</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;photon flux density wav&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">astrophys</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="s2">&quot;photon flux&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">misc</span><span class="o">.</span><span class="n">bit</span><span class="p">,</span> <span class="s2">&quot;data quantity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">misc</span><span class="o">.</span><span class="n">bit</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;bandwidth&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">cgs</span><span class="o">.</span><span class="n">Franklin</span><span class="p">,</span> <span class="s2">&quot;electrical charge (ESU)&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">cgs</span><span class="o">.</span><span class="n">statampere</span><span class="p">,</span> <span class="s2">&quot;electrical current (ESU)&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">cgs</span><span class="o">.</span><span class="n">Biot</span><span class="p">,</span> <span class="s2">&quot;electrical current (EMU)&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">cgs</span><span class="o">.</span><span class="n">abcoulomb</span><span class="p">,</span> <span class="s2">&quot;electrical charge (EMU)&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;jerk&quot;</span><span class="p">,</span> <span class="s2">&quot;jolt&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;snap&quot;</span><span class="p">,</span> <span class="s2">&quot;jounce&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;crackle&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="o">-</span><span class="mi">6</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;pop&quot;</span><span class="p">,</span> <span class="s2">&quot;pounce&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">K</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;temperature gradient&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">J</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">kg</span><span class="p">,</span> <span class="s2">&quot;specific energy&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">mol</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">3</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;reaction rate&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">kg</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;moment of inertia&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">mol</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;catalytic activity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">J</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">K</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">mol</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;molar heat capacity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">mol</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">kg</span><span class="p">,</span> <span class="s2">&quot;molality&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;absement&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;absity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">3</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;volumetric flow rate&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;frequency drift&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">Pa</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;compressibility&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">astrophys</span><span class="o">.</span><span class="n">electron</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;electron density&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">astrophys</span><span class="o">.</span><span class="n">electron</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;electron flux&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">kg</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;surface mass density&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">W</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">sr</span><span class="p">,</span> <span class="s2">&quot;radiance&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">J</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">mol</span><span class="p">,</span> <span class="s2">&quot;chemical potential&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">kg</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;linear density&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">H</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;magnetic reluctance&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">W</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="s2">&quot;thermal conductance&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">K</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="s2">&quot;thermal resistance&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">K</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="s2">&quot;thermal resistivity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">N</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;yank&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">S</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">mol</span><span class="p">,</span> <span class="s2">&quot;molar conductivity&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">V</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;electrical mobility&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">lumen</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="s2">&quot;luminous efficacy&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">kg</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;opacity&quot;</span><span class="p">,</span> <span class="s2">&quot;mass attenuation coefficient&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">kg</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;mass flux&quot;</span><span class="p">,</span> <span class="s2">&quot;momentum density&quot;</span><span class="p">}),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;number density&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;particle flux&quot;</span><span class="p">),</span>
+<span class="p">]</span>
+
+<span class="n">_physical_unit_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">_unit_physical_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">_name_physical_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="c1"># mapping from attribute-accessible name (no spaces, etc.) to the actual name.</span>
+<span class="n">_attrname_physical_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<span class="k">def</span> <span class="nf">_physical_type_from_str</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the `PhysicalType` instance associated with the name of a</span>
+<span class="sd">    physical type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;unknown&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;cannot uniquely identify an &#39;unknown&#39; physical type.&quot;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_attrname_physical_mapping</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_attrname_physical_mapping</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>  <span class="c1"># convert attribute-accessible</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_name_physical_mapping</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_name_physical_mapping</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> is not a known physical type.&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_replace_temperatures_with_kelvin</span><span class="p">(</span><span class="n">unit</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    If a unit contains a temperature unit besides kelvin, then replace</span>
+<span class="sd">    that unit with kelvin.</span>
+
+<span class="sd">    Temperatures cannot be converted directly between K, °F, °C, and</span>
+<span class="sd">    °Ra, in particular since there would be different conversions for</span>
+<span class="sd">    T and ΔT.  However, each of these temperatures each represents the</span>
+<span class="sd">    physical type.  Replacing the different temperature units with</span>
+<span class="sd">    kelvin allows the physical type to be treated consistently.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">physical_type_id</span> <span class="o">=</span> <span class="n">unit</span><span class="o">.</span><span class="n">_get_physical_type_id</span><span class="p">()</span>
+
+    <span class="n">physical_type_id_components</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">substitution_was_made</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">for</span> <span class="n">base</span><span class="p">,</span> <span class="n">power</span> <span class="ow">in</span> <span class="n">physical_type_id</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">base</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;deg_F&quot;</span><span class="p">,</span> <span class="s2">&quot;deg_C&quot;</span><span class="p">,</span> <span class="s2">&quot;deg_R&quot;</span><span class="p">]:</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="s2">&quot;K&quot;</span>
+            <span class="n">substitution_was_made</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">physical_type_id_components</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">base</span><span class="p">,</span> <span class="n">power</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">substitution_was_made</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">core</span><span class="o">.</span><span class="n">Unit</span><span class="o">.</span><span class="n">_from_physical_type_id</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">physical_type_id_components</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">unit</span>
+
+
+<span class="k">def</span> <span class="nf">_standardize_physical_type_names</span><span class="p">(</span><span class="n">physical_type_input</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a string or `set` of strings into a `set` containing</span>
+<span class="sd">    string representations of physical types.</span>
+
+<span class="sd">    The strings provided in ``physical_type_input`` can each contain</span>
+<span class="sd">    multiple physical types that are separated by a regular slash.</span>
+<span class="sd">    Underscores are treated as spaces so that variable names could</span>
+<span class="sd">    be identical to physical type names.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physical_type_input</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">physical_type_input</span> <span class="o">=</span> <span class="p">{</span><span class="n">physical_type_input</span><span class="p">}</span>
+
+    <span class="n">standardized_physical_types</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">ptype_input</span> <span class="ow">in</span> <span class="n">physical_type_input</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ptype_input</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;expecting a string, but got </span><span class="si">{</span><span class="n">ptype_input</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">input_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ptype_input</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">))</span>
+        <span class="n">processed_set</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">input_set</span><span class="p">}</span>
+        <span class="n">standardized_physical_types</span> <span class="o">|=</span> <span class="n">processed_set</span>
+
+    <span class="k">return</span> <span class="n">standardized_physical_types</span>
+
+
+<div class="viewcode-block" id="PhysicalType"><a class="viewcode-back" href="../../../api/astropy.units.physical.PhysicalType.html#astropy.units.PhysicalType">[docs]</a><span class="k">class</span> <span class="nc">PhysicalType</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents the physical type(s) that are dimensionally compatible</span>
+<span class="sd">    with a set of units.</span>
+
+<span class="sd">    Instances of this class should be accessed through either</span>
+<span class="sd">    `get_physical_type` or by using the</span>
+<span class="sd">    `~astropy.units.core.UnitBase.physical_type` attribute of units.</span>
+<span class="sd">    This class is not intended to be instantiated directly in user code.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    unit : `~astropy.units.Unit`</span>
+<span class="sd">        The unit to be represented by the physical type.</span>
+
+<span class="sd">    physical_types : `str` or `set` of `str`</span>
+<span class="sd">        A `str` representing the name of the physical type of the unit,</span>
+<span class="sd">        or a `set` containing strings that represent one or more names</span>
+<span class="sd">        of physical types.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    A physical type will be considered equal to an equivalent</span>
+<span class="sd">    `PhysicalType` instance (recommended) or a string that contains a</span>
+<span class="sd">    name of the physical type.  The latter method is not recommended</span>
+<span class="sd">    in packages, as the names of some physical types may change in the</span>
+<span class="sd">    future.</span>
+
+<span class="sd">    To maintain backwards compatibility, two physical type names may be</span>
+<span class="sd">    included in one string if they are separated with a slash (e.g.,</span>
+<span class="sd">    ``&quot;momentum/impulse&quot;``).  String representations of physical types</span>
+<span class="sd">    may include underscores instead of spaces.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    `PhysicalType` instances may be accessed via the</span>
+<span class="sd">    `~astropy.units.core.UnitBase.physical_type` attribute of units.</span>
+
+<span class="sd">    &gt;&gt;&gt; import astropy.units as u</span>
+<span class="sd">    &gt;&gt;&gt; u.meter.physical_type</span>
+<span class="sd">    PhysicalType(&#39;length&#39;)</span>
+
+<span class="sd">    `PhysicalType` instances may also be accessed by calling</span>
+<span class="sd">    `get_physical_type`. This function will accept a unit, a string</span>
+<span class="sd">    containing the name of a physical type, or the number one.</span>
+
+<span class="sd">    &gt;&gt;&gt; u.get_physical_type(u.m ** -3)</span>
+<span class="sd">    PhysicalType(&#39;number density&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; u.get_physical_type(&quot;volume&quot;)</span>
+<span class="sd">    PhysicalType(&#39;volume&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; u.get_physical_type(1)</span>
+<span class="sd">    PhysicalType(&#39;dimensionless&#39;)</span>
+
+<span class="sd">    Some units are dimensionally compatible with multiple physical types.</span>
+<span class="sd">    A pascal is intended to represent pressure and stress, but the unit</span>
+<span class="sd">    decomposition is equivalent to that of energy density.</span>
+
+<span class="sd">    &gt;&gt;&gt; pressure = u.get_physical_type(&quot;pressure&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; pressure</span>
+<span class="sd">    PhysicalType({&#39;energy density&#39;, &#39;pressure&#39;, &#39;stress&#39;})</span>
+<span class="sd">    &gt;&gt;&gt; &#39;energy density&#39; in pressure</span>
+<span class="sd">    True</span>
+
+<span class="sd">    Physical types can be tested for equality against other physical</span>
+<span class="sd">    type objects or against strings that may contain the name of a</span>
+<span class="sd">    physical type.</span>
+
+<span class="sd">    &gt;&gt;&gt; area = (u.m ** 2).physical_type</span>
+<span class="sd">    &gt;&gt;&gt; area == u.barn.physical_type</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; area == &quot;area&quot;</span>
+<span class="sd">    True</span>
+
+<span class="sd">    Multiplication, division, and exponentiation are enabled so that</span>
+<span class="sd">    physical types may be used for dimensional analysis.</span>
+
+<span class="sd">    &gt;&gt;&gt; length = u.pc.physical_type</span>
+<span class="sd">    &gt;&gt;&gt; area = (u.cm ** 2).physical_type</span>
+<span class="sd">    &gt;&gt;&gt; length * area</span>
+<span class="sd">    PhysicalType(&#39;volume&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; area / length</span>
+<span class="sd">    PhysicalType(&#39;length&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; length ** 3</span>
+<span class="sd">    PhysicalType(&#39;volume&#39;)</span>
+
+<span class="sd">    may also be performed using a string that contains the name of a</span>
+<span class="sd">    physical type.</span>
+
+<span class="sd">    &gt;&gt;&gt; &quot;length&quot; * area</span>
+<span class="sd">    PhysicalType(&#39;volume&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; &quot;area&quot; / length</span>
+<span class="sd">    PhysicalType(&#39;length&#39;)</span>
+
+<span class="sd">    Unknown physical types are labelled as ``&quot;unknown&quot;``.</span>
+
+<span class="sd">    &gt;&gt;&gt; (u.s ** 13).physical_type</span>
+<span class="sd">    PhysicalType(&#39;unknown&#39;)</span>
+
+<span class="sd">    Dimensional analysis may be performed for unknown physical types too.</span>
+
+<span class="sd">    &gt;&gt;&gt; length_to_19th_power = (u.m ** 19).physical_type</span>
+<span class="sd">    &gt;&gt;&gt; length_to_20th_power = (u.m ** 20).physical_type</span>
+<span class="sd">    &gt;&gt;&gt; length_to_20th_power / length_to_19th_power</span>
+<span class="sd">    PhysicalType(&#39;length&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">physical_types</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unit</span> <span class="o">=</span> <span class="n">_replace_temperatures_with_kelvin</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_physical_type_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unit</span><span class="o">.</span><span class="n">_get_physical_type_id</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_physical_type</span> <span class="o">=</span> <span class="n">_standardize_physical_type_names</span><span class="p">(</span><span class="n">physical_types</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_physical_type_list</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_physical_type</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_physical_type_list</span>
+
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
+        <span class="c1"># TODO: remove this whole method when accessing str attributes from</span>
+        <span class="c1"># physical types is no longer supported</span>
+
+        <span class="c1"># short circuit attribute accessed in __str__ to prevent recursion</span>
+        <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s1">&#39;_physical_type_list&#39;</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+
+        <span class="n">self_str_attr</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">attr</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">attr</span><span class="p">):</span>
+            <span class="n">warning_message</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;support for accessing str attributes such as </span><span class="si">{</span><span class="n">attr</span><span class="si">!r}</span><span class="s2"> &quot;</span>
+                <span class="s2">&quot;from PhysicalType instances is deprecated since 4.3 &quot;</span>
+                <span class="s2">&quot;and will be removed in a subsequent release.&quot;</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">warning_message</span><span class="p">,</span> <span class="n">AstropyDeprecationWarning</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">self_str_attr</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>  <span class="c1"># to get standard error message</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return `True` if ``other`` represents a physical type that is</span>
+<span class="sd">        consistent with the physical type of the `PhysicalType` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">PhysicalType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_physical_type_id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_physical_type_id</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">_standardize_physical_type_names</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">other</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_physical_type</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">equality</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="n">equality</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">equality</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="k">else</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="nf">_name_string_as_ordered_set</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;{&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_physical_type_list</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;}&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_physical_type</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="s2">&quot;&#39;&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_physical_type_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_string_as_ordered_set</span><span class="p">()</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;PhysicalType(</span><span class="si">{</span><span class="n">names</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_physical_type_list</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_dimensionally_compatible_unit</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a unit that corresponds to the provided argument.</span>
+
+<span class="sd">        If a unit is passed in, return that unit.  If a physical type</span>
+<span class="sd">        (or a `str` with the name of a physical type) is passed in,</span>
+<span class="sd">        return a unit that corresponds to that physical type.  If the</span>
+<span class="sd">        number equal to ``1`` is passed in, return a dimensionless unit.</span>
+<span class="sd">        Otherwise, return `NotImplemented`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">core</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">_replace_temperatures_with_kelvin</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">PhysicalType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">_unit</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">)</span> <span class="ow">and</span> <span class="n">obj</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">core</span><span class="o">.</span><span class="n">dimensionless_unscaled</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">_physical_type_from_str</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="o">.</span><span class="n">_unit</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="nf">_dimensional_analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">operation</span><span class="p">):</span>
+        <span class="n">other_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensionally_compatible_unit</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">other_unit</span> <span class="ow">is</span> <span class="bp">NotImplemented</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="n">other_unit</span> <span class="o">=</span> <span class="n">_replace_temperatures_with_kelvin</span><span class="p">(</span><span class="n">other_unit</span><span class="p">)</span>
+        <span class="n">new_unit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unit</span><span class="p">,</span> <span class="n">operation</span><span class="p">)(</span><span class="n">other_unit</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_unit</span><span class="o">.</span><span class="n">physical_type</span>
+
+    <span class="k">def</span> <span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensional_analysis</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s2">&quot;__mul__&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensional_analysis</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s2">&quot;__truediv__&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__rtruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">other</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dimensionally_compatible_unit</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">other</span> <span class="ow">is</span> <span class="bp">NotImplemented</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="k">return</span> <span class="n">other</span><span class="o">.</span><span class="n">physical_type</span><span class="o">.</span><span class="n">_dimensional_analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;__truediv__&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__pow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">power</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unit</span> <span class="o">**</span> <span class="n">power</span><span class="p">)</span><span class="o">.</span><span class="n">physical_type</span>
+
+    <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_physical_type_id</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_physical_type</span><span class="p">)</span>
+
+    <span class="c1"># We need to prevent operations like where a Unit instance left</span>
+    <span class="c1"># multiplies a PhysicalType instance from returning a `Quantity`</span>
+    <span class="c1"># instance with a PhysicalType as the value.  We can do this by</span>
+    <span class="c1"># preventing np.array from casting a PhysicalType instance as</span>
+    <span class="c1"># an object array.</span>
+    <span class="n">__array__</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="def_physical_type"><a class="viewcode-back" href="../../../api/astropy.units.physical.def_physical_type.html#astropy.units.def_physical_type">[docs]</a><span class="k">def</span> <span class="nf">def_physical_type</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add a mapping between a unit and the corresponding physical type(s).</span>
+
+<span class="sd">    If a physical type already exists for a unit, add new physical type</span>
+<span class="sd">    names so long as those names are not already in use for other</span>
+<span class="sd">    physical types.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    unit : `~astropy.units.Unit`</span>
+<span class="sd">        The unit to be represented by the physical type.</span>
+
+<span class="sd">    name : `str` or `set` of `str`</span>
+<span class="sd">        A `str` representing the name of the physical type of the unit,</span>
+<span class="sd">        or a `set` containing strings that represent one or more names</span>
+<span class="sd">        of physical types.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If a physical type name is already in use for another unit, or</span>
+<span class="sd">        if attempting to name a unit as ``&quot;unknown&quot;``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">physical_type_id</span> <span class="o">=</span> <span class="n">unit</span><span class="o">.</span><span class="n">_get_physical_type_id</span><span class="p">()</span>
+    <span class="n">physical_type_names</span> <span class="o">=</span> <span class="n">_standardize_physical_type_names</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">&quot;unknown&quot;</span> <span class="ow">in</span> <span class="n">physical_type_names</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;cannot uniquely define an unknown physical type&quot;</span><span class="p">)</span>
+
+    <span class="n">names_for_other_units</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">_unit_physical_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span>
+        <span class="n">_physical_unit_mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">physical_type_id</span><span class="p">,</span> <span class="p">{}))</span>
+    <span class="n">names_already_in_use</span> <span class="o">=</span> <span class="n">physical_type_names</span> <span class="o">&amp;</span> <span class="n">names_for_other_units</span>
+    <span class="k">if</span> <span class="n">names_already_in_use</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;the following physical type names are already in use: &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">names_already_in_use</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+    <span class="n">unit_already_in_use</span> <span class="o">=</span> <span class="n">physical_type_id</span> <span class="ow">in</span> <span class="n">_physical_unit_mapping</span>
+    <span class="k">if</span> <span class="n">unit_already_in_use</span><span class="p">:</span>
+        <span class="n">physical_type</span> <span class="o">=</span> <span class="n">_physical_unit_mapping</span><span class="p">[</span><span class="n">physical_type_id</span><span class="p">]</span>
+        <span class="n">physical_type_names</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">physical_type</span><span class="p">)</span>
+        <span class="n">physical_type</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">physical_type_names</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">physical_type</span> <span class="o">=</span> <span class="n">PhysicalType</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">physical_type_names</span><span class="p">)</span>
+        <span class="n">_physical_unit_mapping</span><span class="p">[</span><span class="n">physical_type_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">physical_type</span>
+
+    <span class="k">for</span> <span class="n">ptype</span> <span class="ow">in</span> <span class="n">physical_type</span><span class="p">:</span>
+        <span class="n">_unit_physical_mapping</span><span class="p">[</span><span class="n">ptype</span><span class="p">]</span> <span class="o">=</span> <span class="n">physical_type_id</span>
+
+    <span class="k">for</span> <span class="n">ptype_name</span> <span class="ow">in</span> <span class="n">physical_type_names</span><span class="p">:</span>
+        <span class="n">_name_physical_mapping</span><span class="p">[</span><span class="n">ptype_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">physical_type</span>
+        <span class="c1"># attribute-accessible name</span>
+        <span class="n">attr_name</span> <span class="o">=</span> <span class="n">ptype_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">_attrname_physical_mapping</span><span class="p">[</span><span class="n">attr_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">physical_type</span></div>
+
+
+<div class="viewcode-block" id="get_physical_type"><a class="viewcode-back" href="../../../api/astropy.units.physical.get_physical_type.html#astropy.units.get_physical_type">[docs]</a><span class="k">def</span> <span class="nf">get_physical_type</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the physical type that corresponds to a unit (or another</span>
+<span class="sd">    physical type representation).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    obj : quantity-like or `~astropy.units.PhysicalType`-like</span>
+<span class="sd">        An object that (implicitly or explicitly) has a corresponding</span>
+<span class="sd">        physical type. This object may be a unit, a</span>
+<span class="sd">        `~astropy.units.Quantity`, an object that can be converted to a</span>
+<span class="sd">        `~astropy.units.Quantity` (such as a number or array), a string</span>
+<span class="sd">        that contains a name of a physical type, or a</span>
+<span class="sd">        `~astropy.units.PhysicalType` instance.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    `~astropy.units.PhysicalType`</span>
+<span class="sd">        A representation of the physical type(s) of the unit.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    The physical type may be retrieved from a unit or a</span>
+<span class="sd">    `~astropy.units.Quantity`.</span>
+
+<span class="sd">    &gt;&gt;&gt; import astropy.units as u</span>
+<span class="sd">    &gt;&gt;&gt; u.get_physical_type(u.meter ** -2)</span>
+<span class="sd">    PhysicalType(&#39;column density&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; u.get_physical_type(0.62 * u.barn * u.Mpc)</span>
+<span class="sd">    PhysicalType(&#39;volume&#39;)</span>
+
+<span class="sd">    The physical type may also be retrieved by providing a `str` that</span>
+<span class="sd">    contains the name of a physical type.</span>
+
+<span class="sd">    &gt;&gt;&gt; u.get_physical_type(&quot;energy&quot;)</span>
+<span class="sd">    PhysicalType({&#39;energy&#39;, &#39;torque&#39;, &#39;work&#39;})</span>
+
+<span class="sd">    Numbers and arrays of numbers correspond to a dimensionless physical</span>
+<span class="sd">    type.</span>
+
+<span class="sd">    &gt;&gt;&gt; u.get_physical_type(1)</span>
+<span class="sd">    PhysicalType(&#39;dimensionless&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">PhysicalType</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_physical_type_from_str</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">unit</span> <span class="o">=</span> <span class="n">obj</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">core</span><span class="o">.</span><span class="n">UnitBase</span><span class="p">)</span> <span class="k">else</span> <span class="n">quantity</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">unit</span>
+    <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">obj</span><span class="si">}</span><span class="s2"> does not correspond to a physical type.&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
+
+    <span class="n">unit</span> <span class="o">=</span> <span class="n">_replace_temperatures_with_kelvin</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+    <span class="n">physical_type_id</span> <span class="o">=</span> <span class="n">unit</span><span class="o">.</span><span class="n">_get_physical_type_id</span><span class="p">()</span>
+    <span class="n">unit_has_known_physical_type</span> <span class="o">=</span> <span class="n">physical_type_id</span> <span class="ow">in</span> <span class="n">_physical_unit_mapping</span>
+
+    <span class="k">if</span> <span class="n">unit_has_known_physical_type</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_physical_unit_mapping</span><span class="p">[</span><span class="n">physical_type_id</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">PhysicalType</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span></div>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<span class="c1"># Script section creating the physical types and the documentation</span>
+
+<span class="c1"># define the physical types</span>
+<span class="k">for</span> <span class="n">unit</span><span class="p">,</span> <span class="n">physical_type</span> <span class="ow">in</span> <span class="n">_units_and_physical_types</span><span class="p">:</span>
+    <span class="n">def_physical_type</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">physical_type</span><span class="p">)</span>
+
+
+<span class="c1"># For getting the physical types.</span>
+<span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Checks for physical types using lazy import.</span>
+
+<span class="sd">    This also allows user-defined physical types to be accessible from the</span>
+<span class="sd">    :mod:`astropy.units.physical` module.</span>
+<span class="sd">    See `PEP 562 &lt;https://www.python.org/dev/peps/pep-0562/&gt;`_</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        The name of the attribute in this module. If it is already defined,</span>
+<span class="sd">        then this function is not called.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ptype : `~astropy.units.physical.PhysicalType`</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    AttributeError</span>
+<span class="sd">        If the ``name`` does not correspond to a physical type</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_attrname_physical_mapping</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_attrname_physical_mapping</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;module </span><span class="si">{</span><span class="vm">__name__</span><span class="si">!r}</span><span class="s2"> has no attribute </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="fm">__dir__</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Return contents directory (__all__ + all physical type names).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">__all__</span><span class="p">)</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">_attrname_physical_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+
+<span class="c1"># This generates a docstring addition for this module that describes all of the</span>
+<span class="c1"># standard physical types defined here.</span>
+<span class="k">if</span> <span class="vm">__doc__</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">doclines</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;.. list-table:: Defined Physical Types&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;    :header-rows: 1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;    :widths: 30 10 50&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;    * - Physical type&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;      - Unit&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;      - Other physical type(s) with same unit&quot;</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">_name_physical_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="n">physical_type</span> <span class="o">=</span> <span class="n">_name_physical_mapping</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">doclines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+            <span class="sa">f</span><span class="s2">&quot;    * - _`</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">`&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;      - :math:`</span><span class="si">{</span><span class="n">physical_type</span><span class="o">.</span><span class="n">_unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">`&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;      - </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">physical_type</span> <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="n">name</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">])</span>
+
+    <span class="vm">__doc__</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">doclines</span><span class="p">)</span>
+
+
+<span class="k">del</span> <span class="n">unit</span><span class="p">,</span> <span class="n">physical_type</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

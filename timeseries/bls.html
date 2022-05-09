@@ -1,0 +1,313 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Box Least Squares (BLS) Periodogram &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="aggregate_downsample" href="../api/astropy.timeseries.aggregate_downsample.html" />
+    <link rel="prev" title="Lomb-Scargle Periodograms" href="lombscargle.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../api/astropy.timeseries.aggregate_downsample.html" title="aggregate_downsample">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="lombscargle.html" title="Lomb-Scargle Periodograms">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Time Series (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.timeseries</span></code>)</a> &#187;</li>
+      
+      <li>Box Least Squares (BLS) Periodogram</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="box-least-squares-bls-periodogram">
+<span id="stats-bls"></span><h1>Box Least Squares (BLS) Periodogram<a class="headerlink" href="#box-least-squares-bls-periodogram" title="Permalink to this headline">¶</a></h1>
+<p>The “box least squares” (BLS) periodogram <a class="footnote-reference brackets" href="#id10" id="id1">1</a> is a statistical tool used for
+detecting transiting exoplanets and eclipsing binaries in time series
+photometric data. The main interface to this implementation is the
+<a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares" title="astropy.timeseries.BoxLeastSquares"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BoxLeastSquares</span></code></a> class.</p>
+<div class="section" id="mathematical-background">
+<h2>Mathematical Background<a class="headerlink" href="#mathematical-background" title="Permalink to this headline">¶</a></h2>
+<p>The BLS method finds transit candidates by modeling a transit as a periodic
+upside down top hat with four parameters: period, duration, depth, and a
+reference time. In this implementation, the reference time is chosen to be the
+mid-transit time of the first transit in the observational baseline. These
+parameters are shown in the following sketch:</p>
+<p>(<a class="reference external" href="../timeseries/bls-1.png">png</a>, <a class="reference external" href="../timeseries/bls-1.svg">svg</a>, <a class="reference external" href="../timeseries/bls-1.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/bls-1.png" class="plot-directive" src="../_images/bls-1.png" />
+</div>
+<p>Assuming that the uncertainties on the measured flux are known, independent,
+and Gaussian, the maximum likelihood in-transit flux can be computed as</p>
+<div class="math notranslate nohighlight">
+\[y_\mathrm{in} = \frac{\sum_\mathrm{in} y_n/{\sigma_n}^2}{\sum_\mathrm{in} 1/{\sigma_n}^2}\]</div>
+<p>where <span class="math notranslate nohighlight">\(y_n\)</span> are the brightness measurements, <span class="math notranslate nohighlight">\(\sigma_n\)</span> are the
+associated uncertainties, and both sums are computed over the in-transit data
+points.</p>
+<p>Similarly, the maximum likelihood out-of-transit flux is</p>
+<div class="math notranslate nohighlight">
+\[y_\mathrm{out} = \frac{\sum_\mathrm{out} y_n/{\sigma_n}^2}{\sum_\mathrm{out} 1/{\sigma_n}^2}\]</div>
+<p>where these sums are over the out-of-transit observations. Using these results,
+the log likelihood of a transit model (maximized over depth) at a given period
+<span class="math notranslate nohighlight">\(P\)</span>, duration <span class="math notranslate nohighlight">\(\tau\)</span>, and reference time <span class="math notranslate nohighlight">\(t_0\)</span> is</p>
+<div class="math notranslate nohighlight">
+\[\log \mathcal{L}(P,\,\tau,\,t_0) =
+-\frac{1}{2}\,\sum_\mathrm{in}\frac{(y_n-y_\mathrm{in})^2}{{\sigma_n}^2}
+-\frac{1}{2}\,\sum_\mathrm{out}\frac{(y_n-y_\mathrm{out})^2}{{\sigma_n}^2}
++ \mathrm{constant}\]</div>
+<p>This equation might be familiar because it is proportional to the “chi
+squared” <span class="math notranslate nohighlight">\(\chi^2\)</span> for this model and this is a direct consequence of our
+assumption of Gaussian uncertainties.</p>
+<p>This <span class="math notranslate nohighlight">\(\chi^2\)</span> is called the “signal residue” by <a class="footnote-reference brackets" href="#id10" id="id2">1</a>, so maximizing the
+log likelihood over duration and reference time is equivalent to computing the
+box least squares spectrum from <a class="footnote-reference brackets" href="#id10" id="id3">1</a>.</p>
+<p>In practice, this is achieved by finding the maximum likelihood model over a
+grid in duration and reference time as specified by the <code class="docutils literal notranslate"><span class="pre">durations</span></code> and
+<code class="docutils literal notranslate"><span class="pre">oversample</span></code> parameters for the
+<a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.power" title="astropy.timeseries.BoxLeastSquares.power"><code class="xref py py-obj docutils literal notranslate"><span class="pre">power</span></code></a> method.</p>
+<p>Behind the scenes, this implementation minimizes the number of required
+calculations by pre-binning the observations onto a fine grid following <a class="footnote-reference brackets" href="#id10" id="id4">1</a>
+and <a class="footnote-reference brackets" href="#id11" id="id5">2</a>.</p>
+</div>
+<div class="section" id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h2>
+<p>The transit periodogram takes as input time series observations where the
+timestamps <code class="docutils literal notranslate"><span class="pre">t</span></code> and the observations <code class="docutils literal notranslate"><span class="pre">y</span></code> (usually brightness) are stored as
+<code class="docutils literal notranslate"><span class="pre">numpy</span></code> arrays or <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> objects. If known, error
+bars <code class="docutils literal notranslate"><span class="pre">dy</span></code> can also optionally be provided.</p>
+<div class="section" id="example">
+<h3>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h3>
+<p>To evaluate the periodogram for a simulated data set:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.timeseries</span> <span class="kn">import</span> <span class="n">BoxLeastSquares</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.1</span><span class="o">*</span><span class="p">((</span><span class="n">t</span><span class="o">%</span><span class="mi">3</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">0.2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.01</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">BoxLeastSquares</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">periodogram</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">autopower</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The output of the <a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.autopower" title="astropy.timeseries.BoxLeastSquares.autopower"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.timeseries.BoxLeastSquares.autopower</span></code></a> method
+is a <a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquaresResults.html#astropy.timeseries.BoxLeastSquaresResults" title="astropy.timeseries.BoxLeastSquaresResults"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BoxLeastSquaresResults</span></code></a> object with several
+useful attributes, the most useful of which are generally the <code class="docutils literal notranslate"><span class="pre">period</span></code> and
+<code class="docutils literal notranslate"><span class="pre">power</span></code> attributes.</p>
+<p>This result can be plotted using matplotlib:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>                  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">periodogram</span><span class="o">.</span><span class="n">period</span><span class="p">,</span> <span class="n">periodogram</span><span class="o">.</span><span class="n">power</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../timeseries/bls-2.png">png</a>, <a class="reference external" href="../timeseries/bls-2.svg">svg</a>, <a class="reference external" href="../timeseries/bls-2.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/bls-2.png" class="plot-directive" src="../_images/bls-2.png" />
+</div>
+<p>In this figure, you can see the peak at the correct period of three days.</p>
+</div>
+</div>
+<div class="section" id="objectives">
+<h2>Objectives<a class="headerlink" href="#objectives" title="Permalink to this headline">¶</a></h2>
+<p>By default, the <a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.power" title="astropy.timeseries.BoxLeastSquares.power"><code class="xref py py-obj docutils literal notranslate"><span class="pre">power</span></code></a> method computes the
+log likelihood of the model fit and maximizes over reference time and duration.
+It is also possible to use the signal-to-noise ratio with which the transit
+depth is measured as an objective function.</p>
+<div class="section" id="id6">
+<h3>Example<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<p>To compute the log likelihood of the model fit, call
+<a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.power" title="astropy.timeseries.BoxLeastSquares.power"><code class="xref py py-obj docutils literal notranslate"><span class="pre">power</span></code></a> or
+<a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.autopower" title="astropy.timeseries.BoxLeastSquares.autopower"><code class="xref py py-obj docutils literal notranslate"><span class="pre">autopower</span></code></a> with <code class="docutils literal notranslate"><span class="pre">objective='snr'</span></code> as
+follows:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">BoxLeastSquares</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">periodogram</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">autopower</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">objective</span><span class="o">=</span><span class="s2">&quot;snr&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../timeseries/bls-3.png">png</a>, <a class="reference external" href="../timeseries/bls-3.svg">svg</a>, <a class="reference external" href="../timeseries/bls-3.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/bls-3.png" class="plot-directive" src="../_images/bls-3.png" />
+</div>
+<p>This objective will generally produce a periodogram that is qualitatively
+similar to the log likelihood spectrum, but it has been used to improve the
+reliability of transit search in the presence of correlated noise.</p>
+</div>
+</div>
+<div class="section" id="period-grid">
+<h2>Period Grid<a class="headerlink" href="#period-grid" title="Permalink to this headline">¶</a></h2>
+<p>The transit periodogram is always computed on a grid of periods and the results
+can be sensitive to the sampling. As discussed in <a class="footnote-reference brackets" href="#id10" id="id7">1</a>, the performance of the
+transit periodogram method is more sensitive to the period grid than the
+<a class="reference internal" href="../api/astropy.timeseries.LombScargle.html#astropy.timeseries.LombScargle" title="astropy.timeseries.LombScargle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LombScargle</span></code></a> periodogram.</p>
+<p>This implementation of the transit periodogram includes a conservative heuristic
+for estimating the required period grid that is used by the
+<a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.autoperiod" title="astropy.timeseries.BoxLeastSquares.autoperiod"><code class="xref py py-obj docutils literal notranslate"><span class="pre">autoperiod</span></code></a> and
+<a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.autopower" title="astropy.timeseries.BoxLeastSquares.autopower"><code class="xref py py-obj docutils literal notranslate"><span class="pre">autopower</span></code></a> methods and the details of this
+method are given in the API documentation for
+<a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.autoperiod" title="astropy.timeseries.BoxLeastSquares.autoperiod"><code class="xref py py-obj docutils literal notranslate"><span class="pre">autoperiod</span></code></a>.</p>
+<div class="section" id="id8">
+<h3>Example<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
+<p>It is possible to provide a specific period grid as follows:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">BoxLeastSquares</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">periods</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">day</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">periodogram</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">periods</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../timeseries/bls-4.png">png</a>, <a class="reference external" href="../timeseries/bls-4.svg">svg</a>, <a class="reference external" href="../timeseries/bls-4.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/bls-4.png" class="plot-directive" src="../_images/bls-4.png" />
+</div>
+<p>However, if the period grid is too coarse, the correct period might be missed.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">BoxLeastSquares</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">periods</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">day</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">periodogram</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">periods</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../timeseries/bls-5.png">png</a>, <a class="reference external" href="../timeseries/bls-5.svg">svg</a>, <a class="reference external" href="../timeseries/bls-5.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/bls-5.png" class="plot-directive" src="../_images/bls-5.png" />
+</div>
+</div>
+</div>
+<div class="section" id="peak-statistics">
+<h2>Peak Statistics<a class="headerlink" href="#peak-statistics" title="Permalink to this headline">¶</a></h2>
+<p>To help in the transit vetting process and to debug problems with candidate
+peaks, the <a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.compute_stats" title="astropy.timeseries.BoxLeastSquares.compute_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_stats</span></code></a> method can be
+used to calculate several statistics of a candidate transit.</p>
+<p>Many of these statistics are based on the VARTOOLS package described in <a class="footnote-reference brackets" href="#id11" id="id9">2</a>.
+This will often be used as follows to compute stats for the maximum point in
+the periodogram:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">BoxLeastSquares</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">periodogram</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">autopower</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">max_power</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">periodogram</span><span class="o">.</span><span class="n">power</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">stats</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">compute_stats</span><span class="p">(</span><span class="n">periodogram</span><span class="o">.</span><span class="n">period</span><span class="p">[</span><span class="n">max_power</span><span class="p">],</span>
+<span class="gp">... </span>                            <span class="n">periodogram</span><span class="o">.</span><span class="n">duration</span><span class="p">[</span><span class="n">max_power</span><span class="p">],</span>
+<span class="gp">... </span>                            <span class="n">periodogram</span><span class="o">.</span><span class="n">transit_time</span><span class="p">[</span><span class="n">max_power</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>This calculates a dictionary with statistics about this candidate.
+Each entry in this dictionary is described in the documentation for
+<a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.compute_stats" title="astropy.timeseries.BoxLeastSquares.compute_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_stats</span></code></a>.</p>
+</div>
+<div class="section" id="literature-references">
+<h2>Literature References<a class="headerlink" href="#literature-references" title="Permalink to this headline">¶</a></h2>
+<dl class="footnote brackets">
+<dt class="label" id="id10"><span class="brackets">1</span><span class="fn-backref">(<a href="#id1">1</a>,<a href="#id2">2</a>,<a href="#id3">3</a>,<a href="#id4">4</a>,<a href="#id7">5</a>)</span></dt>
+<dd><p>Kovacs, Zucker, &amp; Mazeh (2002), A&amp;A, 391, 369 (arXiv:astro-ph/0206099)</p>
+</dd>
+<dt class="label" id="id11"><span class="brackets">2</span><span class="fn-backref">(<a href="#id5">1</a>,<a href="#id9">2</a>)</span></dt>
+<dd><p>Hartman &amp; Bakos (2016), Astronomy &amp; Computing, 17, 1 (arXiv:1605.06811)</p>
+</dd>
+</dl>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Box Least Squares (BLS) Periodogram</a><ul>
+<li><a class="reference internal" href="#mathematical-background">Mathematical Background</a></li>
+<li><a class="reference internal" href="#basic-usage">Basic Usage</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#objectives">Objectives</a><ul>
+<li><a class="reference internal" href="#id6">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#period-grid">Period Grid</a><ul>
+<li><a class="reference internal" href="#id8">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#peak-statistics">Peak Statistics</a></li>
+<li><a class="reference internal" href="#literature-references">Literature References</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/timeseries/bls.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

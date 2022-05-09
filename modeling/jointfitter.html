@@ -1,0 +1,259 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JointFitter &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="1D Models" href="predef_models1D.html" />
+    <link rel="prev" title="Adding support for units in a model (Advanced)" href="add-units.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="predef_models1D.html" title="1D Models">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="add-units.html" title="Adding support for units in a model (Advanced)">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Models and Fitting (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling</span></code>)</a> &#187;</li>
+      
+      <li>JointFitter</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="jointfitter">
+<span id="id1"></span><h1>JointFitter<a class="headerlink" href="#jointfitter" title="Permalink to this headline">¶</a></h1>
+<p>There are cases where one may wish to fit multiple datasets with models that
+share parameters.  This is possible with the
+<a class="reference internal" href="../api/astropy.modeling.fitting.JointFitter.html#astropy.modeling.fitting.JointFitter" title="astropy.modeling.fitting.JointFitter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling.fitting.JointFitter</span></code></a>.  Basically, this fitter is
+setup with a list of defined models, the parameters in common between the
+different models, and the initial values for those parameters. Then the fitter
+is called supplying as many x and y arrays, one for each model to be fit.  The
+fit parameters are the result of the jointly fitting the models to the
+combined datasets.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The JointFitter uses the scipy.optimize.leastsq.  In addition, it
+does not support fixed, bounded, or tied parameters at this time.</p>
+</div>
+</div>
+<div class="section" id="example-spectral-line">
+<h1>Example: Spectral Line<a class="headerlink" href="#example-spectral-line" title="Permalink to this headline">¶</a></h1>
+<p>This example is for two spectral segments with different spectral resolutions
+that have the same spectral line in the wavelength region that is overlapping
+between both segments.</p>
+<p>We will need to define a Gaussian function that has mean wavelength, area, and
+width parameters.  This is needed as the <a class="reference internal" href="../api/astropy.modeling.functional_models.Gaussian1D.html#astropy.modeling.functional_models.Gaussian1D" title="astropy.modeling.functional_models.Gaussian1D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling.functional_models.Gaussian1D</span></code></a>
+function has mean wavelength, central intensity, and width parameters, but the
+central intensity of a line will be different at different spectral resolutions,
+but the area will be the same.</p>
+<p>First, imports needed for this example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># imports</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">math</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling</span> <span class="kn">import</span> <span class="n">fitting</span><span class="p">,</span> <span class="n">Fittable1DModel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.parameters</span> <span class="kn">import</span> <span class="n">Parameter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.functional_models</span> <span class="kn">import</span> <span class="n">FLOAT_EPSILON</span>
+</pre></div>
+</div>
+<p>Now define AreaGaussian1D with area instead of intensity as a parameter.
+This new is modified and trimmed version of the standard Gaussian1D model.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">AreaGaussian1D</span><span class="p">(</span><span class="n">Fittable1DModel</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="sd">&quot;&quot;&quot;</span>
+<span class="gp">... </span><span class="sd">  One dimensional Gaussian model with area as a parameter.</span>
+<span class="gp">...</span><span class="sd"></span>
+<span class="gp">... </span><span class="sd">  Parameters</span>
+<span class="gp">... </span><span class="sd">  ----------</span>
+<span class="gp">... </span><span class="sd">  area : float or `~astropy.units.Quantity`.</span>
+<span class="gp">... </span><span class="sd">      Integrated area</span>
+<span class="gp">... </span><span class="sd">      Note: amplitude = area / (stddev * np.sqrt(2 * np.pi))</span>
+<span class="gp">... </span><span class="sd">  mean : float or `~astropy.units.Quantity`.</span>
+<span class="gp">... </span><span class="sd">      Mean of the Gaussian.</span>
+<span class="gp">... </span><span class="sd">  stddev : float or `~astropy.units.Quantity`.</span>
+<span class="gp">... </span><span class="sd">      Standard deviation of the Gaussian with FWHM = 2 * stddev * np.sqrt(2 * np.log(2)).</span>
+<span class="gp">... </span><span class="sd">  &quot;&quot;&quot;</span>
+<span class="gp">... </span>  <span class="n">area</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="n">mean</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="c1"># Ensure stddev makes sense if its bounds are not explicitly set.</span>
+<span class="gp">... </span>  <span class="c1"># stddev must be non-zero and positive.</span>
+<span class="gp">... </span>  <span class="n">stddev</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="n">FLOAT_EPSILON</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<span class="gp">...</span>
+<span class="gp">... </span>  <span class="nd">@staticmethod</span>
+<span class="gp">... </span>  <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">area</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">stddev</span><span class="p">):</span>
+<span class="gp">... </span>      <span class="sd">&quot;&quot;&quot;</span>
+<span class="gp">... </span><span class="sd">      AreaGaussian1D model function.</span>
+<span class="gp">... </span><span class="sd">      &quot;&quot;&quot;</span>
+<span class="gp">... </span>      <span class="k">return</span> <span class="p">(</span><span class="n">area</span> <span class="o">/</span> <span class="p">(</span><span class="n">stddev</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+<span class="gp">... </span>          <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">stddev</span> <span class="o">**</span> <span class="mi">2</span>
+<span class="gp">... </span>      <span class="p">)</span>
+</pre></div>
+</div>
+<p>Data to be fit is simulated.  The 1st spectral segment will have a spectral
+resolution that is a factor of 2 higher than the second segment.  The first
+segment will have wavelengths from 1 to 6 and the second from 4 to 10 giving
+an overlapping wavelength region from 4 to 6.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Generate fake data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mean</span> <span class="o">=</span> <span class="mf">5.1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sigma1</span> <span class="o">=</span> <span class="mf">0.2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sigma2</span> <span class="o">=</span> <span class="mf">0.4</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">noise</span> <span class="o">=</span> <span class="mf">0.10</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># compute the central amplitudes so the lines in each segment have the</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># same area</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">area</span> <span class="o">=</span> <span class="mf">1.5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">amp1</span> <span class="o">=</span> <span class="n">area</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">sigma1</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">amp2</span> <span class="o">=</span> <span class="n">area</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">sigma2</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># segment 1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y1</span> <span class="o">=</span> <span class="n">amp1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x1</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">sigma1</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y1</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">x1</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># segment 2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y2</span> <span class="o">=</span> <span class="n">amp2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x2</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">sigma2</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y2</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">noise</span><span class="p">,</span> <span class="n">x2</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now define the models to be fit and fitter to use.  Then fit the two simulated
+datasets.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># define the two models to be fit</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gjf1</span> <span class="o">=</span> <span class="n">AreaGaussian1D</span><span class="p">(</span><span class="n">area</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gjf2</span> <span class="o">=</span> <span class="n">AreaGaussian1D</span><span class="p">(</span><span class="n">area</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># define the jointfitter specifying the parameters in common and their initial values</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fit_joint</span> <span class="o">=</span> <span class="n">fitting</span><span class="o">.</span><span class="n">JointFitter</span><span class="p">(</span>
+<span class="gp">... </span>   <span class="p">[</span><span class="n">gjf1</span><span class="p">,</span> <span class="n">gjf2</span><span class="p">],</span> <span class="p">{</span><span class="n">gjf1</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;area&quot;</span><span class="p">,</span> <span class="s2">&quot;mean&quot;</span><span class="p">],</span> <span class="n">gjf2</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;area&quot;</span><span class="p">,</span> <span class="s2">&quot;mean&quot;</span><span class="p">]},</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">]</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># perform the fit</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g12</span> <span class="o">=</span> <span class="n">fit_joint</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The resulting fit parameters show that the area and mean wavelength of the
+two AreaGaussian1D models are exactly the same while the width (stddev) is
+different reflecting the different spectral resolutions of the two segments.</p>
+<p>AreaGaussian1 parameters</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">gjf1</span><span class="o">.</span><span class="n">param_names</span><span class="p">)</span>
+<span class="go">(&#39;area&#39;, &#39;mean&#39;, &#39;stddev&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">gjf1</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+<span class="go">[1.48697226 5.09826068 0.19761087]</span>
+</pre></div>
+</div>
+<p>AreaGaussian2 parameters</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">gjf1</span><span class="o">.</span><span class="n">param_names</span><span class="p">)</span>
+<span class="go">(&#39;area&#39;, &#39;mean&#39;, &#39;stddev&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">gjf2</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+<span class="go">[1.48697226 5.09826068 0.4015368 ]</span>
+</pre></div>
+</div>
+<p>The simulated data and best fit models can be plotted showing good agreement
+between the two AreaGaussian1D models and the two spectral segments.</p>
+<p>(<a class="reference external" href="../modeling/jointfitter-1.png">png</a>, <a class="reference external" href="../modeling/jointfitter-1.svg">svg</a>, <a class="reference external" href="../modeling/jointfitter-1.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/jointfitter-1.png" class="plot-directive" src="../_images/jointfitter-1.png" />
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">JointFitter</a></li>
+<li><a class="reference internal" href="#example-spectral-line">Example: Spectral Line</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/modeling/jointfitter.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

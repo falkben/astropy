@@ -1,0 +1,531 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ECSV Format &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Fixed-Width Gallery" href="fixed_width_gallery.html" />
+    <link rel="prev" title="Writing Tables" href="write.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="fixed_width_gallery.html" title="Fixed-Width Gallery">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="write.html" title="Writing Tables">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">ASCII Tables (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code>)</a> &#187;</li>
+      
+      <li>ECSV Format</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="ecsv-format">
+<span id="id1"></span><h1>ECSV Format<a class="headerlink" href="#ecsv-format" title="Permalink to this headline">¶</a></h1>
+<p>The <a class="reference external" href="https://github.com/astropy/astropy-APEs/blob/main/APE6.rst">Enhanced Character-Separated Values (ECSV) format</a> can be used to
+write <code class="docutils literal notranslate"><span class="pre">astropy</span></code> <a class="reference internal" href="../../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table</span></code></a> or <a class="reference internal" href="../../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QTable</span></code></a> datasets to
+a text-only human readable data file and then read the table back without loss
+of information. The format stores column specifications like unit and data type
+along with table metadata by using a YAML header data structure. The
+actual tabular data are stored in a standard character separated values (CSV)
+format, giving compatibility with a wide variety of non-specialized CSV table
+readers.</p>
+<div class="admonition attention">
+<p class="admonition-title">Attention</p>
+<p>The ECSV format is the recommended way to store Table data in a
+human-readable ASCII file. This includes use cases from informal
+use in science research to production pipelines and data systems.</p>
+<p>In addition to Python, ECSV is supported in <a class="reference external" href="http://www.star.bris.ac.uk/~mbt/topcat/">TOPCAT</a> and in the java <a class="reference external" href="http://www.star.bris.ac.uk/~mbt/topcat/sun253/inEcsv.html">STIL</a> library. .</p>
+</div>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<p>When writing in the ECSV format there are only two choices for the delimiter,
+either space or comma, with space being the default. Any other value of
+<code class="docutils literal notranslate"><span class="pre">delimiter</span></code> will give an error. For reading the delimiter is specified within
+the file itself.</p>
+<p>Apart from the delimiter, the only other applicable read/write arguments are
+<code class="docutils literal notranslate"><span class="pre">names</span></code>, <code class="docutils literal notranslate"><span class="pre">include_names</span></code>, and <code class="docutils literal notranslate"><span class="pre">exclude_names</span></code>. All other arguments will be
+either ignored or raise an error.</p>
+</div>
+<div class="section" id="simple-table">
+<h2>Simple Table<a class="headerlink" href="#simple-table" title="Permalink to this headline">¶</a></h2>
+<p>The following writes a table as a simple space-delimited file. The
+ECSV format is auto-selected due to <code class="docutils literal notranslate"><span class="pre">.ecsv</span></code> suffix:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="s1">&#39;hello&#39;</span><span class="p">,</span> <span class="s1">&#39;world&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;my_data.ecsv&#39;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>The contents of <code class="docutils literal notranslate"><span class="pre">my_data.ecsv</span></code> are shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># %ECSV 1.0</span>
+<span class="c1"># ---</span>
+<span class="c1"># datatype:</span>
+<span class="c1"># - {name: a, datatype: int8}</span>
+<span class="c1"># - {name: b, datatype: float32}</span>
+<span class="c1"># - {name: c, datatype: string}</span>
+<span class="c1"># schema: astropy-2.0</span>
+<span class="n">a</span> <span class="n">b</span> <span class="n">c</span>
+<span class="mi">1</span> <span class="mf">1.0</span> <span class="n">hello</span>
+<span class="mi">2</span> <span class="mf">2.0</span> <span class="n">world</span>
+</pre></div>
+</div>
+<p>The ECSV header is the section prefixed by the <code class="docutils literal notranslate"><span class="pre">#</span></code> comment character. An ECSV
+file must start with the <code class="docutils literal notranslate"><span class="pre">%ECSV</span> <span class="pre">&lt;version&gt;</span></code> line. The <code class="docutils literal notranslate"><span class="pre">datatype</span></code> element
+defines the list of columns and the <code class="docutils literal notranslate"><span class="pre">schema</span></code> relates to astropy-specific
+extensions that are used for writing <a class="reference internal" href="#mixin-columns">Mixin Columns</a>.</p>
+</div>
+<div class="section" id="masked-data">
+<h2>Masked Data<a class="headerlink" href="#masked-data" title="Permalink to this headline">¶</a></h2>
+<p>You can write masked (or “missing”) data in the ECSV format in two different
+ways, either using an empty string to represent missing values or by splitting
+the masked columns into separate data and mask columns.</p>
+<div class="section" id="empty-string">
+<h3>Empty String<a class="headerlink" href="#empty-string" title="Permalink to this headline">¶</a></h3>
+<p>The first (default) way uses an empty string as a marker in place of
+masked values. This is a bit more common outside of <code class="docutils literal notranslate"><span class="pre">astropy</span></code> and does not
+require any astropy-specific extensions.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">MaskedColumn</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MaskedColumn</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MaskedColumn</span><span class="p">([</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;bool&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;my_data.ecsv&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ascii.ecsv&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>The contents of <code class="docutils literal notranslate"><span class="pre">my_data.ecsv</span></code> are shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># %ECSV 1.0</span>
+<span class="c1"># ---</span>
+<span class="c1"># datatype:</span>
+<span class="c1"># - {name: x, unit: m, datatype: float32}</span>
+<span class="c1"># - {name: y, datatype: bool}</span>
+<span class="c1"># schema: astropy-2.0</span>
+<span class="n">x</span> <span class="n">y</span>
+<span class="mf">1.0</span> <span class="s2">&quot;&quot;</span>
+<span class="s2">&quot;&quot;</span> <span class="kc">True</span>
+<span class="mf">3.0</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<p>To read this back, you would run the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;my_data.ecsv&#39;</span><span class="p">)</span>  
+<span class="go">&lt;Table length=3&gt;</span>
+<span class="go">   x      y</span>
+<span class="go">   m</span>
+<span class="go">float32  bool</span>
+<span class="go">------- -----</span>
+<span class="go">    1.0    --</span>
+<span class="go">     --  True</span>
+<span class="go">    3.0 False</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="data-mask">
+<h3>Data + Mask<a class="headerlink" href="#data-mask" title="Permalink to this headline">¶</a></h3>
+<p>The second way is to tell the writer to break any masked column into a data
+column and a mask column by supplying the <code class="docutils literal notranslate"><span class="pre">serialize_method='data_mask'</span></code>
+argument:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;my_data.ecsv&#39;</span><span class="p">,</span> <span class="n">serialize_method</span><span class="o">=</span><span class="s1">&#39;data_mask&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>There are two main reasons you might want to do this:</p>
+<ul class="simple">
+<li><p>Storing the data “under the mask” instead of replacing it with an empty string.</p></li>
+<li><p>Writing a string column that contains empty strings which are not masked.</p></li>
+</ul>
+<p>The contents of <code class="docutils literal notranslate"><span class="pre">my_data.ecsv</span></code> are shown below. First notice that there are
+two new columns <code class="docutils literal notranslate"><span class="pre">x.mask</span></code> and <code class="docutils literal notranslate"><span class="pre">y.mask</span></code> that have been added, and these explicitly
+record the mask values for those columns. Next notice now that the ECSV
+header is a bit more complex and includes the astropy-specific extensions that
+tell the reader how to interpret the plain CSV columns <code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">x.mask,</span> <span class="pre">y,</span> <span class="pre">y.mask</span></code>
+and reassemble them back into the appropriate masked columns.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># %ECSV 1.0</span>
+<span class="c1"># ---</span>
+<span class="c1"># datatype:</span>
+<span class="c1"># - {name: x, unit: m, datatype: float32}</span>
+<span class="c1"># - {name: x.mask, datatype: bool}</span>
+<span class="c1"># - {name: y, datatype: bool}</span>
+<span class="c1"># - {name: y.mask, datatype: bool}</span>
+<span class="c1"># meta: !!omap</span>
+<span class="c1"># - __serialized_columns__:</span>
+<span class="c1">#     x:</span>
+<span class="c1">#       __class__: astropy.table.column.MaskedColumn</span>
+<span class="c1">#       data: !astropy.table.SerializedColumn {name: x}</span>
+<span class="c1">#       mask: !astropy.table.SerializedColumn {name: x.mask}</span>
+<span class="c1">#     y:</span>
+<span class="c1">#       __class__: astropy.table.column.MaskedColumn</span>
+<span class="c1">#       data: !astropy.table.SerializedColumn {name: y}</span>
+<span class="c1">#       mask: !astropy.table.SerializedColumn {name: y.mask}</span>
+<span class="c1"># schema: astropy-2.0</span>
+<span class="n">x</span> <span class="n">x</span><span class="o">.</span><span class="n">mask</span> <span class="n">y</span> <span class="n">y</span><span class="o">.</span><span class="n">mask</span>
+<span class="mf">1.0</span> <span class="kc">False</span> <span class="kc">False</span> <span class="kc">True</span>
+<span class="mf">2.0</span> <span class="kc">True</span> <span class="kc">True</span> <span class="kc">False</span>
+<span class="mf">3.0</span> <span class="kc">False</span> <span class="kc">False</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For the security minded, the <code class="docutils literal notranslate"><span class="pre">__class__</span></code> value must within an allowed list
+of astropy classes that are trusted by the reader. You cannot use an
+arbitrary class here.</p>
+</div>
+<div class="section" id="per-column-control">
+<h4>Per-column control<a class="headerlink" href="#per-column-control" title="Permalink to this headline">¶</a></h4>
+<p>In rare cases it may be necessary to specify the serialization method for each
+column individually. This is shown in the example below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table.table_helpers</span> <span class="kn">import</span> <span class="n">simple_table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">simple_table</span><span class="p">(</span><span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># Valid empty string in data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span>
+<span class="go">&lt;Table masked=True length=3&gt;</span>
+<span class="go">  a      b     c</span>
+<span class="go">int64 float64 str1</span>
+<span class="go">----- ------- ----</span>
+<span class="go">   --     1.0</span>
+<span class="go">    2     2.0   --</span>
+<span class="go">    3      --    e</span>
+</pre></div>
+</div>
+<p>Now we tell ECSV writer to output separate data and mask columns for the
+string column <code class="docutils literal notranslate"><span class="pre">'c'</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">serialize_method</span><span class="p">[</span><span class="s1">&#39;ecsv&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;data_mask&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ecsv&#39;</span><span class="p">)</span>
+<span class="go"># %ECSV 1.0</span>
+<span class="go"># ---</span>
+<span class="go"># datatype:</span>
+<span class="go"># - {name: a, datatype: int64}</span>
+<span class="go"># - {name: b, datatype: float64}</span>
+<span class="go"># - {name: c, datatype: string}</span>
+<span class="go"># - {name: c.mask, datatype: bool}</span>
+<span class="go"># meta: !!omap</span>
+<span class="go"># - __serialized_columns__:</span>
+<span class="go">#     c:</span>
+<span class="go">#       __class__: astropy.table.column.MaskedColumn</span>
+<span class="go">#       data: !astropy.table.SerializedColumn {name: c}</span>
+<span class="go">#       mask: !astropy.table.SerializedColumn {name: c.mask}</span>
+<span class="go"># schema: astropy-2.0</span>
+<span class="go">a b c c.mask</span>
+<span class="go">&quot;&quot; 1.0 &quot;&quot; False</span>
+<span class="go">2 2.0 d True</span>
+<span class="go">3 &quot;&quot; e False</span>
+</pre></div>
+</div>
+<p>When you read this back in, both the empty (zero-length) string and the masked
+<code class="docutils literal notranslate"><span class="pre">'d'</span></code> value in the column <code class="docutils literal notranslate"><span class="pre">'c'</span></code> will be preserved.</p>
+</div>
+</div>
+</div>
+<div class="section" id="mixin-columns">
+<span id="ecsv-format-mixin-columns"></span><h2>Mixin Columns<a class="headerlink" href="#mixin-columns" title="Permalink to this headline">¶</a></h2>
+<p>It is possible to store not only standard <a class="reference internal" href="../../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column</span></code></a> and
+<a class="reference internal" href="../../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a> objects to ECSV but also the following
+<a class="reference internal" href="../../table/mixin_columns.html#mixin-columns"><span class="std std-ref">Mixin Columns</span></a>:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.time.Time</span></code></a></p></li>
+<li><p><a class="reference internal" href="../../api/astropy.time.TimeDelta.html#astropy.time.TimeDelta" title="astropy.time.TimeDelta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.time.TimeDelta</span></code></a></p></li>
+<li><p><a class="reference internal" href="../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.units.Quantity</span></code></a></p></li>
+<li><p><a class="reference internal" href="../../api/astropy.coordinates.Latitude.html#astropy.coordinates.Latitude" title="astropy.coordinates.Latitude"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates.Latitude</span></code></a></p></li>
+<li><p><a class="reference internal" href="../../api/astropy.coordinates.Longitude.html#astropy.coordinates.Longitude" title="astropy.coordinates.Longitude"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates.Longitude</span></code></a></p></li>
+<li><p><a class="reference internal" href="../../api/astropy.coordinates.Angle.html#astropy.coordinates.Angle" title="astropy.coordinates.Angle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates.Angle</span></code></a></p></li>
+<li><p><a class="reference internal" href="../../api/astropy.coordinates.Distance.html#astropy.coordinates.Distance" title="astropy.coordinates.Distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates.Distance</span></code></a></p></li>
+<li><p><a class="reference internal" href="../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation" title="astropy.coordinates.EarthLocation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates.EarthLocation</span></code></a></p></li>
+<li><p><a class="reference internal" href="../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates.SkyCoord</span></code></a></p></li>
+<li><p><a class="reference internal" href="../../api/astropy.table.NdarrayMixin.html#astropy.table.NdarrayMixin" title="astropy.table.NdarrayMixin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.NdarrayMixin</span></code></a></p></li>
+<li><p>Coordinate representation types such as <a class="reference internal" href="../../api/astropy.coordinates.SphericalRepresentation.html#astropy.coordinates.SphericalRepresentation" title="astropy.coordinates.SphericalRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates.SphericalRepresentation</span></code></a></p></li>
+</ul>
+<p>In general, a mixin column may contain multiple data components as well as
+object attributes beyond the standard <a class="reference internal" href="../../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column</span></code></a> attributes like
+<code class="docutils literal notranslate"><span class="pre">format</span></code> or <code class="docutils literal notranslate"><span class="pre">description</span></code>. Storing such mixin columns is done by replacing
+the mixin column with column(s) representing the underlying data component(s)
+and then inserting metadata which informs the reader of how to reconstruct the
+original column. For example, a <a class="reference internal" href="../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> mixin column in
+<code class="docutils literal notranslate"><span class="pre">'spherical'</span></code> representation would have data attributes <code class="docutils literal notranslate"><span class="pre">ra</span></code>, <code class="docutils literal notranslate"><span class="pre">dec</span></code>,
+<code class="docutils literal notranslate"><span class="pre">distance</span></code>, along with object attributes like <code class="docutils literal notranslate"><span class="pre">representation_type</span></code> or
+<code class="docutils literal notranslate"><span class="pre">frame</span></code>.</p>
+<p>This example demonstrates writing a <a class="reference internal" href="../../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QTable</span></code></a> that has <a class="reference internal" href="../../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a>
+and <a class="reference internal" href="../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> mixin columns:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">QTable</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="s1">&#39;flying circus&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">q</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">q</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s1">&#39;.2f&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">QTable</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;q&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;sc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sc</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;my_data.ecsv&#39;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>The contents of <code class="docutils literal notranslate"><span class="pre">my_data.ecsv</span></code> are below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># %ECSV 1.0</span>
+<span class="c1"># ---</span>
+<span class="c1"># datatype:</span>
+<span class="c1"># - {name: c, datatype: int64}</span>
+<span class="c1"># - {name: q, unit: m, datatype: float64, format: .2f}</span>
+<span class="c1"># - {name: sc.ra, unit: deg, datatype: float64}</span>
+<span class="c1"># - {name: sc.dec, unit: deg, datatype: float64}</span>
+<span class="c1"># meta: !!omap</span>
+<span class="c1"># - __serialized_columns__:</span>
+<span class="c1">#     q:</span>
+<span class="c1">#       __class__: astropy.units.quantity.Quantity</span>
+<span class="c1">#       __info__: {format: .2f}</span>
+<span class="c1">#       unit: !astropy.units.Unit {unit: m}</span>
+<span class="c1">#       value: !astropy.table.SerializedColumn {name: q}</span>
+<span class="c1">#     sc:</span>
+<span class="c1">#       __class__: astropy.coordinates.sky_coordinate.SkyCoord</span>
+<span class="c1">#       __info__: {description: flying circus}</span>
+<span class="c1">#       dec: !astropy.table.SerializedColumn</span>
+<span class="c1">#         __class__: astropy.coordinates.angles.Latitude</span>
+<span class="c1">#         unit: &amp;id001 !astropy.units.Unit {unit: deg}</span>
+<span class="c1">#         value: !astropy.table.SerializedColumn {name: sc.dec}</span>
+<span class="c1">#       frame: icrs</span>
+<span class="c1">#       ra: !astropy.table.SerializedColumn</span>
+<span class="c1">#         __class__: astropy.coordinates.angles.Longitude</span>
+<span class="c1">#         unit: *id001</span>
+<span class="c1">#         value: !astropy.table.SerializedColumn {name: sc.ra}</span>
+<span class="c1">#         wrap_angle: !astropy.coordinates.Angle</span>
+<span class="c1">#           unit: *id001</span>
+<span class="c1">#           value: 360.0</span>
+<span class="c1">#       representation_type: spherical</span>
+<span class="c1"># schema: astropy-2.0</span>
+<span class="n">c</span> <span class="n">q</span> <span class="n">sc</span><span class="o">.</span><span class="n">ra</span> <span class="n">sc</span><span class="o">.</span><span class="n">dec</span>
+<span class="mi">1</span> <span class="mf">1.0</span> <span class="mf">1.0</span> <span class="mf">3.0</span>
+<span class="mi">2</span> <span class="mf">2.0</span> <span class="mf">2.0</span> <span class="mf">4.0</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">'__class__'</span></code> keyword gives the fully-qualified class name and must be
+one of the specifically allowed <code class="docutils literal notranslate"><span class="pre">astropy</span></code> classes. There is no option to add
+user-specified allowed classes. The <code class="docutils literal notranslate"><span class="pre">'__info__'</span></code> keyword contains values for
+standard <a class="reference internal" href="../../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column</span></code></a> attributes like <code class="docutils literal notranslate"><span class="pre">description</span></code> or <code class="docutils literal notranslate"><span class="pre">format</span></code>,
+for any mixin columns that are represented by more than one serialized column.</p>
+</div>
+<div class="section" id="multidimensional-columns">
+<span id="ecsv-format-masked-columns"></span><h2>Multidimensional Columns<a class="headerlink" href="#multidimensional-columns" title="Permalink to this headline">¶</a></h2>
+<p>Using ECSV it is possible to write a table that contains multidimensional
+columns (both masked and unmasked). This is done by encoding each element as a
+string using JSON. This functionality works for all column types that are
+supported by ECSV including <a class="reference internal" href="../../table/mixin_columns.html#mixin-columns"><span class="std std-ref">Mixin Columns</span></a>. This capability is added in
+astropy 4.3 and ECSV version 1.0.</p>
+<p>We start by defining a table with 2 rows where each element in the second column
+<code class="docutils literal notranslate"><span class="pre">'b'</span></code> is itself a 3x2 array:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span>
+<span class="go">&lt;Table length=2&gt;</span>
+<span class="go"> a        b</span>
+<span class="go">str1 float64[3,2]</span>
+<span class="go">---- ------------</span>
+<span class="go">   x   0.0 .. 5.0</span>
+<span class="go">   y  6.0 .. 11.0</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="go">array([[0., 1.],</span>
+<span class="go">      [2., 3.],</span>
+<span class="go">      [4., 5.]])</span>
+</pre></div>
+</div>
+<p>Now we can write this to ECSV and observe how the N-d column <code class="docutils literal notranslate"><span class="pre">'b'</span></code> has been
+written as a string with <code class="docutils literal notranslate"><span class="pre">datatype:</span> <span class="pre">string</span></code>. Notice also that the column
+descriptor for the column includes the new <code class="docutils literal notranslate"><span class="pre">subtype:</span> <span class="pre">float64[3,2]</span></code> attribute
+specifying the type and shape of each item.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ecsv&#39;</span><span class="p">)</span>  
+<span class="go"># %ECSV 1.0</span>
+<span class="go"># ---</span>
+<span class="go"># datatype:</span>
+<span class="go"># - {name: a, datatype: string}</span>
+<span class="go"># - {name: b, datatype: string, subtype: &#39;float64[3,2]&#39;}</span>
+<span class="go"># schema: astropy-2.0</span>
+<span class="go">a b</span>
+<span class="go">x [[0.0,1.0],[2.0,3.0],[4.0,5.0]]</span>
+<span class="go">y [[6.0,7.0],[8.0,9.0],[10.0,11.0]]</span>
+</pre></div>
+</div>
+<p>When you read this back in, the sequence of JSON-encoded column items are then
+decoded using JSON back into the original N-d column.</p>
+</div>
+<div class="section" id="variable-length-arrays">
+<h2>Variable-length arrays<a class="headerlink" href="#variable-length-arrays" title="Permalink to this headline">¶</a></h2>
+<p>ECSV supports storing multidimensional columns is when the length of each array
+element may vary. This data structure is supported in the <a class="reference external" href="https://fits.gsfc.nasa.gov/fits_standard.html">FITS standard</a>. While <code class="docutils literal notranslate"><span class="pre">numpy</span></code> does not
+natively support variable-length arrays, it is possible to represent such a
+structure using an object-type array of typed <code class="docutils literal notranslate"><span class="pre">np.ndarray</span></code> objects. This is how
+the <code class="docutils literal notranslate"><span class="pre">astropy</span></code> FITS reader outputs a variable-length array.</p>
+<p>This capability is added in astropy 4.3 and ECSV version 1.0.</p>
+<p>Most commonly variable-length arrays have a 1-d array in each cell of the
+column. You might a column with 1-d <code class="docutils literal notranslate"><span class="pre">np.ndarray</span></code> cells having lengths of 2, 5,
+and 3 respectively.</p>
+<p>The ECSV standard and <code class="docutils literal notranslate"><span class="pre">astropy</span></code> also supports arbitrary N-d arrays in each
+cell, where all dimensions except the last one must match. For instance you
+could have a column with <code class="docutils literal notranslate"><span class="pre">np.ndarray</span></code> cells having shapes of <code class="docutils literal notranslate"><span class="pre">(4,4,2)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">(4,4,5)</span></code>, and <code class="docutils literal notranslate"><span class="pre">(4,4,3)</span></code> respectively.</p>
+<p>The example below shows writing a variable-length 1-d array to ECSV. Notice the
+new ECSV column attribute <code class="docutils literal notranslate"><span class="pre">subtype:</span> <span class="pre">'int64[null]'</span></code>. The <code class="docutils literal notranslate"><span class="pre">[null]</span></code> indicates a
+variable length for the one dimension. If we had been writing the N-d example
+above the subtype would have been <code class="docutils literal notranslate"><span class="pre">int64[4,4,null]</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+<span class="gp">... </span>          <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+<span class="gp">... </span>          <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ecsv&#39;</span><span class="p">)</span>
+<span class="go"># %ECSV 1.0</span>
+<span class="go"># ---</span>
+<span class="go"># datatype:</span>
+<span class="go"># - {name: a, datatype: string, subtype: &#39;int64[null]&#39;}</span>
+<span class="go"># schema: astropy-2.0</span>
+<span class="go">a</span>
+<span class="go">[1,2]</span>
+<span class="go">[3,4,5]</span>
+<span class="go">[6,7,8,9]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="object-arrays">
+<h2>Object arrays<a class="headerlink" href="#object-arrays" title="Permalink to this headline">¶</a></h2>
+<p>ECSV can store object-type columns with simple Python objects consisting of
+<code class="docutils literal notranslate"><span class="pre">dict</span></code>, <code class="docutils literal notranslate"><span class="pre">list</span></code>, <code class="docutils literal notranslate"><span class="pre">str</span></code>, <code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, <code class="docutils literal notranslate"><span class="pre">bool</span></code> and <code class="docutils literal notranslate"><span class="pre">None</span></code> elements.
+More precisely, any object that can be serialized to <a class="reference external" href="https://www.json.org/">JSON</a> using the standard library <a class="reference external" href="https://docs.python.org/3/library/json.html">json</a> package is supported.</p>
+<p>The example below shows writing an object array to ECSV. Because JSON requires
+a double-quote around strings, and because ECSV requires <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> to represent
+a double-quote within a string, one tends to get double-double quotes in this
+representation.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span>
+<span class="gp">... </span>                   <span class="p">{</span><span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">2.5</span><span class="p">,</span> <span class="kc">None</span><span class="p">]},</span>
+<span class="gp">... </span>                   <span class="kc">True</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ecsv&#39;</span><span class="p">)</span>
+<span class="go"># %ECSV 1.0</span>
+<span class="go"># ---</span>
+<span class="go"># datatype:</span>
+<span class="go"># - {name: a, datatype: string, subtype: json}</span>
+<span class="go"># schema: astropy-2.0</span>
+<span class="go">a</span>
+<span class="go">&quot;{&quot;&quot;a&quot;&quot;:1}&quot;</span>
+<span class="go">&quot;{&quot;&quot;b&quot;&quot;:[2.5,null]}&quot;</span>
+<span class="go">true</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">ECSV Format</a><ul>
+<li><a class="reference internal" href="#usage">Usage</a></li>
+<li><a class="reference internal" href="#simple-table">Simple Table</a></li>
+<li><a class="reference internal" href="#masked-data">Masked Data</a><ul>
+<li><a class="reference internal" href="#empty-string">Empty String</a></li>
+<li><a class="reference internal" href="#data-mask">Data + Mask</a><ul>
+<li><a class="reference internal" href="#per-column-control">Per-column control</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mixin-columns">Mixin Columns</a></li>
+<li><a class="reference internal" href="#multidimensional-columns">Multidimensional Columns</a></li>
+<li><a class="reference internal" href="#variable-length-arrays">Variable-length arrays</a></li>
+<li><a class="reference internal" href="#object-arrays">Object arrays</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../_sources/io/ascii/ecsv.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,249 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Structured Units &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="String Representations of Units" href="format.html" />
+    <link rel="prev" title="Magnitudes and Other Logarithmic Units" href="logarithmic_units.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="format.html" title="String Representations of Units">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="logarithmic_units.html" title="Magnitudes and Other Logarithmic Units">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Units and Quantities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.units</span></code>)</a> &#187;</li>
+      
+      <li>Structured Units</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="structured-units">
+<span id="id1"></span><h1>Structured Units<a class="headerlink" href="#structured-units" title="Permalink to this headline">¶</a></h1>
+<p>Numpy arrays can be <a class="reference external" href="https://numpy.org/doc/stable/user/basics.rec.html" title="(in NumPy v1.22)"><span class="xref std std-doc">structured arrays</span></a>, where
+each element consists of multiple fields. These can be used with <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>
+using a <a class="reference internal" href="../api/astropy.units.StructuredUnit.html#astropy.units.StructuredUnit" title="astropy.units.StructuredUnit"><code class="xref py py-class docutils literal notranslate"><span class="pre">StructuredUnit</span></code></a>, which provides a <a class="reference internal" href="../api/astropy.units.UnitBase.html#astropy.units.UnitBase" title="astropy.units.UnitBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">UnitBase</span></code></a> for each field. For example,
+this allows constructing a single <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> object with position and velocity
+fields that have different units, but are contained within the same object
+(as is needed to support units in the <a class="reference external" href="http://pyerfa.readthedocs.org/">PyERFA</a> wrappers around the <a class="reference external" href="https://github.com/liberfa/erfa">ERFA</a>
+routines that use position-velocity arrays).</p>
+<div class="section" id="creating-structured-quantities">
+<h2>Creating Structured Quantities<a class="headerlink" href="#creating-structured-quantities" title="Permalink to this headline">¶</a></h2>
+<p>You can create structured quantities either directly or by multiplication with
+a <a class="reference internal" href="../api/astropy.units.StructuredUnit.html#astropy.units.StructuredUnit" title="astropy.units.StructuredUnit"><code class="xref py py-class docutils literal notranslate"><span class="pre">StructuredUnit</span></code></a>, with the latter in turn either created directly, or
+through <a class="reference internal" href="../api/astropy.units.Unit.html#astropy.units.Unit" title="astropy.units.Unit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unit</span></code></a>.</p>
+<div class="section" id="example">
+<h3>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h3>
+<p>To create a structured quantity containing a position and velocity:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pv_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([([</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.125</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]),</span>
+<span class="gp">... </span>                      <span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.125</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">])],</span>
+<span class="gp">... </span>                     <span class="n">dtype</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;(3,)f8&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;(3,)f8&#39;</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pv</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">pv_values</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">StructuredUnit</span><span class="p">((</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pv</span>
+<span class="go">&lt;Quantity [([1., 0., 0.], [ 0.   ,  0.125,  0.   ]),</span>
+<span class="go">           ([0., 1., 0.], [-0.125,  0.   ,  0.   ])] (km, km / s)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pv_values</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;AU, AU/day&#39;</span><span class="p">)</span>
+<span class="go">&lt;Quantity [([1., 0., 0.], [ 0.   ,  0.125,  0.   ]),</span>
+<span class="go">           ([0., 1., 0.], [-0.125,  0.   ,  0.   ])] (AU, AU / d)&gt;</span>
+</pre></div>
+</div>
+<p>As for normal <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> objects, you can access the value and the unit with the
+<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity.value" title="astropy.units.Quantity.value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code></a> and <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity.unit" title="astropy.units.Quantity.unit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unit</span></code></a> attribute,
+respectively. In addition, you can index any given field using its name:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pv</span> <span class="o">=</span> <span class="n">pv_values</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;km, km/s&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pv</span><span class="o">.</span><span class="n">value</span>
+<span class="go">array([([1., 0., 0.], [ 0.   ,  0.125,  0.   ]),</span>
+<span class="go">       ([0., 1., 0.], [-0.125,  0.   ,  0.   ])],</span>
+<span class="go">      dtype=[(&#39;p&#39;, &#39;&lt;f8&#39;, (3,)), (&#39;v&#39;, &#39;&lt;f8&#39;, (3,))])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pv</span><span class="o">.</span><span class="n">unit</span>
+<span class="go">Unit(&quot;(km, km / s)&quot;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pv</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span>
+<span class="go">&lt;Quantity [[ 0.   ,  0.125,  0.   ],</span>
+<span class="go">           [-0.125,  0.   ,  0.   ]] km / s&gt;</span>
+</pre></div>
+</div>
+<p>Structures can be nested, as in this example taken from an <a class="reference external" href="http://pyerfa.readthedocs.org/">PyERFA</a> test case
+for <a class="reference external" href="https://pyerfa.readthedocs.io/en/stable/api/erfa.ldn.html#erfa.ldn" title="(in PyERFA v2.0)"><code class="xref py py-func docutils literal notranslate"><span class="pre">erfa.ldn()</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ldbody</span> <span class="o">=</span> <span class="p">[</span>
+<span class="gp">... </span>    <span class="p">(</span><span class="mf">0.00028574</span><span class="p">,</span> <span class="mf">3e-10</span><span class="p">,</span> <span class="p">([</span><span class="o">-</span><span class="mf">7.81014427</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.60956681</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.98079819</span><span class="p">],</span>
+<span class="gp">... </span>                         <span class="p">[</span><span class="mf">0.0030723249</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00406995477</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00181335842</span><span class="p">])),</span>
+<span class="gp">... </span>    <span class="p">(</span><span class="mf">0.00095435</span><span class="p">,</span> <span class="mf">3e-9</span><span class="p">,</span> <span class="p">([</span><span class="mf">0.738098796</span><span class="p">,</span> <span class="mf">4.63658692</span><span class="p">,</span> <span class="mf">1.9693136</span><span class="p">],</span>
+<span class="gp">... </span>                        <span class="p">[</span><span class="o">-</span><span class="mf">0.00755816922</span><span class="p">,</span> <span class="mf">0.00126913722</span><span class="p">,</span> <span class="mf">0.000727999001</span><span class="p">])),</span>
+<span class="gp">... </span>    <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">6e-6</span><span class="p">,</span> <span class="p">([</span><span class="o">-</span><span class="mf">0.000712174377</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00230478303</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00105865966</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="mf">6.29235213e-6</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.30888387e-7</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.96486623e-7</span><span class="p">]))</span>
+<span class="gp">... </span>    <span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;Msun,radian,(AU,AU/day)&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ldbody</span>  
+<span class="go">&lt;Quantity [(2.8574e-04, 3.e-10, ([-7.81014427e+00, -5.60956681e+00, -1.98079819e+00], [ 3.07232490e-03, -4.06995477e-03, -1.81335842e-03])),</span>
+<span class="go">           (9.5435e-04, 3.e-09, ([ 7.38098796e-01,  4.63658692e+00,  1.96931360e+00], [-7.55816922e-03,  1.26913722e-03,  7.27999001e-04])),</span>
+<span class="go">           (1.0000e+00, 6.e-06, ([-7.12174377e-04, -2.30478303e-03, -1.05865966e-03], [ 6.29235213e-06, -3.30888387e-07, -2.96486623e-07]))] (solMass, rad, (AU, AU / d))&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="converting-to-different-units">
+<h2>Converting to Different Units<a class="headerlink" href="#converting-to-different-units" title="Permalink to this headline">¶</a></h2>
+<p>Like regular <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> objects, structured quantities can be converted to
+different units, as long as they have the same structure and each unit is
+equivalent.</p>
+<div class="section" id="id2">
+<h3>Example<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>To convert a structured quantity to a different unit:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">pv</span><span class="o">.</span><span class="n">to</span><span class="p">((</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">))</span>  
+<span class="go">&lt;Quantity [([1000.,    0.,    0.], [   0.,  125.,    0.]),</span>
+<span class="go">           ([   0., 1000.,    0.], [-125.,    0.,    0.])] (m, m / s)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pv</span><span class="o">.</span><span class="n">cgs</span>
+<span class="go">&lt;Quantity [([100000.,      0.,      0.], [     0.,  12500.,      0.]),</span>
+<span class="go">           ([     0., 100000.,      0.], [-12500.,      0.,      0.])] (cm, cm / s)&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="use-with-erfa">
+<h2>Use with ERFA<a class="headerlink" href="#use-with-erfa" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference external" href="https://github.com/liberfa/erfa">ERFA</a> C routines make use of structured types, and these are exposed in
+the <a class="reference external" href="http://pyerfa.readthedocs.org/">PyERFA</a> interface.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Not all <a class="reference external" href="http://pyerfa.readthedocs.org/">PyERFA</a> routines are wrapped yet. Help with adding
+wrappers will be appreciated.</p>
+</div>
+<div class="section" id="id3">
+<h3>Example<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>To use a position-velocity structured array with <a class="reference external" href="http://pyerfa.readthedocs.org/">PyERFA</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">erfa</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pv_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([([</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.125</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]),</span>
+<span class="gp">... </span>                      <span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.125</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">])],</span>
+<span class="gp">... </span>                     <span class="n">dtype</span><span class="o">=</span><span class="n">erfa</span><span class="o">.</span><span class="n">dt_pv</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pv</span> <span class="o">=</span> <span class="n">pv_values</span> <span class="o">&lt;&lt;</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;AU,AU/day&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">erfa</span><span class="o">.</span><span class="n">pvu</span><span class="p">(</span><span class="mi">86400</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">pv</span><span class="p">)</span>
+<span class="go">&lt;Quantity [([ 1.   ,  0.125,  0.   ], [ 0.   ,  0.125,  0.   ]),</span>
+<span class="go">           ([-0.125,  1.   ,  0.   ], [-0.125,  0.   ,  0.   ])] (AU, AU / d)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">erfa</span><span class="o">.</span><span class="n">pv2s</span><span class="p">(</span><span class="n">pv</span><span class="p">)</span>  
+<span class="go">(&lt;Quantity [0.        , 1.57079633] rad&gt;,</span>
+<span class="go"> &lt;Quantity [0., 0.] rad&gt;,</span>
+<span class="go"> &lt;Quantity [1., 1.] AU&gt;,</span>
+<span class="go"> &lt;Quantity [0.125, 0.125] rad / d&gt;,</span>
+<span class="go"> &lt;Quantity [0., 0.] rad / d&gt;,</span>
+<span class="go"> &lt;Quantity [0., 0.] AU / d&gt;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">z_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span> <span class="n">erfa</span><span class="o">.</span><span class="n">dt_pv</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;1,1/s&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">erfa</span><span class="o">.</span><span class="n">pvxpv</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">z_axis</span><span class="p">)</span>
+<span class="go">&lt;Quantity [([ 0., -1.,  0.], [0.125, 0.   , 0.   ]),</span>
+<span class="go">           ([ 1.,  0.,  0.], [0.   , 0.125, 0.   ])] (AU, AU / d)&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Structured Units</a><ul>
+<li><a class="reference internal" href="#creating-structured-quantities">Creating Structured Quantities</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#converting-to-different-units">Converting to Different Units</a><ul>
+<li><a class="reference internal" href="#id2">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#use-with-erfa">Use with ERFA</a><ul>
+<li><a class="reference internal" href="#id3">Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/units/structured_units.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

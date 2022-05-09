@@ -1,0 +1,292 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Accounting for Space Motion &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Using the SpectralCoord Class" href="spectralcoord.html" />
+    <link rel="prev" title="Working with Velocities in Astropy Coordinates" href="velocities.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="spectralcoord.html" title="Using the SpectralCoord Class">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="velocities.html" title="Working with Velocities in Astropy Coordinates">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Astronomical Coordinate Systems (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code>)</a> &#187;</li>
+      
+      <li>Accounting for Space Motion</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="accounting-for-space-motion">
+<span id="astropy-coordinates-apply-space-motion"></span><h1>Accounting for Space Motion<a class="headerlink" href="#accounting-for-space-motion" title="Permalink to this headline">¶</a></h1>
+<p>The <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object supports updating the position of a source given its space
+motion and a time at which to evaluate the new position (or a difference
+between the coordinate’s current time and a new one). This is
+done using the <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.apply_space_motion" title="astropy.coordinates.SkyCoord.apply_space_motion"><code class="xref py py-meth docutils literal notranslate"><span class="pre">apply_space_motion()</span></code></a> method.</p>
+<div class="section" id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
+<p>First we will create a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object with a specified <code class="docutils literal notranslate"><span class="pre">obstime</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">l</span><span class="o">=</span><span class="mi">10</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">45</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mi">100</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">pm_l_cosb</span><span class="o">=</span><span class="mi">34</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span> <span class="n">pm_b</span><span class="o">=-</span><span class="mi">117</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;galactic&#39;</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">obstime</span><span class="o">=</span><span class="n">Time</span><span class="p">(</span><span class="s1">&#39;1988-12-18 05:11:23.5&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>We can now find the position at some other time, taking the space motion into
+account. We can either specify the time difference between the observation time
+and the desired time:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">apply_space_motion</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="mf">10.</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">year</span><span class="p">)</span> 
+<span class="go">&lt;SkyCoord (Galactic): (l, b, distance) in (deg, deg, pc)</span>
+<span class="go">    ( 10.00013356,  44.999675,  99.99999994)</span>
+<span class="go"> (pm_l_cosb, pm_b, radial_velocity) in (mas / yr, mas / yr, km / s)</span>
+<span class="go">    ( 33.99980714, -117.00005604,  0.00034117)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">apply_space_motion</span><span class="p">(</span><span class="n">dt</span><span class="o">=-</span><span class="mf">10.</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">year</span><span class="p">)</span> 
+<span class="go">&lt;SkyCoord (Galactic): (l, b, distance) in (deg, deg, pc)</span>
+<span class="go">    ( 9.99986643,  45.000325,  100.00000006)</span>
+<span class="go"> (pm_l_cosb, pm_b, radial_velocity) in (mas / yr, mas / yr, km / s)</span>
+<span class="go">    ( 34.00019286, -116.99994395, -0.00034117)&gt;</span>
+</pre></div>
+</div>
+<p>Or, we can specify the new time to evaluate the position at:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">apply_space_motion</span><span class="p">(</span><span class="n">new_obstime</span><span class="o">=</span><span class="n">Time</span><span class="p">(</span><span class="s1">&#39;2017-12-18 01:12:07.3&#39;</span><span class="p">))</span> 
+<span class="go">&lt;SkyCoord (Galactic): (l, b, distance) in (deg, deg, pc)</span>
+<span class="go">    ( 10.00038732,  44.99905754,  99.99999985)</span>
+<span class="go"> (pm_l_cosb, pm_b, radial_velocity) in (mas / yr, mas / yr, km / s)</span>
+<span class="go">    ( 33.99944073, -117.00016248,  0.00098937)&gt;</span>
+</pre></div>
+</div>
+<p>If the <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object has no specified radial velocity (RV), the RV is
+assumed to be 0. The new position of the source is determined assuming the
+source moves in a straight line with constant velocity in an inertial frame.
+There are no plans to support more complex evolution (e.g., non-inertial
+frames or more complex evolution), as that is out of scope for the <code class="docutils literal notranslate"><span class="pre">astropy</span></code>
+core package (although it may well be in-scope for a variety of affiliated
+packages).</p>
+<div class="section" id="example-use-velocity-to-compute-sky-position-at-different-epochs">
+<h3>Example: Use velocity to compute sky position at different epochs<a class="headerlink" href="#example-use-velocity-to-compute-sky-position-at-different-epochs" title="Permalink to this headline">¶</a></h3>
+<p>In this example, we will use <em>Gaia</em> <a class="reference external" href="https://www.cosmos.esa.int/web/gaia/dr1">TGAS</a> astrometry for a nearby star to
+compute the sky position of the source on the date that the 2MASS survey
+observed that region of the sky. The TGAS astrometry is provided on the
+reference epoch J2015.0, whereas the 2MASS survey occurred in the late 1990’s.
+For the star of interest, the proper motion is large enough that there are
+appreciable differences in the sky position between the two surveys.</p>
+<p>After computing the previous position of the source, we will then cross-match
+the source with the 2MASS catalog to compute <em>Gaia</em>-2MASS colors for this object
+source.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This example requires accessing data from the <em>Gaia</em> TGAS and 2MASS
+catalogs. For convenience and speed below, we have created dictionary
+objects that contain the data. We retrieved the data using the Astropy
+affiliated package <a class="reference external" href="https://astroquery.readthedocs.io/">astroquery</a> using
+the following queries:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">astropy.coordinates</span> <span class="k">as</span> <span class="nn">coord</span>
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">from</span> <span class="nn">astroquery.gaia</span> <span class="kn">import</span> <span class="n">Gaia</span>
+<span class="kn">from</span> <span class="nn">astroquery.vizier</span> <span class="kn">import</span> <span class="n">Vizier</span>
+
+<span class="n">job</span> <span class="o">=</span> <span class="n">Gaia</span><span class="o">.</span><span class="n">launch_job</span><span class="p">(</span><span class="s2">&quot;SELECT TOP 1 * FROM gaiadr1.tgas_source </span><span class="se">\</span>
+<span class="s2">    WHERE parallax_error &lt; 0.3  AND parallax &gt; 5 AND pmra &gt; 100 </span><span class="se">\</span>
+<span class="s2">    ORDER BY random_index&quot;</span><span class="p">)</span>
+<span class="n">result_tgas</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">get_results</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="n">c_tgas</span> <span class="o">=</span> <span class="n">coord</span><span class="o">.</span><span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="n">result_tgas</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+                        <span class="n">dec</span><span class="o">=</span><span class="n">result_tgas</span><span class="p">[</span><span class="s1">&#39;dec&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">Vizier</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;**&quot;</span><span class="p">],</span> <span class="n">catalog</span><span class="o">=</span><span class="s2">&quot;II/246/out&quot;</span><span class="p">)</span>
+<span class="n">result_2mass</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">query_region</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">arcmin</span><span class="p">)[</span><span class="s1">&#39;II/246/out&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<p>The TGAS data from relevant columns for this source (see queries in Note
+above):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">result_tgas</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">66.44280212823296</span><span class="p">,</span>
+<span class="gp">... </span>                   <span class="n">dec</span><span class="o">=-</span><span class="mf">69.99366255906372</span><span class="p">,</span>
+<span class="gp">... </span>                   <span class="n">parallax</span><span class="o">=</span><span class="mf">22.764078749733947</span><span class="p">,</span>
+<span class="gp">... </span>                   <span class="n">pmra</span><span class="o">=</span><span class="mf">144.91354358297048</span><span class="p">,</span>
+<span class="gp">... </span>                   <span class="n">pmdec</span><span class="o">=</span><span class="mf">5.445648092997134</span><span class="p">,</span>
+<span class="gp">... </span>                   <span class="n">ref_epoch</span><span class="o">=</span><span class="mf">2015.0</span><span class="p">,</span>
+<span class="gp">... </span>                   <span class="n">phot_g_mean_mag</span><span class="o">=</span><span class="mf">7.657174523348196</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The 2MASS data for all sources within 1 arcminute around the above position
+(see queries in Note above):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">result_2mass</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">RAJ2000</span><span class="o">=</span><span class="p">[</span><span class="mf">66.421970000000002</span><span class="p">,</span> <span class="mf">66.433521999999996</span><span class="p">,</span>
+<span class="gp">... </span>                             <span class="mf">66.420564999999996</span><span class="p">,</span> <span class="mf">66.485068999999996</span><span class="p">,</span>
+<span class="gp">... </span>                             <span class="mf">66.467928999999998</span><span class="p">,</span> <span class="mf">66.440815000000001</span><span class="p">,</span>
+<span class="gp">... </span>                             <span class="mf">66.440454000000003</span><span class="p">],</span>
+<span class="gp">... </span>                    <span class="n">DEJ2000</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">70.003722999999994</span><span class="p">,</span> <span class="o">-</span><span class="mf">69.990768000000003</span><span class="p">,</span>
+<span class="gp">... </span>                             <span class="o">-</span><span class="mf">69.992255999999998</span><span class="p">,</span> <span class="o">-</span><span class="mf">69.994881000000007</span><span class="p">,</span>
+<span class="gp">... </span>                             <span class="o">-</span><span class="mf">69.994926000000007</span><span class="p">,</span> <span class="o">-</span><span class="mf">69.993613999999994</span><span class="p">,</span>
+<span class="gp">... </span>                             <span class="o">-</span><span class="mf">69.990836999999999</span><span class="p">],</span>
+<span class="gp">... </span>                    <span class="n">Jmag</span><span class="o">=</span><span class="p">[</span><span class="mf">16.35</span><span class="p">,</span> <span class="mf">13.663</span><span class="p">,</span> <span class="mf">16.171</span><span class="p">,</span> <span class="mf">16.184</span><span class="p">,</span> <span class="mf">16.292</span><span class="p">,</span>
+<span class="gp">... </span>                          <span class="mf">6.6420002</span><span class="p">,</span> <span class="mf">12.275</span><span class="p">],</span>
+<span class="gp">... </span>                    <span class="n">Hmag</span><span class="o">=</span><span class="p">[</span><span class="mf">15.879</span><span class="p">,</span> <span class="mf">13.955</span><span class="p">,</span> <span class="mf">15.154</span><span class="p">,</span> <span class="mf">15.856</span><span class="p">,</span> <span class="mf">15.642</span><span class="p">,</span>
+<span class="gp">... </span>                          <span class="mf">6.3660002</span><span class="p">,</span> <span class="mf">12.185</span><span class="p">],</span>
+<span class="gp">... </span>                    <span class="n">Kmag</span><span class="o">=</span><span class="p">[</span><span class="mf">15.581</span><span class="p">,</span> <span class="mf">14.238</span><span class="p">,</span> <span class="mf">14.622</span><span class="p">,</span> <span class="mf">15.398</span><span class="p">,</span> <span class="mf">15.123</span><span class="p">,</span>
+<span class="gp">... </span>                          <span class="mf">6.2839999</span><span class="p">,</span> <span class="mf">12.106</span><span class="p">],</span>
+<span class="gp">... </span>                    <span class="n">Date</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;1998-10-24&#39;</span><span class="p">,</span> <span class="s1">&#39;1998-10-24&#39;</span><span class="p">,</span> <span class="s1">&#39;1998-10-24&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                          <span class="s1">&#39;1998-10-24&#39;</span><span class="p">,</span> <span class="s1">&#39;1998-10-24&#39;</span><span class="p">,</span> <span class="s1">&#39;1998-10-24&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                          <span class="s1">&#39;1998-10-24&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>We will first create a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object from the information provided in the
+TGAS catalog. Note that we set the <code class="docutils literal notranslate"><span class="pre">obstime</span></code> of the object to the reference
+epoch provided by the TGAS catalog (J2015.0 in Barycentric Coordinate Time):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span><span class="p">,</span> <span class="n">Distance</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="n">result_tgas</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">dec</span><span class="o">=</span><span class="n">result_tgas</span><span class="p">[</span><span class="s1">&#39;dec&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">distance</span><span class="o">=</span><span class="n">Distance</span><span class="p">(</span><span class="n">parallax</span><span class="o">=</span><span class="n">result_tgas</span><span class="p">[</span><span class="s1">&#39;parallax&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="p">),</span>
+<span class="gp">... </span>             <span class="n">pm_ra_cosdec</span><span class="o">=</span><span class="n">result_tgas</span><span class="p">[</span><span class="s1">&#39;pmra&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">pm_dec</span><span class="o">=</span><span class="n">result_tgas</span><span class="p">[</span><span class="s1">&#39;pmdec&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">obstime</span><span class="o">=</span><span class="n">Time</span><span class="p">(</span><span class="n">result_tgas</span><span class="p">[</span><span class="s1">&#39;ref_epoch&#39;</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;jyear&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                          <span class="n">scale</span><span class="o">=</span><span class="s1">&#39;tcb&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>We next create a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object with the sky positions from the 2MASS
+catalog, and an <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> object for the date of the 2MASS
+observations provided in the 2MASS catalog (for the data in this region the
+observation date is the same, so we take only the 0th value):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">catalog_2mass</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="n">result_2mass</span><span class="p">[</span><span class="s1">&#39;RAJ2000&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+<span class="gp">... </span>                         <span class="n">dec</span><span class="o">=</span><span class="n">result_2mass</span><span class="p">[</span><span class="s1">&#39;DEJ2000&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">epoch_2mass</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">result_2mass</span><span class="p">[</span><span class="s1">&#39;Date&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>We can now use the <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.apply_space_motion" title="astropy.coordinates.SkyCoord.apply_space_motion"><code class="xref py py-meth docutils literal notranslate"><span class="pre">apply_space_motion()</span></code></a>
+method to compute the position of the TGAS source at another epoch. This uses
+the proper motion and parallax information to evolve the position of the source
+assuming straight-line motion:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c_2mass_epoch</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">apply_space_motion</span><span class="p">(</span><span class="n">epoch_2mass</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now that we have the coordinates of the TGAS source at the 2MASS epoch, we can
+do the cross-match (see also <a class="reference internal" href="matchsep.html#astropy-coordinates-separations-matching"><span class="std std-ref">Separations, Offsets, Catalog Matching, and Related Functionality</span></a>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">idx</span><span class="p">,</span> <span class="n">sep</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">c_2mass_epoch</span><span class="o">.</span><span class="n">match_to_catalog_sky</span><span class="p">(</span><span class="n">catalog_2mass</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sep</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span> 
+<span class="go">&#39;0d00m00.2818s&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">idx</span> 
+<span class="go">array(5)</span>
+</pre></div>
+</div>
+<p>The closest source it found is 0.2818 arcseconds away and corresponds to
+row index 5 in the 2MASS catalog. We can then, for example, compute <em>Gaia</em>-2MASS
+colors:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span> <span class="o">=</span> <span class="n">result_tgas</span><span class="p">[</span><span class="s1">&#39;phot_g_mean_mag&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">J</span> <span class="o">=</span> <span class="n">result_2mass</span><span class="p">[</span><span class="s1">&#39;Jmag&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">K</span> <span class="o">=</span> <span class="n">result_2mass</span><span class="p">[</span><span class="s1">&#39;Kmag&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span> <span class="o">-</span> <span class="n">J</span><span class="p">,</span> <span class="n">G</span> <span class="o">-</span> <span class="n">K</span> 
+<span class="go">(1.0151743233481962, 1.3731746233481958)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Accounting for Space Motion</a><ul>
+<li><a class="reference internal" href="#example">Example</a><ul>
+<li><a class="reference internal" href="#example-use-velocity-to-compute-sky-position-at-different-epochs">Example: Use velocity to compute sky position at different epochs</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/coordinates/apply_space_motion.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

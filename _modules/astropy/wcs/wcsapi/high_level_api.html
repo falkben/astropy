@@ -1,0 +1,431 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.wcs.wcsapi.high_level_api &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" >Module code</a> &#187;</li>
+      <li><a href="../../wcs.html" accesskey="U">astropy.wcs</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.wcs.wcsapi.high_level_api</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">OrderedDict</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">deserialize_class</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;BaseHighLevelWCS&#39;</span><span class="p">,</span> <span class="s1">&#39;HighLevelWCSMixin&#39;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">rec_getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">att</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">att</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">obj</span>
+
+
+<span class="k">def</span> <span class="nf">default_order</span><span class="p">(</span><span class="n">components</span><span class="p">):</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">components</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">order</span><span class="p">:</span>
+            <span class="n">order</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">order</span>
+
+
+<span class="k">def</span> <span class="nf">_toindex</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert value to an int or an int array.</span>
+<span class="sd">    Input coordinates converted to integers</span>
+<span class="sd">    corresponding to the center of the pixel.</span>
+<span class="sd">    The convention is that the center of the pixel is</span>
+<span class="sd">    (0, 0), while the lower left corner is (-0.5, -0.5).</span>
+<span class="sd">    The outputs are used to index the mask.</span>
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; _toindex(np.array([-0.5, 0.49999]))</span>
+<span class="sd">    array([0, 0])</span>
+<span class="sd">    &gt;&gt;&gt; _toindex(np.array([0.5, 1.49999]))</span>
+<span class="sd">    array([1, 1])</span>
+<span class="sd">    &gt;&gt;&gt; _toindex(np.array([1.5, 2.49999]))</span>
+<span class="sd">    array([2, 2])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">indx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">indx</span>
+
+
+<div class="viewcode-block" id="BaseHighLevelWCS"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.BaseHighLevelWCS.html#astropy.wcs.wcsapi.BaseHighLevelWCS">[docs]</a><span class="k">class</span> <span class="nc">BaseHighLevelWCS</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract base class for the high-level WCS interface.</span>
+
+<span class="sd">    This is described in `APE 14: A shared Python interface for World Coordinate</span>
+<span class="sd">    Systems &lt;https://doi.org/10.5281/zenodo.1188875&gt;`_.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">low_level_wcs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a reference to the underlying low-level WCS object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BaseHighLevelWCS.pixel_to_world"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.BaseHighLevelWCS.html#astropy.wcs.wcsapi.BaseHighLevelWCS.pixel_to_world">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">pixel_to_world</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">pixel_arrays</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert pixel coordinates to world coordinates (represented by</span>
+<span class="sd">        high-level objects).</span>
+
+<span class="sd">        If a single high-level object is used to represent the world coordinates</span>
+<span class="sd">        (i.e., if ``len(wcs.world_axis_object_classes) == 1``), it is returned</span>
+<span class="sd">        as-is (not in a tuple/list), otherwise a tuple of high-level objects is</span>
+<span class="sd">        returned. See</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_to_world_values` for pixel</span>
+<span class="sd">        indexing and ordering conventions.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseHighLevelWCS.array_index_to_world"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.BaseHighLevelWCS.html#astropy.wcs.wcsapi.BaseHighLevelWCS.array_index_to_world">[docs]</a>    <span class="k">def</span> <span class="nf">array_index_to_world</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">index_arrays</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert array indices to world coordinates (represented by Astropy</span>
+<span class="sd">        objects).</span>
+
+<span class="sd">        If a single high-level object is used to represent the world coordinates</span>
+<span class="sd">        (i.e., if ``len(wcs.world_axis_object_classes) == 1``), it is returned</span>
+<span class="sd">        as-is (not in a tuple/list), otherwise a tuple of high-level objects is</span>
+<span class="sd">        returned. See</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.array_index_to_world_values` for</span>
+<span class="sd">        pixel indexing and ordering conventions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_world</span><span class="p">(</span><span class="o">*</span><span class="n">index_arrays</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="BaseHighLevelWCS.world_to_pixel"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.BaseHighLevelWCS.html#astropy.wcs.wcsapi.BaseHighLevelWCS.world_to_pixel">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">world_to_pixel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">world_objects</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert world coordinates (represented by Astropy objects) to pixel</span>
+<span class="sd">        coordinates.</span>
+
+<span class="sd">        If `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_n_dim` is ``1``, this</span>
+<span class="sd">        method returns a single scalar or array, otherwise a tuple of scalars or</span>
+<span class="sd">        arrays is returned. See</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_to_pixel_values` for pixel</span>
+<span class="sd">        indexing and ordering conventions.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseHighLevelWCS.world_to_array_index"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.BaseHighLevelWCS.html#astropy.wcs.wcsapi.BaseHighLevelWCS.world_to_array_index">[docs]</a>    <span class="k">def</span> <span class="nf">world_to_array_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">world_objects</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert world coordinates (represented by Astropy objects) to array</span>
+<span class="sd">        indices.</span>
+
+<span class="sd">        If `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_n_dim` is ``1``, this</span>
+<span class="sd">        method returns a single scalar or array, otherwise a tuple of scalars or</span>
+<span class="sd">        arrays is returned. See</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_to_array_index_values` for</span>
+<span class="sd">        pixel indexing and ordering conventions. The indices should be returned</span>
+<span class="sd">        as rounded integers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_n_dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_toindex</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world_to_pixel</span><span class="p">(</span><span class="o">*</span><span class="n">world_objects</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">_toindex</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">world_to_pixel</span><span class="p">(</span><span class="o">*</span><span class="n">world_objects</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">high_level_objects_to_values</span><span class="p">(</span><span class="o">*</span><span class="n">world_objects</span><span class="p">,</span> <span class="n">low_level_wcs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert the input high level object to low level values.</span>
+
+<span class="sd">    This function uses the information in ``wcs.world_axis_object_classes`` and</span>
+<span class="sd">    ``wcs.world_axis_object_components`` to convert the high level objects</span>
+<span class="sd">    (such as `~.SkyCoord`) to low level &quot;values&quot; `~.Quantity` objects.</span>
+
+<span class="sd">    This is used in `.HighLevelWCSMixin.world_to_pixel`, but provided as a</span>
+<span class="sd">    separate function for use in other places where needed.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    *world_objects: object</span>
+<span class="sd">        High level coordinate objects.</span>
+
+<span class="sd">    low_level_wcs: `.BaseLowLevelWCS`</span>
+<span class="sd">        The WCS object to use to interpret the coordinates.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Cache the classes and components since this may be expensive</span>
+    <span class="n">serialized_classes</span> <span class="o">=</span> <span class="n">low_level_wcs</span><span class="o">.</span><span class="n">world_axis_object_classes</span>
+    <span class="n">components</span> <span class="o">=</span> <span class="n">low_level_wcs</span><span class="o">.</span><span class="n">world_axis_object_components</span>
+
+    <span class="c1"># Deserialize world_axis_object_classes using the default order</span>
+    <span class="n">classes</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">default_order</span><span class="p">(</span><span class="n">components</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">low_level_wcs</span><span class="o">.</span><span class="n">serialized_classes</span><span class="p">:</span>
+            <span class="n">classes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">deserialize_class</span><span class="p">(</span><span class="n">serialized_classes</span><span class="p">[</span><span class="n">key</span><span class="p">],</span>
+                                             <span class="n">construct</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">classes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">serialized_classes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="c1"># Check that the number of classes matches the number of inputs</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">world_objects</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of world inputs (</span><span class="si">{}</span><span class="s2">) does not match &quot;</span>
+                         <span class="s2">&quot;expected (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">world_objects</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)))</span>
+
+    <span class="c1"># Determine whether the classes are uniquely matched, that is we check</span>
+    <span class="c1"># whether there is only one of each class.</span>
+    <span class="n">world_by_key</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">unique_match</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">world_objects</span><span class="p">:</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">classes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">klass</span><span class="p">):</span>
+                <span class="n">matches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">world_by_key</span><span class="p">[</span><span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">w</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">unique_match</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">break</span>
+
+    <span class="c1"># If the match is not unique, the order of the classes needs to match,</span>
+    <span class="c1"># whereas if all classes are unique, we can still intelligently match</span>
+    <span class="c1"># them even if the order is wrong.</span>
+
+    <span class="n">objects</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">unique_match</span><span class="p">:</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">klass</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span><span class="p">)</span> <span class="ow">in</span> <span class="n">classes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">klass_gen</span> <span class="o">=</span> <span class="n">klass</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">klass_gen</span> <span class="o">=</span> <span class="n">rest</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Tuples in world_axis_object_classes should have length 3 or 4&quot;</span><span class="p">)</span>
+
+            <span class="c1"># FIXME: For now SkyCoord won&#39;t auto-convert upon initialization</span>
+            <span class="c1"># https://github.com/astropy/astropy/issues/7689</span>
+            <span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">world_by_key</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">SkyCoord</span><span class="p">):</span>
+                <span class="k">if</span> <span class="s1">&#39;frame&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="n">objects</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">world_by_key</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;frame&#39;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">objects</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">world_by_key</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">objects</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">klass_gen</span><span class="p">(</span><span class="n">world_by_key</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="k">for</span> <span class="n">ikey</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">classes</span><span class="p">):</span>
+
+            <span class="n">klass</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">classes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">klass_gen</span> <span class="o">=</span> <span class="n">klass</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">klass_gen</span> <span class="o">=</span> <span class="n">rest</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Tuples in world_axis_object_classes should have length 3 or 4&quot;</span><span class="p">)</span>
+
+            <span class="n">w</span> <span class="o">=</span> <span class="n">world_objects</span><span class="p">[</span><span class="n">ikey</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">klass</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Expected the following order of world &quot;</span>
+                                 <span class="s2">&quot;arguments: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">classes</span><span class="o">.</span><span class="n">values</span><span class="p">()])))</span>
+
+            <span class="c1"># FIXME: For now SkyCoord won&#39;t auto-convert upon initialization</span>
+            <span class="c1"># https://github.com/astropy/astropy/issues/7689</span>
+            <span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">SkyCoord</span><span class="p">):</span>
+                <span class="k">if</span> <span class="s1">&#39;frame&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="n">objects</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;frame&#39;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">objects</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">w</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">objects</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">klass_gen</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># We now extract the attributes needed for the world values</span>
+    <span class="n">world</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">components</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">attr</span><span class="p">):</span>
+            <span class="n">world</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attr</span><span class="p">(</span><span class="n">objects</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">world</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rec_getattr</span><span class="p">(</span><span class="n">objects</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">attr</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">world</span>
+
+
+<span class="k">def</span> <span class="nf">values_to_high_level_objects</span><span class="p">(</span><span class="o">*</span><span class="n">world_values</span><span class="p">,</span> <span class="n">low_level_wcs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert low level values into high level objects.</span>
+
+<span class="sd">    This function uses the information in ``wcs.world_axis_object_classes`` and</span>
+<span class="sd">    ``wcs.world_axis_object_components`` to convert low level &quot;values&quot;</span>
+<span class="sd">    `~.Quantity` objects, to high level objects (such as `~.SkyCoord).</span>
+
+<span class="sd">    This is used in `.HighLevelWCSMixin.pixel_to_world`, but provided as a</span>
+<span class="sd">    separate function for use in other places where needed.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    *world_values: object</span>
+<span class="sd">        Low level, &quot;values&quot; representations of the world coordinates.</span>
+
+<span class="sd">    low_level_wcs: `.BaseLowLevelWCS`</span>
+<span class="sd">        The WCS object to use to interpret the coordinates.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Cache the classes and components since this may be expensive</span>
+    <span class="n">components</span> <span class="o">=</span> <span class="n">low_level_wcs</span><span class="o">.</span><span class="n">world_axis_object_components</span>
+    <span class="n">classes</span> <span class="o">=</span> <span class="n">low_level_wcs</span><span class="o">.</span><span class="n">world_axis_object_classes</span>
+
+    <span class="c1"># Deserialize classes</span>
+    <span class="k">if</span> <span class="n">low_level_wcs</span><span class="o">.</span><span class="n">serialized_classes</span><span class="p">:</span>
+        <span class="n">classes_new</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">classes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">classes_new</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">deserialize_class</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">construct</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">classes</span> <span class="o">=</span> <span class="n">classes_new</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">components</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">world_values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">attr</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">args</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+            <span class="n">args</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">world_values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">default_order</span><span class="p">(</span><span class="n">components</span><span class="p">):</span>
+        <span class="n">klass</span><span class="p">,</span> <span class="n">ar</span><span class="p">,</span> <span class="n">kw</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">classes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">klass_gen</span> <span class="o">=</span> <span class="n">klass</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">klass_gen</span> <span class="o">=</span> <span class="n">rest</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Tuples in world_axis_object_classes should have length 3 or 4&quot;</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">klass_gen</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="o">*</span><span class="n">ar</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="o">**</span><span class="n">kw</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<div class="viewcode-block" id="HighLevelWCSMixin"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.HighLevelWCSMixin.html#astropy.wcs.wcsapi.HighLevelWCSMixin">[docs]</a><span class="k">class</span> <span class="nc">HighLevelWCSMixin</span><span class="p">(</span><span class="n">BaseHighLevelWCS</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Mix-in class that automatically provides the high-level WCS API for the</span>
+<span class="sd">    low-level WCS object given by the `~HighLevelWCSMixin.low_level_wcs`</span>
+<span class="sd">    property.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">low_level_wcs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+<div class="viewcode-block" id="HighLevelWCSMixin.world_to_pixel"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.HighLevelWCSMixin.html#astropy.wcs.wcsapi.HighLevelWCSMixin.world_to_pixel">[docs]</a>    <span class="k">def</span> <span class="nf">world_to_pixel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">world_objects</span><span class="p">):</span>
+
+        <span class="n">world_values</span> <span class="o">=</span> <span class="n">high_level_objects_to_values</span><span class="p">(</span><span class="o">*</span><span class="n">world_objects</span><span class="p">,</span> <span class="n">low_level_wcs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">low_level_wcs</span><span class="p">)</span>
+
+        <span class="c1"># Finally we convert to pixel coordinates</span>
+        <span class="n">pixel_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">low_level_wcs</span><span class="o">.</span><span class="n">world_to_pixel_values</span><span class="p">(</span><span class="o">*</span><span class="n">world_values</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pixel_values</span></div>
+
+<div class="viewcode-block" id="HighLevelWCSMixin.pixel_to_world"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.HighLevelWCSMixin.html#astropy.wcs.wcsapi.HighLevelWCSMixin.pixel_to_world">[docs]</a>    <span class="k">def</span> <span class="nf">pixel_to_world</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">pixel_arrays</span><span class="p">):</span>
+
+        <span class="c1"># Compute the world coordinate values</span>
+        <span class="n">world_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">low_level_wcs</span><span class="o">.</span><span class="n">pixel_to_world_values</span><span class="p">(</span><span class="o">*</span><span class="n">pixel_arrays</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_n_dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">world_values</span> <span class="o">=</span> <span class="p">(</span><span class="n">world_values</span><span class="p">,)</span>
+
+        <span class="n">pixel_values</span> <span class="o">=</span> <span class="n">values_to_high_level_objects</span><span class="p">(</span><span class="o">*</span><span class="n">world_values</span><span class="p">,</span> <span class="n">low_level_wcs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">low_level_wcs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pixel_values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pixel_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pixel_values</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

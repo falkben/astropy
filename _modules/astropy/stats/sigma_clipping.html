@@ -1,0 +1,1062 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.stats.sigma_clipping &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.stats.sigma_clipping</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.core.multiarray</span> <span class="kn">import</span> <span class="n">normalize_axis_index</span>
+
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">Quantity</span>
+<span class="kn">from</span> <span class="nn">astropy.utils</span> <span class="kn">import</span> <span class="n">isiterable</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.exceptions</span> <span class="kn">import</span> <span class="n">AstropyUserWarning</span>
+<span class="kn">from</span> <span class="nn">astropy.stats._fast_sigma_clip</span> <span class="kn">import</span> <span class="n">_sigma_clip_fast</span>
+<span class="kn">from</span> <span class="nn">astropy.stats.funcs</span> <span class="kn">import</span> <span class="n">mad_std</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.compat.optional_deps</span> <span class="kn">import</span> <span class="n">HAS_BOTTLENECK</span>
+
+<span class="k">if</span> <span class="n">HAS_BOTTLENECK</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">bottleneck</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SigmaClip&#39;</span><span class="p">,</span> <span class="s1">&#39;sigma_clip&#39;</span><span class="p">,</span> <span class="s1">&#39;sigma_clipped_stats&#39;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_move_tuple_axes_first</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Bottleneck can only take integer axis, not tuple, so this function</span>
+<span class="sd">    takes all the axes to be operated on and combines them into the</span>
+<span class="sd">    first dimension of the array so that we can then use axis=0.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Figure out how many axes we are operating over</span>
+    <span class="n">naxis</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+
+    <span class="c1"># Add remaining axes to the axis tuple</span>
+    <span class="n">axis</span> <span class="o">+=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">axis</span><span class="p">)</span>
+
+    <span class="c1"># The new position of each axis is just in order</span>
+    <span class="n">destination</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">ndim</span><span class="p">))</span>
+
+    <span class="c1"># Reorder the array so that the axes being operated on are at the</span>
+    <span class="c1"># beginning</span>
+    <span class="n">array_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span>
+
+    <span class="c1"># Collapse the dimensions being operated on into a single dimension</span>
+    <span class="c1"># so that we can then use axis=0 with the bottleneck functions</span>
+    <span class="n">array_new</span> <span class="o">=</span> <span class="n">array_new</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,)</span> <span class="o">+</span> <span class="n">array_new</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">naxis</span><span class="p">:])</span>
+
+    <span class="k">return</span> <span class="n">array_new</span>
+
+
+<span class="k">def</span> <span class="nf">_nanmean</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Bottleneck nanmean function that handle tuple axis.&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="n">_move_tuple_axes_first</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">__array_wrap__</span><span class="p">(</span><span class="n">bottleneck</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">bottleneck</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_nanmedian</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Bottleneck nanmedian function that handle tuple axis.&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="n">_move_tuple_axes_first</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">__array_wrap__</span><span class="p">(</span><span class="n">bottleneck</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">bottleneck</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_nanstd</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ddof</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Bottleneck nanstd function that handle tuple axis.&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="n">_move_tuple_axes_first</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">__array_wrap__</span><span class="p">(</span><span class="n">bottleneck</span><span class="o">.</span><span class="n">nanstd</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span>
+                                                      <span class="n">ddof</span><span class="o">=</span><span class="n">ddof</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">bottleneck</span><span class="o">.</span><span class="n">nanstd</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">ddof</span><span class="o">=</span><span class="n">ddof</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_nanmadstd</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;mad_std function that ignores NaNs by default.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">mad_std</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">ignore_nan</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SigmaClip"><a class="viewcode-back" href="../../../api/astropy.stats.sigma_clipping.SigmaClip.html#astropy.stats.SigmaClip">[docs]</a><span class="k">class</span> <span class="nc">SigmaClip</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to perform sigma clipping.</span>
+
+<span class="sd">    The data will be iterated over, each time rejecting values that are</span>
+<span class="sd">    less or more than a specified number of standard deviations from a</span>
+<span class="sd">    center value.</span>
+
+<span class="sd">    Clipped (rejected) pixels are those where::</span>
+
+<span class="sd">        data &lt; center - (sigma_lower * std)</span>
+<span class="sd">        data &gt; center + (sigma_upper * std)</span>
+
+<span class="sd">    where::</span>
+
+<span class="sd">        center = cenfunc(data [, axis=])</span>
+<span class="sd">        std = stdfunc(data [, axis=])</span>
+
+<span class="sd">    Invalid data values (i.e., NaN or inf) are automatically clipped.</span>
+
+<span class="sd">    For a functional interface to sigma clipping, see</span>
+<span class="sd">    :func:`sigma_clip`.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        `scipy.stats.sigmaclip` provides a subset of the functionality</span>
+<span class="sd">        in this class. Also, its input data cannot be a masked array</span>
+<span class="sd">        and it does not handle data that contains invalid values (i.e.,</span>
+<span class="sd">        NaN or inf). Also note that it uses the mean as the centering</span>
+<span class="sd">        function. The equivalent settings to `scipy.stats.sigmaclip`</span>
+<span class="sd">        are::</span>
+
+<span class="sd">            sigclip = SigmaClip(sigma=4., cenfunc=&#39;mean&#39;, maxiters=None)</span>
+<span class="sd">            sigclip(data, axis=None, masked=False, return_bounds=True)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sigma : float, optional</span>
+<span class="sd">        The number of standard deviations to use for both the lower</span>
+<span class="sd">        and upper clipping limit. These limits are overridden by</span>
+<span class="sd">        ``sigma_lower`` and ``sigma_upper``, if input. The default is 3.</span>
+
+<span class="sd">    sigma_lower : float or None, optional</span>
+<span class="sd">        The number of standard deviations to use as the lower bound for</span>
+<span class="sd">        the clipping limit. If `None` then the value of ``sigma`` is</span>
+<span class="sd">        used. The default is `None`.</span>
+
+<span class="sd">    sigma_upper : float or None, optional</span>
+<span class="sd">        The number of standard deviations to use as the upper bound for</span>
+<span class="sd">        the clipping limit. If `None` then the value of ``sigma`` is</span>
+<span class="sd">        used. The default is `None`.</span>
+
+<span class="sd">    maxiters : int or None, optional</span>
+<span class="sd">        The maximum number of sigma-clipping iterations to perform or</span>
+<span class="sd">        `None` to clip until convergence is achieved (i.e., iterate</span>
+<span class="sd">        until the last iteration clips nothing). If convergence is</span>
+<span class="sd">        achieved prior to ``maxiters`` iterations, the clipping</span>
+<span class="sd">        iterations will stop. The default is 5.</span>
+
+<span class="sd">    cenfunc : {&#39;median&#39;, &#39;mean&#39;} or callable, optional</span>
+<span class="sd">        The statistic or callable function/object used to compute</span>
+<span class="sd">        the center value for the clipping. If using a callable</span>
+<span class="sd">        function/object and the ``axis`` keyword is used, then it must</span>
+<span class="sd">        be able to ignore NaNs (e.g., `numpy.nanmean`) and it must have</span>
+<span class="sd">        an ``axis`` keyword to return an array with axis dimension(s)</span>
+<span class="sd">        removed. The default is ``&#39;median&#39;``.</span>
+
+<span class="sd">    stdfunc : {&#39;std&#39;, &#39;mad_std&#39;} or callable, optional</span>
+<span class="sd">        The statistic or callable function/object used to compute the</span>
+<span class="sd">        standard deviation about the center value. If using a callable</span>
+<span class="sd">        function/object and the ``axis`` keyword is used, then it must</span>
+<span class="sd">        be able to ignore NaNs (e.g., `numpy.nanstd`) and it must have</span>
+<span class="sd">        an ``axis`` keyword to return an array with axis dimension(s)</span>
+<span class="sd">        removed. The default is ``&#39;std&#39;``.</span>
+
+<span class="sd">    grow : float or `False`, optional</span>
+<span class="sd">        Radius within which to mask the neighbouring pixels of those</span>
+<span class="sd">        that fall outwith the clipping limits (only applied along</span>
+<span class="sd">        ``axis``, if specified). As an example, for a 2D image a value</span>
+<span class="sd">        of 1 will mask the nearest pixels in a cross pattern around each</span>
+<span class="sd">        deviant pixel, while 1.5 will also reject the nearest diagonal</span>
+<span class="sd">        neighbours and so on.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    sigma_clip, sigma_clipped_stats</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The best performance will typically be obtained by setting</span>
+<span class="sd">    ``cenfunc`` and ``stdfunc`` to one of the built-in functions</span>
+<span class="sd">    specified as as string. If one of the options is set to a string</span>
+<span class="sd">    while the other has a custom callable, you may in some cases see</span>
+<span class="sd">    better performance if you have the `bottleneck`_ package installed.</span>
+
+<span class="sd">    .. _bottleneck:  https://github.com/pydata/bottleneck</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    This example uses a data array of random variates from a Gaussian</span>
+<span class="sd">    distribution. We clip all points that are more than 2 sample</span>
+<span class="sd">    standard deviations from the median. The result is a masked array,</span>
+<span class="sd">    where the mask is `True` for clipped data::</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.stats import SigmaClip</span>
+<span class="sd">        &gt;&gt;&gt; from numpy.random import randn</span>
+<span class="sd">        &gt;&gt;&gt; randvar = randn(10000)</span>
+<span class="sd">        &gt;&gt;&gt; sigclip = SigmaClip(sigma=2, maxiters=5)</span>
+<span class="sd">        &gt;&gt;&gt; filtered_data = sigclip(randvar)</span>
+
+<span class="sd">    This example clips all points that are more than 3 sigma relative</span>
+<span class="sd">    to the sample *mean*, clips until convergence, returns an unmasked</span>
+<span class="sd">    `~numpy.ndarray`, and modifies the data in-place::</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.stats import SigmaClip</span>
+<span class="sd">        &gt;&gt;&gt; from numpy.random import randn</span>
+<span class="sd">        &gt;&gt;&gt; from numpy import mean</span>
+<span class="sd">        &gt;&gt;&gt; randvar = randn(10000)</span>
+<span class="sd">        &gt;&gt;&gt; sigclip = SigmaClip(sigma=3, maxiters=None, cenfunc=&#39;mean&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; filtered_data = sigclip(randvar, masked=False, copy=False)</span>
+
+<span class="sd">    This example sigma clips along one axis::</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.stats import SigmaClip</span>
+<span class="sd">        &gt;&gt;&gt; from numpy.random import normal</span>
+<span class="sd">        &gt;&gt;&gt; from numpy import arange, diag, ones</span>
+<span class="sd">        &gt;&gt;&gt; data = arange(5) + normal(0., 0.05, (5, 5)) + diag(ones(5))</span>
+<span class="sd">        &gt;&gt;&gt; sigclip = SigmaClip(sigma=2.3)</span>
+<span class="sd">        &gt;&gt;&gt; filtered_data = sigclip(data, axis=0)</span>
+
+<span class="sd">    Note that along the other axis, no points would be clipped, as the</span>
+<span class="sd">    standard deviation is higher.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">3.</span><span class="p">,</span> <span class="n">sigma_lower</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sigma_upper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">maxiters</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">cenfunc</span><span class="o">=</span><span class="s1">&#39;median&#39;</span><span class="p">,</span> <span class="n">stdfunc</span><span class="o">=</span><span class="s1">&#39;std&#39;</span><span class="p">,</span> <span class="n">grow</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma_lower</span> <span class="o">=</span> <span class="n">sigma_lower</span> <span class="ow">or</span> <span class="n">sigma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma_upper</span> <span class="o">=</span> <span class="n">sigma_upper</span> <span class="ow">or</span> <span class="n">sigma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxiters</span> <span class="o">=</span> <span class="n">maxiters</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cenfunc</span> <span class="o">=</span> <span class="n">cenfunc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdfunc</span> <span class="o">=</span> <span class="n">stdfunc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cenfunc_parsed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_cenfunc</span><span class="p">(</span><span class="n">cenfunc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stdfunc_parsed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_stdfunc</span><span class="p">(</span><span class="n">stdfunc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_niterations</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grow</span> <span class="o">=</span> <span class="n">grow</span>
+
+        <span class="c1"># This just checks that SciPy is available, to avoid failing</span>
+        <span class="c1"># later than necessary if __call__ needs it:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grow</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">scipy.ndimage</span> <span class="kn">import</span> <span class="n">binary_dilation</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_binary_dilation</span> <span class="o">=</span> <span class="n">binary_dilation</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;SigmaClip(sigma=</span><span class="si">{}</span><span class="s1">, sigma_lower=</span><span class="si">{}</span><span class="s1">, sigma_upper=</span><span class="si">{}</span><span class="s1">, &#39;</span>
+                <span class="s1">&#39;maxiters=</span><span class="si">{}</span><span class="s1">, cenfunc=</span><span class="si">{}</span><span class="s1">, stdfunc=</span><span class="si">{}</span><span class="s1">, grow=</span><span class="si">{}</span><span class="s1">)&#39;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma_lower</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma_upper</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">maxiters</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cenfunc</span><span class="p">),</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stdfunc</span><span class="p">),</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">grow</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&lt;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">]</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;sigma&#39;</span><span class="p">,</span> <span class="s1">&#39;sigma_lower&#39;</span><span class="p">,</span> <span class="s1">&#39;sigma_upper&#39;</span><span class="p">,</span> <span class="s1">&#39;maxiters&#39;</span><span class="p">,</span> <span class="s1">&#39;cenfunc&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;stdfunc&#39;</span><span class="p">,</span> <span class="s1">&#39;grow&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;    </span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_parse_cenfunc</span><span class="p">(</span><span class="n">cenfunc</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cenfunc</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">cenfunc</span> <span class="o">==</span> <span class="s1">&#39;median&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">HAS_BOTTLENECK</span><span class="p">:</span>
+                    <span class="n">cenfunc</span> <span class="o">=</span> <span class="n">_nanmedian</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">cenfunc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmedian</span>  <span class="c1"># pragma: no cover</span>
+
+            <span class="k">elif</span> <span class="n">cenfunc</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">HAS_BOTTLENECK</span><span class="p">:</span>
+                    <span class="n">cenfunc</span> <span class="o">=</span> <span class="n">_nanmean</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">cenfunc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span>  <span class="c1"># pragma: no cover</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">cenfunc</span><span class="si">}</span><span class="s1"> is an invalid cenfunc.&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cenfunc</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_parse_stdfunc</span><span class="p">(</span><span class="n">stdfunc</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stdfunc</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">stdfunc</span> <span class="o">==</span> <span class="s1">&#39;std&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">HAS_BOTTLENECK</span><span class="p">:</span>
+                    <span class="n">stdfunc</span> <span class="o">=</span> <span class="n">_nanstd</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">stdfunc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanstd</span>  <span class="c1"># pragma: no cover</span>
+            <span class="k">elif</span> <span class="n">stdfunc</span> <span class="o">==</span> <span class="s1">&#39;mad_std&#39;</span><span class="p">:</span>
+                <span class="n">stdfunc</span> <span class="o">=</span> <span class="n">_nanmadstd</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">stdfunc</span><span class="si">}</span><span class="s1"> is an invalid stdfunc.&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">stdfunc</span>
+
+    <span class="k">def</span> <span class="nf">_compute_bounds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># ignore RuntimeWarning if the array (or along an axis) has only</span>
+        <span class="c1"># NaNs</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cenfunc_parsed</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stdfunc_parsed</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span> <span class="o">-</span> <span class="p">(</span><span class="n">std</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma_lower</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span> <span class="o">+=</span> <span class="n">std</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma_upper</span>
+
+    <span class="k">def</span> <span class="nf">_sigmaclip_fast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_bounds</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fast C implementation for simple use cases.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">):</span>
+            <span class="n">data</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">unit</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">copy</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">and</span> <span class="n">masked</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="s1">&#39;f&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;cannot mask non-floating-point array with NaN &quot;</span>
+                            <span class="s2">&quot;values, set copy=True or masked=True to avoid &quot;</span>
+                            <span class="s2">&quot;this.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">ndim</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">isiterable</span><span class="p">(</span><span class="n">axis</span><span class="p">):</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="n">normalize_axis_index</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span>
+            <span class="n">data_reshaped</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="n">transposed_shape</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># The gufunc implementation does not handle non-scalar axis</span>
+            <span class="c1"># so we combine the dimensions together as the last</span>
+            <span class="c1"># dimension and set axis=-1</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">normalize_axis_index</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span> <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axis</span><span class="p">)</span>
+            <span class="n">transposed_axes</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ax</span> <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span>
+                                    <span class="k">if</span> <span class="n">ax</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">axis</span><span class="p">)</span> <span class="o">+</span> <span class="n">axis</span>
+            <span class="n">data_transposed</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">transposed_axes</span><span class="p">)</span>
+            <span class="n">transposed_shape</span> <span class="o">=</span> <span class="n">data_transposed</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">data_reshaped</span> <span class="o">=</span> <span class="n">data_transposed</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="n">transposed_shape</span><span class="p">[:</span><span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">axis</span><span class="p">)]</span> <span class="o">+</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">data_reshaped</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">!=</span> <span class="s1">&#39;f&#39;</span> <span class="ow">or</span> <span class="n">data_reshaped</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">&gt;</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">data_reshaped</span> <span class="o">=</span> <span class="n">data_reshaped</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">data_reshaped</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask</span><span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Input data contains invalid values (NaNs or &#39;</span>
+                          <span class="s1">&#39;infs), which were automatically clipped.&#39;</span><span class="p">,</span>
+                          <span class="n">AstropyUserWarning</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_reshaped</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span><span class="p">):</span>
+            <span class="n">mask</span> <span class="o">|=</span> <span class="n">data_reshaped</span><span class="o">.</span><span class="n">mask</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+            <span class="n">data_reshaped</span> <span class="o">=</span> <span class="n">data_reshaped</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">data_reshaped</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">bound_lo</span><span class="p">,</span> <span class="n">bound_hi</span> <span class="o">=</span> <span class="n">_sigma_clip_fast</span><span class="p">(</span>
+            <span class="n">data_reshaped</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cenfunc</span> <span class="o">==</span> <span class="s1">&#39;median&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stdfunc</span> <span class="o">==</span> <span class="s1">&#39;mad_std&#39;</span><span class="p">,</span>
+            <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">maxiters</span><span class="p">)</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxiters</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sigma_lower</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma_upper</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">):</span>
+            <span class="n">mask</span> <span class="o">|=</span> <span class="n">data_reshaped</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">bound_lo</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">|=</span> <span class="n">data_reshaped</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">bound_hi</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">transposed_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Get mask in shape of data.</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">transposed_shape</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">transposed_axes</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+                                        <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">ndim</span><span class="p">)))</span>
+
+        <span class="k">if</span> <span class="n">masked</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">copy</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="k">if</span> <span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span> <span class="o">&lt;&lt;</span> <span class="n">unit</span>
+            <span class="n">bound_lo</span> <span class="o">=</span> <span class="n">bound_lo</span> <span class="o">&lt;&lt;</span> <span class="n">unit</span>
+            <span class="n">bound_hi</span> <span class="o">=</span> <span class="n">bound_hi</span> <span class="o">&lt;&lt;</span> <span class="n">unit</span>
+
+        <span class="k">if</span> <span class="n">return_bounds</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span><span class="p">,</span> <span class="n">bound_lo</span><span class="p">,</span> <span class="n">bound_hi</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_sigmaclip_noaxis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_bounds</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                          <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sigma clip when ``axis`` is None and ``grow`` is not &gt;0.</span>
+
+<span class="sd">        In this simple case, we remove clipped elements from the</span>
+<span class="sd">        flattened array during each iteration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">filtered_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+        <span class="c1"># remove masked values and convert to ndarray</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filtered_data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span><span class="p">):</span>
+            <span class="n">filtered_data</span> <span class="o">=</span> <span class="n">filtered_data</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">filtered_data</span><span class="o">.</span><span class="n">mask</span><span class="p">]</span>
+
+        <span class="c1"># remove invalid values</span>
+        <span class="n">good_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">filtered_data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">~</span><span class="n">good_mask</span><span class="p">):</span>
+            <span class="n">filtered_data</span> <span class="o">=</span> <span class="n">filtered_data</span><span class="p">[</span><span class="n">good_mask</span><span class="p">]</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Input data contains invalid values (NaNs or &#39;</span>
+                          <span class="s1">&#39;infs), which were automatically clipped.&#39;</span><span class="p">,</span>
+                          <span class="n">AstropyUserWarning</span><span class="p">)</span>
+
+        <span class="n">nchanged</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">nchanged</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span><span class="n">iteration</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxiters</span><span class="p">):</span>
+            <span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">filtered_data</span><span class="o">.</span><span class="n">size</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_compute_bounds</span><span class="p">(</span><span class="n">filtered_data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="n">filtered_data</span> <span class="o">=</span> <span class="n">filtered_data</span><span class="p">[</span>
+                <span class="p">(</span><span class="n">filtered_data</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span><span class="p">)</span>
+                <span class="o">&amp;</span> <span class="p">(</span><span class="n">filtered_data</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span><span class="p">)]</span>
+            <span class="n">nchanged</span> <span class="o">=</span> <span class="n">size</span> <span class="o">-</span> <span class="n">filtered_data</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_niterations</span> <span class="o">=</span> <span class="n">iteration</span>
+
+        <span class="k">if</span> <span class="n">masked</span><span class="p">:</span>
+            <span class="c1"># return a masked array and optional bounds</span>
+            <span class="n">filtered_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_invalid</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">)</span>
+
+            <span class="c1"># update the mask in place, ignoring RuntimeWarnings for</span>
+            <span class="c1"># comparisons with NaN data values</span>
+            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">):</span>
+                <span class="n">filtered_data</span><span class="o">.</span><span class="n">mask</span> <span class="o">|=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">data</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span><span class="p">,</span>
+                                                    <span class="n">data</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">return_bounds</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">filtered_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">filtered_data</span>
+
+    <span class="k">def</span> <span class="nf">_sigmaclip_withaxis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">return_bounds</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sigma clip the data when ``axis`` or ``grow`` is specified.</span>
+
+<span class="sd">        In this case, we replace clipped values with NaNs as placeholder</span>
+<span class="sd">        values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># float array type is needed to insert nans into the array</span>
+        <span class="n">filtered_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>    <span class="c1"># also makes a copy</span>
+
+        <span class="c1"># remove invalid values</span>
+        <span class="n">bad_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">filtered_data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">bad_mask</span><span class="p">):</span>
+            <span class="n">filtered_data</span><span class="p">[</span><span class="n">bad_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Input data contains invalid values (NaNs or &#39;</span>
+                          <span class="s1">&#39;infs), which were automatically clipped.&#39;</span><span class="p">,</span>
+                          <span class="n">AstropyUserWarning</span><span class="p">)</span>
+
+        <span class="c1"># remove masked values and convert to plain ndarray</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filtered_data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span><span class="p">):</span>
+            <span class="n">filtered_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_invalid</span><span class="p">(</span><span class="n">filtered_data</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">filtered_data</span> <span class="o">=</span> <span class="n">filtered_data</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># convert negative axis/axes</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">isiterable</span><span class="p">(</span><span class="n">axis</span><span class="p">):</span>
+                <span class="n">axis</span> <span class="o">=</span> <span class="p">(</span><span class="n">axis</span><span class="p">,)</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">filtered_data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">+</span> <span class="n">n</span> <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">axis</span><span class="p">)</span>
+
+            <span class="c1"># define the shape of min/max arrays so that they can be broadcast</span>
+            <span class="c1"># with the data</span>
+            <span class="n">mshape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">axis</span> <span class="k">else</span> <span class="n">size</span>
+                           <span class="k">for</span> <span class="n">dim</span><span class="p">,</span> <span class="n">size</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">filtered_data</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grow</span><span class="p">:</span>
+            <span class="c1"># Construct a growth kernel from the specified radius in</span>
+            <span class="c1"># pixels (consider caching this for re-use by subsequent</span>
+            <span class="c1"># calls?):</span>
+            <span class="n">cenidx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grow</span><span class="p">)</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">cenidx</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[(</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">size</span><span class="p">),)</span> <span class="o">*</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">indices</span><span class="p">):</span>
+                    <span class="c1"># For any axes that we&#39;re not clipping over, set</span>
+                    <span class="c1"># their indices outside the growth radius, so masked</span>
+                    <span class="c1"># points won&#39;t &quot;grow&quot; in that dimension:</span>
+                    <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">axis</span><span class="p">:</span>
+                        <span class="n">dim</span><span class="p">[</span><span class="n">dim</span> <span class="o">!=</span> <span class="n">cenidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">size</span>
+            <span class="n">kernel</span> <span class="o">=</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(((</span><span class="n">idx</span> <span class="o">-</span> <span class="n">cenidx</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">))</span>
+                      <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grow</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">del</span> <span class="n">indices</span>
+
+        <span class="n">nchanged</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">nchanged</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span><span class="n">iteration</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxiters</span><span class="p">):</span>
+            <span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_compute_bounds</span><span class="p">(</span><span class="n">filtered_data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mshape</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mshape</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">):</span>
+                <span class="c1"># Since these comparisons are always False for NaNs, the</span>
+                <span class="c1"># resulting mask contains only newly-rejected pixels and</span>
+                <span class="c1"># we can dilate it without growing masked pixels more</span>
+                <span class="c1"># than once.</span>
+                <span class="n">new_mask</span> <span class="o">=</span> <span class="p">((</span><span class="n">filtered_data</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span><span class="p">)</span>
+                            <span class="o">|</span> <span class="p">(</span><span class="n">filtered_data</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grow</span><span class="p">:</span>
+                <span class="n">new_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_binary_dilation</span><span class="p">(</span><span class="n">new_mask</span><span class="p">,</span> <span class="n">kernel</span><span class="p">)</span>
+            <span class="n">filtered_data</span><span class="p">[</span><span class="n">new_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="n">nchanged</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">new_mask</span><span class="p">)</span>
+            <span class="k">del</span> <span class="n">new_mask</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_niterations</span> <span class="o">=</span> <span class="n">iteration</span>
+
+        <span class="k">if</span> <span class="n">masked</span><span class="p">:</span>
+            <span class="c1"># create an output masked array</span>
+            <span class="k">if</span> <span class="n">copy</span><span class="p">:</span>
+                <span class="n">filtered_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span>
+                                                  <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">filtered_data</span><span class="p">),</span>
+                                                  <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># ignore RuntimeWarnings for comparisons with NaN data values</span>
+                <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">):</span>
+                    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_invalid</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+                    <span class="n">filtered_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                        <span class="n">out</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span><span class="p">,</span> <span class="n">out</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span><span class="p">),</span>
+                        <span class="n">out</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">return_bounds</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">filtered_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">filtered_data</span>
+
+<div class="viewcode-block" id="SigmaClip.__call__"><a class="viewcode-back" href="../../../api/astropy.stats.sigma_clipping.SigmaClip.html#astropy.stats.SigmaClip.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_bounds</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform sigma clipping on the provided data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : array-like or `~numpy.ma.MaskedArray`</span>
+<span class="sd">            The data to be sigma clipped.</span>
+
+<span class="sd">        axis : None or int or tuple of int, optional</span>
+<span class="sd">            The axis or axes along which to sigma clip the data. If</span>
+<span class="sd">            `None`, then the flattened data will be used. ``axis`` is</span>
+<span class="sd">            passed to the ``cenfunc`` and ``stdfunc``. The default is</span>
+<span class="sd">            `None`.</span>
+
+<span class="sd">        masked : bool, optional</span>
+<span class="sd">            If `True`, then a `~numpy.ma.MaskedArray` is returned, where</span>
+<span class="sd">            the mask is `True` for clipped values. If `False`, then a</span>
+<span class="sd">            `~numpy.ndarray` is returned. The default is `True`.</span>
+
+<span class="sd">        return_bounds : bool, optional</span>
+<span class="sd">            If `True`, then the minimum and maximum clipping bounds are</span>
+<span class="sd">            also returned.</span>
+
+<span class="sd">        copy : bool, optional</span>
+<span class="sd">            If `True`, then the ``data`` array will be copied. If</span>
+<span class="sd">            `False` and ``masked=True``, then the returned masked array</span>
+<span class="sd">            data will contain the same array as the input ``data`` (if</span>
+<span class="sd">            ``data`` is a `~numpy.ndarray` or `~numpy.ma.MaskedArray`).</span>
+<span class="sd">            If `False` and ``masked=False``, the input data is modified</span>
+<span class="sd">            in-place. The default is `True`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        result : array-like</span>
+<span class="sd">            If ``masked=True``, then a `~numpy.ma.MaskedArray` is</span>
+<span class="sd">            returned, where the mask is `True` for clipped values and</span>
+<span class="sd">            where the input mask was `True`.</span>
+
+<span class="sd">            If ``masked=False``, then a `~numpy.ndarray` is returned.</span>
+
+<span class="sd">            If ``return_bounds=True``, then in addition to the masked</span>
+<span class="sd">            array or array above, the minimum and maximum clipping</span>
+<span class="sd">            bounds are returned.</span>
+
+<span class="sd">            If ``masked=False`` and ``axis=None``, then the output</span>
+<span class="sd">            array is a flattened 1D `~numpy.ndarray` where the clipped</span>
+<span class="sd">            values have been removed. If ``return_bounds=True`` then the</span>
+<span class="sd">            returned minimum and maximum thresholds are scalars.</span>
+
+<span class="sd">            If ``masked=False`` and ``axis`` is specified, then the</span>
+<span class="sd">            output `~numpy.ndarray` will have the same shape as the</span>
+<span class="sd">            input ``data`` and contain ``np.nan`` where values were</span>
+<span class="sd">            clipped. If the input ``data`` was a masked array, then the</span>
+<span class="sd">            output `~numpy.ndarray` will also contain ``np.nan`` where</span>
+<span class="sd">            the input mask was `True`. If ``return_bounds=True`` then</span>
+<span class="sd">            the returned minimum and maximum clipping thresholds will be</span>
+<span class="sd">            be `~numpy.ndarray`\\s.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">masked</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">data</span>
+
+            <span class="k">if</span> <span class="n">return_bounds</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">result</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">result</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">masked</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">return_bounds</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">result</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_value</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">result</span>
+
+        <span class="c1"># Shortcut for common cases where a fast C implementation can be</span>
+        <span class="c1"># used.</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cenfunc</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;median&#39;</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdfunc</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;std&#39;</span><span class="p">,</span> <span class="s1">&#39;mad_std&#39;</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="n">axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">grow</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigmaclip_fast</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">,</span>
+                                        <span class="n">return_bounds</span><span class="o">=</span><span class="n">return_bounds</span><span class="p">,</span>
+                                        <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">)</span>
+
+        <span class="c1"># These two cases are treated separately because when</span>
+        <span class="c1"># ``axis=None`` we can simply remove clipped values from the</span>
+        <span class="c1"># array. This is not possible when ``axis`` or ``grow`` is</span>
+        <span class="c1"># specified.</span>
+        <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">grow</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigmaclip_noaxis</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">,</span>
+                                          <span class="n">return_bounds</span><span class="o">=</span><span class="n">return_bounds</span><span class="p">,</span>
+                                          <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigmaclip_withaxis</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">,</span>
+                                            <span class="n">return_bounds</span><span class="o">=</span><span class="n">return_bounds</span><span class="p">,</span>
+                                            <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="sigma_clip"><a class="viewcode-back" href="../../../api/astropy.stats.sigma_clipping.sigma_clip.html#astropy.stats.sigma_clip">[docs]</a><span class="k">def</span> <span class="nf">sigma_clip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">sigma_lower</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sigma_upper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">maxiters</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+               <span class="n">cenfunc</span><span class="o">=</span><span class="s1">&#39;median&#39;</span><span class="p">,</span> <span class="n">stdfunc</span><span class="o">=</span><span class="s1">&#39;std&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+               <span class="n">return_bounds</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">grow</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform sigma-clipping on the provided data.</span>
+
+<span class="sd">    The data will be iterated over, each time rejecting values that are</span>
+<span class="sd">    less or more than a specified number of standard deviations from a</span>
+<span class="sd">    center value.</span>
+
+<span class="sd">    Clipped (rejected) pixels are those where::</span>
+
+<span class="sd">        data &lt; center - (sigma_lower * std)</span>
+<span class="sd">        data &gt; center + (sigma_upper * std)</span>
+
+<span class="sd">    where::</span>
+
+<span class="sd">        center = cenfunc(data [, axis=])</span>
+<span class="sd">        std = stdfunc(data [, axis=])</span>
+
+<span class="sd">    Invalid data values (i.e., NaN or inf) are automatically clipped.</span>
+
+<span class="sd">    For an object-oriented interface to sigma clipping, see</span>
+<span class="sd">    :class:`SigmaClip`.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        `scipy.stats.sigmaclip` provides a subset of the functionality</span>
+<span class="sd">        in this class. Also, its input data cannot be a masked array</span>
+<span class="sd">        and it does not handle data that contains invalid values (i.e.,</span>
+<span class="sd">        NaN or inf). Also note that it uses the mean as the centering</span>
+<span class="sd">        function. The equivalent settings to `scipy.stats.sigmaclip`</span>
+<span class="sd">        are::</span>
+
+<span class="sd">            sigma_clip(sigma=4., cenfunc=&#39;mean&#39;, maxiters=None, axis=None,</span>
+<span class="sd">            ...        masked=False, return_bounds=True)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : array-like or `~numpy.ma.MaskedArray`</span>
+<span class="sd">        The data to be sigma clipped.</span>
+
+<span class="sd">    sigma : float, optional</span>
+<span class="sd">        The number of standard deviations to use for both the lower</span>
+<span class="sd">        and upper clipping limit. These limits are overridden by</span>
+<span class="sd">        ``sigma_lower`` and ``sigma_upper``, if input. The default is 3.</span>
+
+<span class="sd">    sigma_lower : float or None, optional</span>
+<span class="sd">        The number of standard deviations to use as the lower bound for</span>
+<span class="sd">        the clipping limit. If `None` then the value of ``sigma`` is</span>
+<span class="sd">        used. The default is `None`.</span>
+
+<span class="sd">    sigma_upper : float or None, optional</span>
+<span class="sd">        The number of standard deviations to use as the upper bound for</span>
+<span class="sd">        the clipping limit. If `None` then the value of ``sigma`` is</span>
+<span class="sd">        used. The default is `None`.</span>
+
+<span class="sd">    maxiters : int or None, optional</span>
+<span class="sd">        The maximum number of sigma-clipping iterations to perform or</span>
+<span class="sd">        `None` to clip until convergence is achieved (i.e., iterate</span>
+<span class="sd">        until the last iteration clips nothing). If convergence is</span>
+<span class="sd">        achieved prior to ``maxiters`` iterations, the clipping</span>
+<span class="sd">        iterations will stop. The default is 5.</span>
+
+<span class="sd">    cenfunc : {&#39;median&#39;, &#39;mean&#39;} or callable, optional</span>
+<span class="sd">        The statistic or callable function/object used to compute</span>
+<span class="sd">        the center value for the clipping. If using a callable</span>
+<span class="sd">        function/object and the ``axis`` keyword is used, then it must</span>
+<span class="sd">        be able to ignore NaNs (e.g., `numpy.nanmean`) and it must have</span>
+<span class="sd">        an ``axis`` keyword to return an array with axis dimension(s)</span>
+<span class="sd">        removed. The default is ``&#39;median&#39;``.</span>
+
+<span class="sd">    stdfunc : {&#39;std&#39;, &#39;mad_std&#39;} or callable, optional</span>
+<span class="sd">        The statistic or callable function/object used to compute the</span>
+<span class="sd">        standard deviation about the center value. If using a callable</span>
+<span class="sd">        function/object and the ``axis`` keyword is used, then it must</span>
+<span class="sd">        be able to ignore NaNs (e.g., `numpy.nanstd`) and it must have</span>
+<span class="sd">        an ``axis`` keyword to return an array with axis dimension(s)</span>
+<span class="sd">        removed. The default is ``&#39;std&#39;``.</span>
+
+<span class="sd">    axis : None or int or tuple of int, optional</span>
+<span class="sd">        The axis or axes along which to sigma clip the data. If `None`,</span>
+<span class="sd">        then the flattened data will be used. ``axis`` is passed to the</span>
+<span class="sd">        ``cenfunc`` and ``stdfunc``. The default is `None`.</span>
+
+<span class="sd">    masked : bool, optional</span>
+<span class="sd">        If `True`, then a `~numpy.ma.MaskedArray` is returned, where</span>
+<span class="sd">        the mask is `True` for clipped values. If `False`, then a</span>
+<span class="sd">        `~numpy.ndarray` and the minimum and maximum clipping thresholds</span>
+<span class="sd">        are returned. The default is `True`.</span>
+
+<span class="sd">    return_bounds : bool, optional</span>
+<span class="sd">        If `True`, then the minimum and maximum clipping bounds are also</span>
+<span class="sd">        returned.</span>
+
+<span class="sd">    copy : bool, optional</span>
+<span class="sd">        If `True`, then the ``data`` array will be copied. If `False`</span>
+<span class="sd">        and ``masked=True``, then the returned masked array data will</span>
+<span class="sd">        contain the same array as the input ``data`` (if ``data`` is a</span>
+<span class="sd">        `~numpy.ndarray` or `~numpy.ma.MaskedArray`). If `False` and</span>
+<span class="sd">        ``masked=False``, the input data is modified in-place. The</span>
+<span class="sd">        default is `True`.</span>
+
+<span class="sd">    grow : float or `False`, optional</span>
+<span class="sd">        Radius within which to mask the neighbouring pixels of those</span>
+<span class="sd">        that fall outwith the clipping limits (only applied along</span>
+<span class="sd">        ``axis``, if specified). As an example, for a 2D image a value</span>
+<span class="sd">        of 1 will mask the nearest pixels in a cross pattern around each</span>
+<span class="sd">        deviant pixel, while 1.5 will also reject the nearest diagonal</span>
+<span class="sd">        neighbours and so on.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    result : array-like</span>
+<span class="sd">        If ``masked=True``, then a `~numpy.ma.MaskedArray` is returned,</span>
+<span class="sd">        where the mask is `True` for clipped values and where the input</span>
+<span class="sd">        mask was `True`.</span>
+
+<span class="sd">        If ``masked=False``, then a `~numpy.ndarray` is returned.</span>
+
+<span class="sd">        If ``return_bounds=True``, then in addition to the masked array</span>
+<span class="sd">        or array above, the minimum and maximum clipping bounds are</span>
+<span class="sd">        returned.</span>
+
+<span class="sd">        If ``masked=False`` and ``axis=None``, then the output array</span>
+<span class="sd">        is a flattened 1D `~numpy.ndarray` where the clipped values</span>
+<span class="sd">        have been removed. If ``return_bounds=True`` then the returned</span>
+<span class="sd">        minimum and maximum thresholds are scalars.</span>
+
+<span class="sd">        If ``masked=False`` and ``axis`` is specified, then the output</span>
+<span class="sd">        `~numpy.ndarray` will have the same shape as the input ``data``</span>
+<span class="sd">        and contain ``np.nan`` where values were clipped. If the input</span>
+<span class="sd">        ``data`` was a masked array, then the output `~numpy.ndarray`</span>
+<span class="sd">        will also contain ``np.nan`` where the input mask was `True`.</span>
+<span class="sd">        If ``return_bounds=True`` then the returned minimum and maximum</span>
+<span class="sd">        clipping thresholds will be be `~numpy.ndarray`\\s.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    SigmaClip, sigma_clipped_stats</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The best performance will typically be obtained by setting</span>
+<span class="sd">    ``cenfunc`` and ``stdfunc`` to one of the built-in functions</span>
+<span class="sd">    specified as as string. If one of the options is set to a string</span>
+<span class="sd">    while the other has a custom callable, you may in some cases see</span>
+<span class="sd">    better performance if you have the `bottleneck`_ package installed.</span>
+
+<span class="sd">    .. _bottleneck:  https://github.com/pydata/bottleneck</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    This example uses a data array of random variates from a Gaussian</span>
+<span class="sd">    distribution. We clip all points that are more than 2 sample</span>
+<span class="sd">    standard deviations from the median. The result is a masked array,</span>
+<span class="sd">    where the mask is `True` for clipped data::</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.stats import sigma_clip</span>
+<span class="sd">        &gt;&gt;&gt; from numpy.random import randn</span>
+<span class="sd">        &gt;&gt;&gt; randvar = randn(10000)</span>
+<span class="sd">        &gt;&gt;&gt; filtered_data = sigma_clip(randvar, sigma=2, maxiters=5)</span>
+
+<span class="sd">    This example clips all points that are more than 3 sigma relative</span>
+<span class="sd">    to the sample *mean*, clips until convergence, returns an unmasked</span>
+<span class="sd">    `~numpy.ndarray`, and does not copy the data::</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.stats import sigma_clip</span>
+<span class="sd">        &gt;&gt;&gt; from numpy.random import randn</span>
+<span class="sd">        &gt;&gt;&gt; from numpy import mean</span>
+<span class="sd">        &gt;&gt;&gt; randvar = randn(10000)</span>
+<span class="sd">        &gt;&gt;&gt; filtered_data = sigma_clip(randvar, sigma=3, maxiters=None,</span>
+<span class="sd">        ...                            cenfunc=mean, masked=False, copy=False)</span>
+
+<span class="sd">    This example sigma clips along one axis::</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.stats import sigma_clip</span>
+<span class="sd">        &gt;&gt;&gt; from numpy.random import normal</span>
+<span class="sd">        &gt;&gt;&gt; from numpy import arange, diag, ones</span>
+<span class="sd">        &gt;&gt;&gt; data = arange(5) + normal(0., 0.05, (5, 5)) + diag(ones(5))</span>
+<span class="sd">        &gt;&gt;&gt; filtered_data = sigma_clip(data, sigma=2.3, axis=0)</span>
+
+<span class="sd">    Note that along the other axis, no points would be clipped, as the</span>
+<span class="sd">    standard deviation is higher.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sigclip</span> <span class="o">=</span> <span class="n">SigmaClip</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">sigma_lower</span><span class="o">=</span><span class="n">sigma_lower</span><span class="p">,</span>
+                        <span class="n">sigma_upper</span><span class="o">=</span><span class="n">sigma_upper</span><span class="p">,</span> <span class="n">maxiters</span><span class="o">=</span><span class="n">maxiters</span><span class="p">,</span>
+                        <span class="n">cenfunc</span><span class="o">=</span><span class="n">cenfunc</span><span class="p">,</span> <span class="n">stdfunc</span><span class="o">=</span><span class="n">stdfunc</span><span class="p">,</span> <span class="n">grow</span><span class="o">=</span><span class="n">grow</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">sigclip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">,</span>
+                   <span class="n">return_bounds</span><span class="o">=</span><span class="n">return_bounds</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="sigma_clipped_stats"><a class="viewcode-back" href="../../../api/astropy.stats.sigma_clipping.sigma_clipped_stats.html#astropy.stats.sigma_clipped_stats">[docs]</a><span class="k">def</span> <span class="nf">sigma_clipped_stats</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mask_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+                        <span class="n">sigma_lower</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sigma_upper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">maxiters</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                        <span class="n">cenfunc</span><span class="o">=</span><span class="s1">&#39;median&#39;</span><span class="p">,</span> <span class="n">stdfunc</span><span class="o">=</span><span class="s1">&#39;std&#39;</span><span class="p">,</span> <span class="n">std_ddof</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                        <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">grow</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate sigma-clipped statistics on the provided data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : array-like or `~numpy.ma.MaskedArray`</span>
+<span class="sd">        Data array or object that can be converted to an array.</span>
+
+<span class="sd">    mask : `numpy.ndarray` (bool), optional</span>
+<span class="sd">        A boolean mask with the same shape as ``data``, where a `True`</span>
+<span class="sd">        value indicates the corresponding element of ``data`` is masked.</span>
+<span class="sd">        Masked pixels are excluded when computing the statistics.</span>
+
+<span class="sd">    mask_value : float, optional</span>
+<span class="sd">        A data value (e.g., ``0.0``) that is ignored when computing the</span>
+<span class="sd">        statistics. ``mask_value`` will be masked in addition to any</span>
+<span class="sd">        input ``mask``.</span>
+
+<span class="sd">    sigma : float, optional</span>
+<span class="sd">        The number of standard deviations to use for both the lower</span>
+<span class="sd">        and upper clipping limit. These limits are overridden by</span>
+<span class="sd">        ``sigma_lower`` and ``sigma_upper``, if input. The default is 3.</span>
+
+<span class="sd">    sigma_lower : float or None, optional</span>
+<span class="sd">        The number of standard deviations to use as the lower bound for</span>
+<span class="sd">        the clipping limit. If `None` then the value of ``sigma`` is</span>
+<span class="sd">        used. The default is `None`.</span>
+
+<span class="sd">    sigma_upper : float or None, optional</span>
+<span class="sd">        The number of standard deviations to use as the upper bound for</span>
+<span class="sd">        the clipping limit. If `None` then the value of ``sigma`` is</span>
+<span class="sd">        used. The default is `None`.</span>
+
+<span class="sd">    maxiters : int or None, optional</span>
+<span class="sd">        The maximum number of sigma-clipping iterations to perform or</span>
+<span class="sd">        `None` to clip until convergence is achieved (i.e., iterate</span>
+<span class="sd">        until the last iteration clips nothing). If convergence is</span>
+<span class="sd">        achieved prior to ``maxiters`` iterations, the clipping</span>
+<span class="sd">        iterations will stop. The default is 5.</span>
+
+<span class="sd">    cenfunc : {&#39;median&#39;, &#39;mean&#39;} or callable, optional</span>
+<span class="sd">        The statistic or callable function/object used to compute</span>
+<span class="sd">        the center value for the clipping. If using a callable</span>
+<span class="sd">        function/object and the ``axis`` keyword is used, then it must</span>
+<span class="sd">        be able to ignore NaNs (e.g., `numpy.nanmean`) and it must have</span>
+<span class="sd">        an ``axis`` keyword to return an array with axis dimension(s)</span>
+<span class="sd">        removed. The default is ``&#39;median&#39;``.</span>
+
+<span class="sd">    stdfunc : {&#39;std&#39;, &#39;mad_std&#39;} or callable, optional</span>
+<span class="sd">        The statistic or callable function/object used to compute the</span>
+<span class="sd">        standard deviation about the center value. If using a callable</span>
+<span class="sd">        function/object and the ``axis`` keyword is used, then it must</span>
+<span class="sd">        be able to ignore NaNs (e.g., `numpy.nanstd`) and it must have</span>
+<span class="sd">        an ``axis`` keyword to return an array with axis dimension(s)</span>
+<span class="sd">        removed. The default is ``&#39;std&#39;``.</span>
+
+<span class="sd">    std_ddof : int, optional</span>
+<span class="sd">        The delta degrees of freedom for the standard deviation</span>
+<span class="sd">        calculation. The divisor used in the calculation is ``N -</span>
+<span class="sd">        std_ddof``, where ``N`` represents the number of elements. The</span>
+<span class="sd">        default is 0.</span>
+
+<span class="sd">    axis : None or int or tuple of int, optional</span>
+<span class="sd">        The axis or axes along which to sigma clip the data. If `None`,</span>
+<span class="sd">        then the flattened data will be used. ``axis`` is passed to the</span>
+<span class="sd">        ``cenfunc`` and ``stdfunc``. The default is `None`.</span>
+
+<span class="sd">    grow : float or `False`, optional</span>
+<span class="sd">        Radius within which to mask the neighbouring pixels of those</span>
+<span class="sd">        that fall outwith the clipping limits (only applied along</span>
+<span class="sd">        ``axis``, if specified). As an example, for a 2D image a value</span>
+<span class="sd">        of 1 will mask the nearest pixels in a cross pattern around each</span>
+<span class="sd">        deviant pixel, while 1.5 will also reject the nearest diagonal</span>
+<span class="sd">        neighbours and so on.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The best performance will typically be obtained by setting</span>
+<span class="sd">    ``cenfunc`` and ``stdfunc`` to one of the built-in functions</span>
+<span class="sd">    specified as as string. If one of the options is set to a string</span>
+<span class="sd">    while the other has a custom callable, you may in some cases see</span>
+<span class="sd">    better performance if you have the `bottleneck`_ package installed.</span>
+
+<span class="sd">    .. _bottleneck:  https://github.com/pydata/bottleneck</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mean, median, stddev : float</span>
+<span class="sd">        The mean, median, and standard deviation of the sigma-clipped</span>
+<span class="sd">        data.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    SigmaClip, sigma_clip</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mask_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_values</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask_value</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked</span>
+
+    <span class="n">sigclip</span> <span class="o">=</span> <span class="n">SigmaClip</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">sigma_lower</span><span class="o">=</span><span class="n">sigma_lower</span><span class="p">,</span>
+                        <span class="n">sigma_upper</span><span class="o">=</span><span class="n">sigma_upper</span><span class="p">,</span> <span class="n">maxiters</span><span class="o">=</span><span class="n">maxiters</span><span class="p">,</span>
+                        <span class="n">cenfunc</span><span class="o">=</span><span class="n">cenfunc</span><span class="p">,</span> <span class="n">stdfunc</span><span class="o">=</span><span class="n">stdfunc</span><span class="p">,</span> <span class="n">grow</span><span class="o">=</span><span class="n">grow</span><span class="p">)</span>
+    <span class="n">data_clipped</span> <span class="o">=</span> <span class="n">sigclip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_bounds</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                           <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">HAS_BOTTLENECK</span><span class="p">:</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">_nanmean</span><span class="p">(</span><span class="n">data_clipped</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="n">median</span> <span class="o">=</span> <span class="n">_nanmedian</span><span class="p">(</span><span class="n">data_clipped</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="n">std</span> <span class="o">=</span> <span class="n">_nanstd</span><span class="p">(</span><span class="n">data_clipped</span><span class="p">,</span> <span class="n">ddof</span><span class="o">=</span><span class="n">std_ddof</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">data_clipped</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="n">median</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">(</span><span class="n">data_clipped</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+        <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanstd</span><span class="p">(</span><span class="n">data_clipped</span><span class="p">,</span> <span class="n">ddof</span><span class="o">=</span><span class="n">std_ddof</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">median</span><span class="p">,</span> <span class="n">std</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

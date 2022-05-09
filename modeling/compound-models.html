@@ -1,0 +1,1425 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Combining Models &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Parameters" href="parameters.html" />
+    <link rel="prev" title="Models" href="models.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="parameters.html" title="Parameters">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="models.html" title="Models">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Models and Fitting (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling</span></code>)</a> &#187;</li>
+      
+      <li>Combining Models</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="combining-models">
+<span id="compound-models-intro"></span><h1>Combining Models<a class="headerlink" href="#combining-models" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="basics">
+<h2>Basics<a class="headerlink" href="#basics" title="Permalink to this headline">¶</a></h2>
+<p>While the Astropy modeling package makes it very easy to define <a class="reference internal" href="new-model.html"><span class="doc">new
+models</span></a> either from existing functions, or by writing a
+<a class="reference internal" href="../api/astropy.modeling.Model.html#astropy.modeling.Model" title="astropy.modeling.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a> subclass, an additional way to create new models is
+by combining them using arithmetic expressions.  This works with models built
+into Astropy, and most user-defined models as well.  For example, it is
+possible to create a superposition of two Gaussians like so:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling</span> <span class="kn">import</span> <span class="n">models</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Gaussian1D</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g2</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Gaussian1D</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g1_plus_2</span> <span class="o">=</span> <span class="n">g1</span> <span class="o">+</span> <span class="n">g2</span>
+</pre></div>
+</div>
+<p>The resulting object <code class="docutils literal notranslate"><span class="pre">g1_plus_2</span></code> is itself a new model.  Evaluating, say,
+<code class="docutils literal notranslate"><span class="pre">g1_plus_2(0.25)</span></code> is the same as evaluating <code class="docutils literal notranslate"><span class="pre">g1(0.25)</span> <span class="pre">+</span> <span class="pre">g2(0.25)</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g1_plus_2</span><span class="p">(</span><span class="mf">0.25</span><span class="p">)</span>  
+<span class="go">0.5676756958301329</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g1_plus_2</span><span class="p">(</span><span class="mf">0.25</span><span class="p">)</span> <span class="o">==</span> <span class="n">g1</span><span class="p">(</span><span class="mf">0.25</span><span class="p">)</span> <span class="o">+</span> <span class="n">g2</span><span class="p">(</span><span class="mf">0.25</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>This model can be further combined with other models in new expressions.</p>
+<p>These new compound models can also be fitted to data, like most other models
+(though this currently requires one of the non-linear fitters):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">astropy.modeling</span> <span class="kn">import</span> <span class="n">models</span><span class="p">,</span> <span class="n">fitting</span>
+
+<span class="c1"># Generate fake data</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">g1</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Gaussian1D</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+<span class="n">g2</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Gaussian1D</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">g1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">g2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+<span class="c1"># Now to fit the data create a new superposition with initial</span>
+<span class="c1"># guesses for the parameters:</span>
+<span class="n">gg_init</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Gaussian1D</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">+</span> <span class="n">models</span><span class="o">.</span><span class="n">Gaussian1D</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+<span class="n">fitter</span> <span class="o">=</span> <span class="n">fitting</span><span class="o">.</span><span class="n">SLSQPLSQFitter</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+    <span class="c1"># Ignore a warning on clipping to bounds from the fitter</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s1">&#39;Values in x were outside bounds&#39;</span><span class="p">,</span>
+                            <span class="n">category</span><span class="o">=</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
+    <span class="n">gg_fit</span> <span class="o">=</span> <span class="n">fitter</span><span class="p">(</span><span class="n">gg_init</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+<span class="c1"># Plot the data with the best-fit model</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s1">&#39;ko&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gg_fit</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Position&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Flux&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../modeling/compound-models-1.png">png</a>, <a class="reference external" href="../modeling/compound-models-1.svg">svg</a>, <a class="reference external" href="../modeling/compound-models-1.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/compound-models-1.png" class="plot-directive" src="../_images/compound-models-1.png" />
+</div>
+<p>This works for 1-D models, 2-D models, and combinations thereof, though there
+are some complexities involved in correctly matching up the inputs and outputs
+of all models used to build a compound model.  You can learn more details in
+the <a class="reference internal" href="#"><span class="doc">Combining Models</span></a> documentation.</p>
+<p>Astropy models also support convolution through the function
+<a class="reference internal" href="../api/astropy.convolution.convolve_models.html#astropy.convolution.convolve_models" title="astropy.convolution.convolve_models"><code class="xref py py-obj docutils literal notranslate"><span class="pre">convolve_models</span></code></a>, which returns a compound model.</p>
+<p>For instance, the convolution of two Gaussian functions is also a Gaussian
+function in which the resulting mean (variance) is the sum of the means
+(variances) of each Gaussian.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">astropy.modeling</span> <span class="kn">import</span> <span class="n">models</span>
+<span class="kn">from</span> <span class="nn">astropy.convolution</span> <span class="kn">import</span> <span class="n">convolve_models</span>
+
+<span class="n">g1</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Gaussian1D</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">g2</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Gaussian1D</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">g3</span> <span class="o">=</span> <span class="n">convolve_models</span><span class="p">(</span><span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">)</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g1</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;k-&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g2</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;k-&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g3</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;k-&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../modeling/compound-models-2.png">png</a>, <a class="reference external" href="../modeling/compound-models-2.svg">svg</a>, <a class="reference external" href="../modeling/compound-models-2.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/compound-models-2.png" class="plot-directive" src="../_images/compound-models-2.png" />
+</div>
+</div>
+<div class="section" id="a-comprehensive-description">
+<span id="compound-models"></span><h2>A comprehensive description<a class="headerlink" href="#a-comprehensive-description" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="some-terminology">
+<h3>Some terminology<a class="headerlink" href="#some-terminology" title="Permalink to this headline">¶</a></h3>
+<p>It is possible to create new models just by
+combining existing models using the arithmetic operators <code class="docutils literal notranslate"><span class="pre">+</span></code>, <code class="docutils literal notranslate"><span class="pre">-</span></code>, <code class="docutils literal notranslate"><span class="pre">*</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/</span></code>, and <code class="docutils literal notranslate"><span class="pre">**</span></code>, or by model composition using <code class="docutils literal notranslate"><span class="pre">|</span></code> and
+concatenation (explained below) with <code class="docutils literal notranslate"><span class="pre">&amp;</span></code>, as well as using <a class="reference internal" href="../api/astropy.modeling.fix_inputs.html#astropy.modeling.fix_inputs" title="astropy.modeling.fix_inputs"><code class="xref py py-func docutils literal notranslate"><span class="pre">fix_inputs()</span></code></a>
+for <a class="reference internal" href="#model-reduction"><span class="std std-ref">reducing the number of inputs to a model</span></a>.</p>
+<p>In discussing the compound model feature, it is useful to be clear about a
+few terms where there have been points of confusion:</p>
+<ul>
+<li><p>The term “model” can refer either to a model <em>class</em> or a model <em>instance</em>.</p>
+<ul class="simple">
+<li><p>All models in <a class="reference internal" href="reference_api.html#module-astropy.modeling" title="astropy.modeling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling</span></code></a>, whether it represents some
+<a class="reference internal" href="reference_api.html#module-astropy.modeling.functional_models" title="astropy.modeling.functional_models"><code class="xref py py-obj docutils literal notranslate"><span class="pre">function</span></code></a>, a
+<a class="reference internal" href="reference_api.html#module-astropy.modeling.rotations" title="astropy.modeling.rotations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rotation</span></code></a>, etc., are represented in the
+abstract by a model <em>class</em>–specifically a subclass of
+<a class="reference internal" href="../api/astropy.modeling.Model.html#astropy.modeling.Model" title="astropy.modeling.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a>–that encapsulates the routine for evaluating the
+model, a list of its required parameters, and other metadata about the
+model.</p></li>
+<li><p>Per typical object-oriented parlance, a model <em>instance</em> is the object
+created when when calling a model class with some arguments–in most cases
+values for the model’s parameters.</p></li>
+</ul>
+<p>A model class, by itself, cannot be used to perform any computation because
+most models, at least, have one or more parameters that must be specified
+before the model can be evaluated on some input data. However, we can still
+get some information about a model class from its representation.  For
+example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">Gaussian1D</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Gaussian1D</span>
+<span class="go">&lt;class &#39;astropy.modeling.functional_models.Gaussian1D&#39;&gt;</span>
+<span class="go">Name: Gaussian1D</span>
+<span class="go">N_inputs: 1</span>
+<span class="go">N_outputs: 1</span>
+<span class="go">Fittable parameters: (&#39;amplitude&#39;, &#39;mean&#39;, &#39;stddev&#39;)</span>
+</pre></div>
+</div>
+<p>We can then create a model <em>instance</em> by passing in values for the three
+parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">my_gaussian</span> <span class="o">=</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="n">amplitude</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">my_gaussian</span>  
+<span class="go">&lt;Gaussian1D(amplitude=1.0, mean=0.0, stddev=0.2)&gt;</span>
+</pre></div>
+</div>
+<p>We now have an <em>instance</em> of <a class="reference internal" href="../api/astropy.modeling.functional_models.Gaussian1D.html#astropy.modeling.functional_models.Gaussian1D" title="astropy.modeling.functional_models.Gaussian1D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Gaussian1D</span></code></a>
+with all its parameters (and in principle other details like fit constraints)
+filled in so that we can perform calculations with it as though it were a
+function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">my_gaussian</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>  
+<span class="go">0.6065306597126334</span>
+</pre></div>
+</div>
+<p>In many cases this document just refers to “models”, where the class/instance
+distinction is either irrelevant or clear from context.  But a distinction
+will be made where necessary.</p>
+</li>
+<li><p>A <em>compound model</em> can be created by combining two or more existing model instances
+which can be models that come with Astropy, <a class="reference internal" href="new-model.html"><span class="doc">user defined models</span></a>, or
+other compound models–using Python expressions consisting of one or more of the
+supported binary operators.</p></li>
+<li><p>In some places the term <em>composite model</em> is used interchangeably with
+<em>compound model</em>. However, this document uses the
+term <em>composite model</em> to refer <em>only</em> to the case of a compound model
+created from the functional composition of two or more models using the pipe
+operator <code class="docutils literal notranslate"><span class="pre">|</span></code> as explained below.  This distinction is used consistently
+within this document, but it may be helpful to understand the distinction.</p></li>
+</ul>
+</div>
+<div class="section" id="creating-compound-models">
+<h3>Creating compound models<a class="headerlink" href="#creating-compound-models" title="Permalink to this headline">¶</a></h3>
+<p>The only way to create compound models is
+to combine existing single models and/or compound models using expressions in
+Python with the binary operators <code class="docutils literal notranslate"><span class="pre">+</span></code>, <code class="docutils literal notranslate"><span class="pre">-</span></code>, <code class="docutils literal notranslate"><span class="pre">*</span></code>, <code class="docutils literal notranslate"><span class="pre">/</span></code>, <code class="docutils literal notranslate"><span class="pre">**</span></code>, <code class="docutils literal notranslate"><span class="pre">|</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">&amp;</span></code>, each of which is discussed in the following sections.</p>
+<p>The result of combining two models is a model instance:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">two_gaussians</span> <span class="o">=</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="mf">1.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span> <span class="o">+</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">two_gaussians</span>  
+<span class="go">&lt;CompoundModel...(amplitude_0=1.1, mean_0=0.1, stddev_0=0.2, amplitude_1=2.5, mean_1=0.5, stddev_1=0.1)&gt;</span>
+</pre></div>
+</div>
+<p>This expression creates a new model instance that is ready to be used for evaluation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">two_gaussians</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>  
+<span class="go">0.9985190841886609</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">print</span></code> function provides more information about this object:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">two_gaussians</span><span class="p">)</span>
+<span class="go">Model: CompoundModel...</span>
+<span class="go">Inputs: (&#39;x&#39;,)</span>
+<span class="go">Outputs: (&#39;y&#39;,)</span>
+<span class="go">Model set size: 1</span>
+<span class="go">Expression: [0] + [1]</span>
+<span class="go">Components:</span>
+<span class="go">    [0]: &lt;Gaussian1D(amplitude=1.1, mean=0.1, stddev=0.2)&gt;</span>
+
+<span class="go">    [1]: &lt;Gaussian1D(amplitude=2.5, mean=0.5, stddev=0.1)&gt;</span>
+<span class="go">Parameters:</span>
+<span class="go">    amplitude_0 mean_0 stddev_0 amplitude_1 mean_1 stddev_1</span>
+<span class="go">    ----------- ------ -------- ----------- ------ --------</span>
+<span class="go">            1.1    0.1      0.2         2.5    0.5      0.1</span>
+</pre></div>
+</div>
+<p>There are a number of things to point out here:  This model has six
+fittable parameters. How parameters are handled is discussed further in the
+section on <a class="reference internal" href="#compound-model-parameters"><span class="std std-ref">Parameters</span></a>.  We also see that there is a
+listing of the <em>expression</em> that was used to create this compound model, which
+in this case is summarized as <code class="docutils literal notranslate"><span class="pre">[0]</span> <span class="pre">+</span> <span class="pre">[1]</span></code>.  The <code class="docutils literal notranslate"><span class="pre">[0]</span></code> and <code class="docutils literal notranslate"><span class="pre">[1]</span></code> refer to
+the first and second components of the model listed next (in this case both
+components are the <a class="reference internal" href="../api/astropy.modeling.functional_models.Gaussian1D.html#astropy.modeling.functional_models.Gaussian1D" title="astropy.modeling.functional_models.Gaussian1D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Gaussian1D</span></code></a> objects).</p>
+<p>Each component of a compound model is a single, non-compound model.  This is
+the case even when including an existing compound model in a new expression.
+The existing compound model is not treated as a single model–instead the
+expression represented by that compound model is extended.  An expression
+involving two or more compound models results in a new expression that is the
+concatenation of all involved models’ expressions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">four_gaussians</span> <span class="o">=</span> <span class="n">two_gaussians</span> <span class="o">+</span> <span class="n">two_gaussians</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">four_gaussians</span><span class="p">)</span>
+<span class="go">Model: CompoundModel...</span>
+<span class="go">Inputs: (&#39;x&#39;,)</span>
+<span class="go">Outputs: (&#39;y&#39;,)</span>
+<span class="go">Model set size: 1</span>
+<span class="go">Expression: [0] + [1] + [2] + [3]</span>
+<span class="go">Components:</span>
+<span class="go">    [0]: &lt;Gaussian1D(amplitude=1.1, mean=0.1, stddev=0.2)&gt;</span>
+
+<span class="go">    [1]: &lt;Gaussian1D(amplitude=2.5, mean=0.5, stddev=0.1)&gt;</span>
+
+<span class="go">    [2]: &lt;Gaussian1D(amplitude=1.1, mean=0.1, stddev=0.2)&gt;</span>
+
+<span class="go">    [3]: &lt;Gaussian1D(amplitude=2.5, mean=0.5, stddev=0.1)&gt;</span>
+<span class="go">Parameters:</span>
+<span class="go">    amplitude_0 mean_0 stddev_0 amplitude_1 ... stddev_2 amplitude_3 mean_3 stddev_3</span>
+<span class="go">    ----------- ------ -------- ----------- ... -------- ----------- ------ --------</span>
+<span class="go">            1.1    0.1      0.2         2.5 ...      0.2         2.5    0.5      0.1</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="operators">
+<h3>Operators<a class="headerlink" href="#operators" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="arithmetic-operators">
+<h3>Arithmetic operators<a class="headerlink" href="#arithmetic-operators" title="Permalink to this headline">¶</a></h3>
+<p>Compound models can be created from expressions that include any
+number of the arithmetic operators <code class="docutils literal notranslate"><span class="pre">+</span></code>, <code class="docutils literal notranslate"><span class="pre">-</span></code>, <code class="docutils literal notranslate"><span class="pre">*</span></code>, <code class="docutils literal notranslate"><span class="pre">/</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">**</span></code>, which have the same meanings as they do for other numeric
+objects in Python.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In the case of division <code class="docutils literal notranslate"><span class="pre">/</span></code> always means floating point division–integer
+division and the <code class="docutils literal notranslate"><span class="pre">//</span></code> operator is not supported for models).</p>
+</div>
+<p>As demonstrated in previous examples, for models that have a single output
+the result of evaluating a model like <code class="docutils literal notranslate"><span class="pre">A</span> <span class="pre">+</span> <span class="pre">B</span></code> is to evaluate <code class="docutils literal notranslate"><span class="pre">A</span></code> and
+<code class="docutils literal notranslate"><span class="pre">B</span></code> separately on the given input, and then return the sum of the outputs of
+<code class="docutils literal notranslate"><span class="pre">A</span></code> and <code class="docutils literal notranslate"><span class="pre">B</span></code>.  This requires that <code class="docutils literal notranslate"><span class="pre">A</span></code> and <code class="docutils literal notranslate"><span class="pre">B</span></code> take the same number of
+inputs and both have a single output.</p>
+<p>It is also possible to use arithmetic operators between models with multiple
+outputs.  Again, the number of inputs must be the same between the models, as
+must be the number of outputs.  In this case the operator is applied to the
+operators element-wise, similarly to how arithmetic operators work on two Numpy
+arrays.</p>
+</div>
+<div class="section" id="model-composition">
+<span id="compound-model-composition"></span><h3>Model composition<a class="headerlink" href="#model-composition" title="Permalink to this headline">¶</a></h3>
+<p>The sixth binary operator that can be used to create compound models is the
+composition operator, also known as the “pipe” operator <code class="docutils literal notranslate"><span class="pre">|</span></code> (not to be
+confused with the boolean “or” operator that this implements for Python numeric
+objects).  A model created with the composition operator like <code class="docutils literal notranslate"><span class="pre">M</span> <span class="pre">=</span> <span class="pre">F</span> <span class="pre">|</span> <span class="pre">G</span></code>,
+when evaluated, is equivalent to evaluating <span class="math notranslate nohighlight">\(g \circ f = g(f(x))\)</span>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The fact that the <code class="docutils literal notranslate"><span class="pre">|</span></code> operator has the opposite sense as the functional
+composition operator <span class="math notranslate nohighlight">\(\circ\)</span> is sometimes a point of confusion.
+This is in part because there is no operator symbol supported in Python
+that corresponds well to this.  The <code class="docutils literal notranslate"><span class="pre">|</span></code> operator should instead be read
+like the <a class="reference external" href="https://en.wikipedia.org/wiki/Pipeline_%28Unix%29">pipe operator</a> of UNIX shell syntax:
+It chains together models by piping the output of the left-hand operand to
+the input of the right-hand operand, forming a “pipeline” of models, or
+transformations.</p>
+</div>
+<p>This has different requirements on the inputs/outputs of its operands than do
+the arithmetic operators.  For composition all that is required is that the
+left-hand model has the same number of outputs as the right-hand model has
+inputs.</p>
+<p>For simple functional models this is exactly the same as functional
+composition, except for the aforementioned caveat about ordering.  For
+example, to create the following compound model:</p>
+digraph {
+    in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+    out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+    redshift0 [shape=&quot;box&quot;, label=&quot;RedshiftScaleFactor&quot;];
+    gaussian0 [shape=&quot;box&quot;, label=&quot;Gaussian1D(1, 0.75, 0.1)&quot;];
+
+    in0 -&gt; redshift0;
+    redshift0 -&gt; gaussian0;
+    gaussian0 -&gt; out0;
+}<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">RedshiftScaleFactor</span><span class="p">,</span> <span class="n">Gaussian1D</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="n">g0</span> <span class="o">=</span> <span class="n">RedshiftScaleFactor</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g0</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;g--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;$z=0$&#39;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">):</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">RedshiftScaleFactor</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="o">|</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">OrRd</span><span class="p">(</span><span class="n">z</span><span class="p">),</span>
+             <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;$z=</span><span class="si">{</span><span class="n">z</span><span class="si">}</span><span class="s1">$&#39;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Energy&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Flux&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../modeling/compound-models-3.png">png</a>, <a class="reference external" href="../modeling/compound-models-3.svg">svg</a>, <a class="reference external" href="../modeling/compound-models-3.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/compound-models-3.png" class="plot-directive" src="../_images/compound-models-3.png" />
+</div>
+<p>If you wish to perform redshifting in the wavelength space instead of energy,
+and would also like to conserve flux, here is another way to do it using
+model <em>instances</em>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">RedshiftScaleFactor</span><span class="p">,</span> <span class="n">Gaussian1D</span><span class="p">,</span> <span class="n">Scale</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">5000</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+<span class="n">g0</span> <span class="o">=</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2000</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>  <span class="c1"># No redshift is same as redshift with z=0</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g0</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;g--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;$z=0$&#39;</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">):</span>
+    <span class="n">rs</span> <span class="o">=</span> <span class="n">RedshiftScaleFactor</span><span class="p">(</span><span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">inverse</span>  <span class="c1"># Redshift in wavelength space</span>
+    <span class="n">sc</span> <span class="o">=</span> <span class="n">Scale</span><span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">z</span><span class="p">))</span>  <span class="c1"># Rescale the flux to conserve energy</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">rs</span> <span class="o">|</span> <span class="n">g0</span> <span class="o">|</span> <span class="n">sc</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">OrRd</span><span class="p">(</span><span class="n">z</span><span class="p">),</span>
+             <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;$z=</span><span class="si">{</span><span class="n">z</span><span class="si">}</span><span class="s1">$&#39;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Wavelength&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Flux&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../modeling/compound-models-4.png">png</a>, <a class="reference external" href="../modeling/compound-models-4.svg">svg</a>, <a class="reference external" href="../modeling/compound-models-4.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/compound-models-4.png" class="plot-directive" src="../_images/compound-models-4.png" />
+</div>
+<p>When working with models with multiple inputs and outputs the same idea
+applies.  If each input is thought of as a coordinate axis, then this defines a
+pipeline of transformations for the coordinates on each axis (though it does
+not necessarily guarantee that these transformations are separable).  For
+example:</p>
+digraph {
+    in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+    in1 [shape=&quot;none&quot;, label=&quot;input 1&quot;];
+    out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+    out1 [shape=&quot;none&quot;, label=&quot;output 1&quot;];
+    rot0 [shape=&quot;box&quot;, label=&quot;Rotation2D&quot;];
+    gaussian0 [shape=&quot;box&quot;, label=&quot;Gaussian2D(1, 0, 0, 0.1, 0.3)&quot;];
+
+    in0 -&gt; rot0;
+    in1 -&gt; rot0;
+    rot0 -&gt; gaussian0;
+    rot0 -&gt; gaussian0;
+    gaussian0 -&gt; out0;
+    gaussian0 -&gt; out1;
+}<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">Rotation2D</span><span class="p">,</span> <span class="n">Gaussian2D</span>
+
+<span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="mf">0.01</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="mf">0.01</span><span class="p">]</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">))</span>
+
+<span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">theta</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">90</span><span class="p">)):</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">Rotation2D</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">|</span> <span class="n">Gaussian2D</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">g</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">([])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">([])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Rotated $ </span><span class="si">{</span><span class="n">theta</span><span class="si">}</span><span class="s1">^\circ $&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../modeling/compound-models-5.png">png</a>, <a class="reference external" href="../modeling/compound-models-5.svg">svg</a>, <a class="reference external" href="../modeling/compound-models-5.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/compound-models-5.png" class="plot-directive" src="../_images/compound-models-5.png" />
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The above example is a bit contrived in that
+<a class="reference internal" href="../api/astropy.modeling.functional_models.Gaussian2D.html#astropy.modeling.functional_models.Gaussian2D" title="astropy.modeling.functional_models.Gaussian2D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Gaussian2D</span></code></a> already supports an
+optional rotation parameter.  However, this demonstrates how coordinate
+rotation could be added to arbitrary models.</p>
+</div>
+<p>Normally it is not possible to compose, say, a model with two outputs and a
+function of only one input:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">Rotation2D</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Rotation2D</span><span class="p">()</span> <span class="o">|</span> <span class="n">Gaussian1D</span><span class="p">()</span>  
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">ModelDefinitionError</span>: <span class="n">Unsupported operands for |: Rotation2D (n_inputs=2, n_outputs=2) and Gaussian1D (n_inputs=1, n_outputs=1); n_outputs for the left-hand model must match n_inputs for the right-hand model.</span>
+</pre></div>
+</div>
+<p>However, as we will see in the next section,
+<a class="reference internal" href="#compound-model-concatenation"><span class="std std-ref">Model concatenation</span></a>, provides a means of creating models
+that apply transformations to only some of the outputs from a model,
+especially when used in concert with <a class="reference internal" href="#compound-model-mappings"><span class="std std-ref">mappings</span></a>.</p>
+</div>
+<div class="section" id="model-concatenation">
+<span id="compound-model-concatenation"></span><h3>Model concatenation<a class="headerlink" href="#model-concatenation" title="Permalink to this headline">¶</a></h3>
+<p>The concatenation operator <code class="docutils literal notranslate"><span class="pre">&amp;</span></code>, sometimes also referred to as a “join”,
+combines two models into a single, fully separable transformation.  That is, it
+makes a new model that takes the inputs to the left-hand model, concatenated
+with the inputs to the right-hand model, and returns a tuple consisting of the
+two models’ outputs concatenated together, without mixing in any way.  In other
+words, it simply evaluates the two models in parallel–it can be thought of as
+something like a tuple of models.</p>
+<p>For example, given two coordinate axes, we can scale each coordinate
+by a different factor by concatenating two
+<a class="reference internal" href="../api/astropy.modeling.functional_models.Scale.html#astropy.modeling.functional_models.Scale" title="astropy.modeling.functional_models.Scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Scale</span></code></a> models.</p>
+digraph {
+    in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+    in1 [shape=&quot;none&quot;, label=&quot;input 1&quot;];
+    out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+    out1 [shape=&quot;none&quot;, label=&quot;output 1&quot;];
+    scale0 [shape=&quot;box&quot;, label=&quot;Scale(factor=1.2)&quot;];
+    scale1 [shape=&quot;box&quot;, label=&quot;Scale(factor=3.4)&quot;];
+
+    in0 -&gt; scale0;
+    scale0 -&gt; out0;
+
+    in1 -&gt; scale1;
+    scale1 -&gt; out1;
+}<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">Scale</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">separate_scales</span> <span class="o">=</span> <span class="n">Scale</span><span class="p">(</span><span class="n">factor</span><span class="o">=</span><span class="mf">1.2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Scale</span><span class="p">(</span><span class="n">factor</span><span class="o">=</span><span class="mf">3.4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">separate_scales</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  
+<span class="go">(1.2, 6.8)</span>
+</pre></div>
+</div>
+<p>We can also combine concatenation with composition to build chains of
+transformations that use both “1D” and “2D” models on two (or more) coordinate
+axes:</p>
+digraph {
+    in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+    in1 [shape=&quot;none&quot;, label=&quot;input 1&quot;];
+    out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+    out1 [shape=&quot;none&quot;, label=&quot;output 1&quot;];
+    scale0 [shape=&quot;box&quot;, label=&quot;Scale(factor=1.2)&quot;];
+    scale1 [shape=&quot;box&quot;, label=&quot;Scale(factor=3.4)&quot;];
+    rot0 [shape=&quot;box&quot;, label=&quot;Rotation2D(90)&quot;];
+
+    in0 -&gt; scale0;
+    scale0 -&gt; rot0;
+
+    in1 -&gt; scale1;
+    scale1 -&gt; rot0;
+
+    rot0 -&gt; out0;
+    rot0 -&gt; out1;
+}<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">scale_and_rotate</span> <span class="o">=</span> <span class="p">((</span><span class="n">Scale</span><span class="p">(</span><span class="n">factor</span><span class="o">=</span><span class="mf">1.2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Scale</span><span class="p">(</span><span class="n">factor</span><span class="o">=</span><span class="mf">3.4</span><span class="p">))</span> <span class="o">|</span>
+<span class="gp">... </span>                    <span class="n">Rotation2D</span><span class="p">(</span><span class="mi">90</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scale_and_rotate</span><span class="o">.</span><span class="n">n_inputs</span>
+<span class="go">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scale_and_rotate</span><span class="o">.</span><span class="n">n_outputs</span>
+<span class="go">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scale_and_rotate</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  
+<span class="go">(-6.8, 1.2)</span>
+</pre></div>
+</div>
+<p>This is of course equivalent to an
+<a class="reference internal" href="../api/astropy.modeling.projections.AffineTransformation2D.html#astropy.modeling.projections.AffineTransformation2D" title="astropy.modeling.projections.AffineTransformation2D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineTransformation2D</span></code></a> with the appropriate
+transformation matrix:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">allclose</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">AffineTransformation2D</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">affine</span> <span class="o">=</span> <span class="n">AffineTransformation2D</span><span class="p">(</span><span class="n">matrix</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.4</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.2</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># May be small numerical differences due to different implementations</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">allclose</span><span class="p">(</span><span class="n">scale_and_rotate</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">affine</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="other-topics">
+<h2>Other Topics<a class="headerlink" href="#other-topics" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="model-names">
+<h3>Model names<a class="headerlink" href="#model-names" title="Permalink to this headline">¶</a></h3>
+<p>In the above two examples another notable feature of the generated compound
+model classes is that the class name, as displayed when printing the class at
+the command prompt, is not “TwoGaussians”, “FourGaussians”, etc.  Instead it is
+a generated name consisting of “CompoundModel” followed by an essentially
+arbitrary integer that is chosen simply so that every compound model has a
+unique default name.  This is a limitation at present, due to the limitation
+that it is not generally possible in Python when an object is created by an
+expression for it to “know” the name of the variable it will be assigned to, if
+any.
+It is possible to directly assign a name to the compound model instance
+by using the <a class="reference internal" href="../api/astropy.modeling.Model.html#astropy.modeling.Model.name" title="astropy.modeling.Model.name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model.name</span></code></a> attribute:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">two_gaussians</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;TwoGaussians&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">two_gaussians</span><span class="p">)</span>  
+<span class="go">Model: CompoundModel...</span>
+<span class="go">Name: TwoGaussians</span>
+<span class="go">Inputs: (&#39;x&#39;,)</span>
+<span class="go">Outputs: (&#39;y&#39;,)</span>
+<span class="go">Model set size: 1</span>
+<span class="go">Expression: [0] + [1]</span>
+<span class="go">Components:</span>
+<span class="go">    [0]: &lt;Gaussian1D(amplitude=1.1, mean=0.1, stddev=0.2)&gt;</span>
+
+<span class="go">    [1]: &lt;Gaussian1D(amplitude=2.5, mean=0.5, stddev=0.1)&gt;</span>
+<span class="go">Parameters:</span>
+<span class="go">    amplitude_0 mean_0 stddev_0 amplitude_1 mean_1 stddev_1</span>
+<span class="go">    ----------- ------ -------- ----------- ------ --------</span>
+<span class="go">            1.1    0.1      0.2         2.5    0.5      0.1</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="indexing-and-slicing">
+<span id="compound-model-indexing"></span><h3>Indexing and slicing<a class="headerlink" href="#indexing-and-slicing" title="Permalink to this headline">¶</a></h3>
+<p>As seen in some of the previous examples in this document, when creating a
+compound model each component of the model is assigned an integer index
+starting from zero.  These indices are assigned simply by reading the
+expression that defined the model, from left to right, regardless of the order
+of operations.  For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">Const1D</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">A</span> <span class="o">=</span> <span class="n">Const1D</span><span class="p">(</span><span class="mf">1.1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">B</span> <span class="o">=</span> <span class="n">Const1D</span><span class="p">(</span><span class="mf">2.1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C</span> <span class="o">=</span> <span class="n">Const1D</span><span class="p">(</span><span class="mf">3.1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">M</span> <span class="o">=</span> <span class="n">A</span> <span class="o">+</span> <span class="n">B</span> <span class="o">*</span> <span class="n">C</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+<span class="go">Model: CompoundModel...</span>
+<span class="go">Inputs: (&#39;x&#39;,)</span>
+<span class="go">Outputs: (&#39;y&#39;,)</span>
+<span class="go">Model set size: 1</span>
+<span class="go">Expression: [0] + [1] * [2]</span>
+<span class="go">Components:</span>
+<span class="go">    [0]: &lt;Const1D(amplitude=1.1, name=&#39;A&#39;)&gt;</span>
+
+<span class="go">    [1]: &lt;Const1D(amplitude=2.1, name=&#39;B&#39;)&gt;</span>
+
+<span class="go">    [2]: &lt;Const1D(amplitude=3.1, name=&#39;C&#39;)&gt;</span>
+<span class="go">Parameters:</span>
+<span class="go">    amplitude_0 amplitude_1 amplitude_2</span>
+<span class="go">    ----------- ----------- -----------</span>
+<span class="go">            1.1         2.1         3.1</span>
+</pre></div>
+</div>
+<p>In this example the expression is evaluated <code class="docutils literal notranslate"><span class="pre">(B</span> <span class="pre">*</span> <span class="pre">C)</span> <span class="pre">+</span> <span class="pre">A</span></code>–that is, the
+multiplication is evaluated before the addition per usual arithmetic rules.
+However, the components of this model are simply read off left to right from
+the expression <code class="docutils literal notranslate"><span class="pre">A</span> <span class="pre">+</span> <span class="pre">B</span> <span class="pre">*</span> <span class="pre">C</span></code>, with <code class="docutils literal notranslate"><span class="pre">A</span> <span class="pre">-&gt;</span> <span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">B</span> <span class="pre">-&gt;</span> <span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">C</span> <span class="pre">-&gt;</span> <span class="pre">2</span></code>.  If we
+had instead defined <code class="docutils literal notranslate"><span class="pre">M</span> <span class="pre">=</span> <span class="pre">C</span> <span class="pre">*</span> <span class="pre">B</span> <span class="pre">+</span> <span class="pre">A</span></code> then the indices would be reversed
+(though the expression is mathematically equivalent).  This convention is
+chosen for simplicity–given the list of components it is not necessary to
+jump around when mentally mapping them to the expression.</p>
+<p>We can pull out each individual component of the compound model <code class="docutils literal notranslate"><span class="pre">M</span></code> by using
+indexing notation on it.  Following from the above example, <code class="docutils literal notranslate"><span class="pre">M[1]</span></code> should
+return the model <code class="docutils literal notranslate"><span class="pre">B</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">M</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="go">&lt;Const1D(amplitude=2.1, name=&#39;B&#39;)&gt;</span>
+</pre></div>
+</div>
+<p>We can also take a <em>slice</em> of the compound model.  This returns a new compound
+model that evaluates the <em>subexpression</em> involving the models selected by the
+slice.  This follows the same semantics as slicing a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a> or array in Python.
+The start point is inclusive and the end point is exclusive.  So a slice like
+<code class="docutils literal notranslate"><span class="pre">M[1:3]</span></code> (or just <code class="docutils literal notranslate"><span class="pre">M[1:]</span></code>) selects models <code class="docutils literal notranslate"><span class="pre">B</span></code> and <code class="docutils literal notranslate"><span class="pre">C</span></code> (and all
+<em>operators</em> between them).  So the resulting model evaluates just the
+subexpression <code class="docutils literal notranslate"><span class="pre">B</span> <span class="pre">*</span> <span class="pre">C</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">M</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+<span class="go">Model: CompoundModel</span>
+<span class="go">Inputs: (&#39;x&#39;,)</span>
+<span class="go">Outputs: (&#39;y&#39;,)</span>
+<span class="go">Model set size: 1</span>
+<span class="go">Expression: [0] * [1]</span>
+<span class="go">Components:</span>
+<span class="go">    [0]: &lt;Const1D(amplitude=2.1, name=&#39;B&#39;)&gt;</span>
+
+<span class="go">    [1]: &lt;Const1D(amplitude=3.1, name=&#39;C&#39;)&gt;</span>
+<span class="go">Parameters:</span>
+<span class="go">    amplitude_0 amplitude_1</span>
+<span class="go">    ----------- -----------</span>
+<span class="go">            2.1         3.1</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There is a change in the parameter names of a slice from versions
+prior to 4.0. Previously, the parameter names were identical to that
+of the model being sliced. Now, they are what is expected for a
+compound model of this type apart from the model sliced. That is,
+the sliced model always starts with its own relative index for its
+components, thus the parameter names start with a 0 suffix.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Starting with 4.0, the behavior of slicing is more restrictive than
+previously. For example if:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">m</span> <span class="o">=</span> <span class="n">m1</span> <span class="o">*</span> <span class="n">m2</span> <span class="o">+</span> <span class="n">m3</span>
+</pre></div>
+</div>
+<p>and one sliced by
+using <code class="docutils literal notranslate"><span class="pre">m[1:3]</span></code> previously that would return the model: <code class="docutils literal notranslate"><span class="pre">m2</span> <span class="pre">+</span> <span class="pre">m3</span></code>
+even though there was never any such submodel of m. Starting with 4.0
+a slice must correspond to a submodel (something that corresponds
+to an intermediate result of the computational chain of evaluating
+the compound model). So:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">m1</span> <span class="o">*</span> <span class="n">m2</span>
+</pre></div>
+</div>
+<p>is a submodel (i.e.,``m[:2]``) but
+<code class="docutils literal notranslate"><span class="pre">m[1:3]</span></code> is not. Currently this also means that in simpler expressions
+such as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">m</span> <span class="o">=</span> <span class="n">m1</span> <span class="o">+</span> <span class="n">m2</span> <span class="o">+</span> <span class="n">m3</span> <span class="o">+</span> <span class="n">m4</span>
+</pre></div>
+</div>
+<p>where any slice should be valid in
+principle, only slices that include m1 are since it is part of
+all submodules (since the order of evaluation is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">((</span><span class="n">m1</span> <span class="o">+</span> <span class="n">m2</span><span class="p">)</span> <span class="o">+</span> <span class="n">m3</span><span class="p">)</span> <span class="o">+</span> <span class="n">m4</span>
+</pre></div>
+</div>
+<p>Anyone creating compound models that wishes submodels to be available
+is advised to use parentheses explicitly  or define intermediate
+models to be used in subsequent expressions so that they can be
+extracted with a slice or simple index depending on the context.
+For example, to make <code class="docutils literal notranslate"><span class="pre">m2</span> <span class="pre">+</span> <span class="pre">m3</span></code> accessible by slice define <code class="docutils literal notranslate"><span class="pre">m</span></code> as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>m = m1 + (m2 + m3) + m4. In this case ``m[1:3]`` will work.
+</pre></div>
+</div>
+</div>
+<p>The new compound model for the subexpression can be evaluated
+like any other:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">M</span><span class="p">[</span><span class="mi">1</span><span class="p">:](</span><span class="mi">0</span><span class="p">)</span>  
+<span class="go">6.51</span>
+</pre></div>
+</div>
+<p>Although the model <code class="docutils literal notranslate"><span class="pre">M</span></code> was composed entirely of <code class="docutils literal notranslate"><span class="pre">Const1D</span></code> models in this
+example, it was useful to give each component a unique name (<code class="docutils literal notranslate"><span class="pre">A</span></code>, <code class="docutils literal notranslate"><span class="pre">B</span></code>,
+<code class="docutils literal notranslate"><span class="pre">C</span></code>) in order to differentiate between them.  This can also be used for
+indexing and slicing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">M</span><span class="p">[</span><span class="s1">&#39;B&#39;</span><span class="p">])</span>
+<span class="go">Model: Const1D</span>
+<span class="go">Name: B</span>
+<span class="go">Inputs: (&#39;x&#39;,)</span>
+<span class="go">Outputs: (&#39;y&#39;,)</span>
+<span class="go">Model set size: 1</span>
+<span class="go">Parameters:</span>
+<span class="go">    amplitude</span>
+<span class="go">    ---------</span>
+<span class="go">          2.1</span>
+</pre></div>
+</div>
+<p>In this case <code class="docutils literal notranslate"><span class="pre">M['B']</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">M[1]</span></code>.  But by using the name we do
+not have to worry about what index that component is in (this becomes
+especially useful when combining multiple compound models).  A current
+limitation, however, is that each component of a compound model must have a
+unique name–if some components have duplicate names then they can only be
+accessed by their integer index.</p>
+<p>Slicing also works with names.  When using names the start and end points are
+<em>both inclusive</em>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">M</span><span class="p">[</span><span class="s1">&#39;B&#39;</span><span class="p">:</span><span class="s1">&#39;C&#39;</span><span class="p">])</span>
+<span class="go">Model: CompoundModel...</span>
+<span class="go">Inputs: (&#39;x&#39;,)</span>
+<span class="go">Outputs: (&#39;y&#39;,)</span>
+<span class="go">Model set size: 1</span>
+<span class="go">Expression: [0] * [1]</span>
+<span class="go">Components:</span>
+<span class="go">    [0]: &lt;Const1D(amplitude=2.1, name=&#39;B&#39;)&gt;</span>
+
+<span class="go">    [1]: &lt;Const1D(amplitude=3.1, name=&#39;C&#39;)&gt;</span>
+<span class="go">Parameters:</span>
+<span class="go">    amplitude_0 amplitude_1</span>
+<span class="go">    ----------- -----------</span>
+<span class="go">            2.1         3.1</span>
+</pre></div>
+</div>
+<p>So in this case <code class="docutils literal notranslate"><span class="pre">M['B':'C']</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">M[1:3]</span></code>.</p>
+</div>
+<div class="section" id="parameters">
+<span id="compound-model-parameters"></span><h3>Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline">¶</a></h3>
+<p>A question that frequently comes up when first encountering compound models is
+how exactly all the parameters are dealt with.  By now we’ve seen a few
+examples that give some hints, but a more detailed explanation is in order.
+This is also one of the biggest areas for possible improvements–the current
+behavior is meant to be practical, but is not ideal.  (Some possible
+improvements include being able to rename parameters, and providing a means of
+narrowing down the number of parameters in a compound model.)</p>
+<p>As explained in the general documentation for model <a class="reference internal" href="parameters.html#modeling-parameters"><span class="std std-ref">parameters</span></a>, every model has an attribute called
+<a class="reference internal" href="../api/astropy.modeling.Model.html#astropy.modeling.Model.param_names" title="astropy.modeling.Model.param_names"><code class="xref py py-obj docutils literal notranslate"><span class="pre">param_names</span></code></a> that contains a tuple of all the model’s
+adjustable parameters.  These names are given in a canonical order that also
+corresponds to the order in which the parameters should be specified when
+instantiating the model.</p>
+<p>The simple scheme used currently for naming parameters in a compound model is
+this:  The <code class="docutils literal notranslate"><span class="pre">param_names</span></code> from each component model are concatenated with each
+other in order from left to right as explained in the section on
+<a class="reference internal" href="#compound-model-indexing"><span class="std std-ref">Indexing and slicing</span></a>.  However, each parameter name is appended with
+<code class="docutils literal notranslate"><span class="pre">_&lt;#&gt;</span></code>, where <code class="docutils literal notranslate"><span class="pre">&lt;#&gt;</span></code> is the index of the component model that parameter
+belongs to.  For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Gaussian1D</span><span class="o">.</span><span class="n">param_names</span>
+<span class="go">(&#39;amplitude&#39;, &#39;mean&#39;, &#39;stddev&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">Gaussian1D</span><span class="p">()</span> <span class="o">+</span> <span class="n">Gaussian1D</span><span class="p">())</span><span class="o">.</span><span class="n">param_names</span>
+<span class="go">(&#39;amplitude_0&#39;, &#39;mean_0&#39;, &#39;stddev_0&#39;, &#39;amplitude_1&#39;, &#39;mean_1&#39;, &#39;stddev_1&#39;)</span>
+</pre></div>
+</div>
+<p>For consistency’s sake, this scheme is followed even if not all of the
+components have overlapping parameter names:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">RedshiftScaleFactor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">RedshiftScaleFactor</span><span class="p">()</span> <span class="o">|</span> <span class="p">(</span><span class="n">Gaussian1D</span><span class="p">()</span> <span class="o">+</span> <span class="n">Gaussian1D</span><span class="p">()))</span><span class="o">.</span><span class="n">param_names</span>
+<span class="go">(&#39;z_0&#39;, &#39;amplitude_1&#39;, &#39;mean_1&#39;, &#39;stddev_1&#39;, &#39;amplitude_2&#39;, &#39;mean_2&#39;,</span>
+<span class="go">&#39;stddev_2&#39;)</span>
+</pre></div>
+</div>
+<p>On some level a scheme like this is necessary in order for the compound model
+to maintain some consistency with other models with respect to the interface to
+its parameters.  However, if one gets lost it is also possible to take
+advantage of <a class="reference internal" href="#compound-model-indexing"><span class="std std-ref">indexing</span></a> to make things easier.
+When returning a single component from a compound model the parameters
+associated with that component are accessible through their original names, but
+are still tied back to the compound model:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="mf">2.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;B&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="o">.</span><span class="n">amplitude_0</span>
+<span class="go">Parameter(&#39;amplitude&#39;, value=1.0)</span>
+</pre></div>
+</div>
+<p>is equivalent to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">amplitude</span>
+<span class="go">Parameter(&#39;amplitude&#39;, value=1.0)</span>
+</pre></div>
+</div>
+<p>You can think of these both as different “views” of the same parameter.
+Updating one updates the other:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="o">.</span><span class="n">amplitude_0</span> <span class="o">=</span> <span class="mi">42</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">amplitude</span>
+<span class="go">Parameter(&#39;amplitude&#39;, value=42.0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">=</span> <span class="mi">99</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="o">.</span><span class="n">amplitude_0</span>
+<span class="go">Parameter(&#39;amplitude&#39;, value=99.0)</span>
+</pre></div>
+</div>
+<p>Note, however, that the original
+<a class="reference internal" href="../api/astropy.modeling.functional_models.Gaussian1D.html#astropy.modeling.functional_models.Gaussian1D" title="astropy.modeling.functional_models.Gaussian1D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Gaussian1D</span></code></a> instance <code class="docutils literal notranslate"><span class="pre">a</span></code> has been
+updated:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">.</span><span class="n">amplitude</span>
+<span class="go">Parameter(&#39;amplitude&#39;, value=99.0)</span>
+</pre></div>
+</div>
+<p>This is different than the behavior in versions prior to 4.0. Now compound model
+parameters share the same Parameter instance as the original model.</p>
+</div>
+<div class="section" id="advanced-mappings">
+<span id="compound-model-mappings"></span><h3>Advanced mappings<a class="headerlink" href="#advanced-mappings" title="Permalink to this headline">¶</a></h3>
+<p>We have seen in some previous examples how models can be chained together to
+form a “pipeline” of transformations by using model <a class="reference internal" href="#compound-model-composition"><span class="std std-ref">composition</span></a> and <a class="reference internal" href="#compound-model-concatenation"><span class="std std-ref">concatenation</span></a>.  To aid the creation of more complex chains of
+transformations (for example for a WCS transformation) a new class of
+“<a class="reference internal" href="reference_api.html#module-astropy.modeling.mappings" title="astropy.modeling.mappings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mapping</span></code></a>” models is provided.</p>
+<p>Mapping models do not (currently) take any parameters, nor do they perform any
+numeric operation.  They are for use solely with the <a class="reference internal" href="#compound-model-concatenation"><span class="std std-ref">concatenation</span></a> (<code class="docutils literal notranslate"><span class="pre">&amp;</span></code>) and <a class="reference internal" href="#compound-model-composition"><span class="std std-ref">composition</span></a> (<code class="docutils literal notranslate"><span class="pre">|</span></code>) operators, and can be used to control how
+the inputs and outputs of models are ordered, and how outputs from one model
+are mapped to inputs of another model in a composition.</p>
+<p>Currently there are only two mapping models:
+<a class="reference internal" href="../api/astropy.modeling.mappings.Identity.html#astropy.modeling.mappings.Identity" title="astropy.modeling.mappings.Identity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Identity</span></code></a>, and (the somewhat generically named)
+<a class="reference internal" href="../api/astropy.modeling.mappings.Mapping.html#astropy.modeling.mappings.Mapping" title="astropy.modeling.mappings.Mapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mapping</span></code></a>.</p>
+<p>The <a class="reference internal" href="../api/astropy.modeling.mappings.Identity.html#astropy.modeling.mappings.Identity" title="astropy.modeling.mappings.Identity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Identity</span></code></a> mapping simply passes one or more
+inputs through, unchanged.  It must be instantiated with an integer specifying
+the number of inputs/outputs it accepts.  This can be used to trivially expand
+the “dimensionality” of a model in terms of the number of inputs it accepts.
+In the section on <a class="reference internal" href="#compound-model-concatenation"><span class="std std-ref">concatenation</span></a> we saw
+an example like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="p">(</span><span class="n">Scale</span><span class="p">(</span><span class="mf">1.2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Scale</span><span class="p">(</span><span class="mf">3.4</span><span class="p">))</span> <span class="o">|</span> <span class="n">Rotation2D</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span>
+</pre></div>
+</div>
+digraph {
+    in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+    in1 [shape=&quot;none&quot;, label=&quot;input 1&quot;];
+    out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+    out1 [shape=&quot;none&quot;, label=&quot;output 1&quot;];
+    scale0 [shape=&quot;box&quot;, label=&quot;Scale(factor=1.2)&quot;];
+    scale1 [shape=&quot;box&quot;, label=&quot;Scale(factor=3.4)&quot;];
+    rot0 [shape=&quot;box&quot;, label=&quot;Rotation2D(90)&quot;];
+
+    in0 -&gt; scale0;
+    scale0 -&gt; rot0;
+
+    in1 -&gt; scale1;
+    scale1 -&gt; rot0;
+
+    rot0 -&gt; out0;
+    rot0 -&gt; out1;
+}<p>where two coordinate inputs are scaled individually and then rotated into each
+other.  However, say we wanted to scale only one of those coordinates.  It
+would be fine to simply use <code class="docutils literal notranslate"><span class="pre">Scale(1)</span></code> for one them, or any other model that
+is effectively a no-op.  But that also adds unnecessary computational overhead,
+so we might as well simply specify that that coordinate is not to be scaled or
+transformed in any way.  This is a good use case for
+<a class="reference internal" href="../api/astropy.modeling.mappings.Identity.html#astropy.modeling.mappings.Identity" title="astropy.modeling.mappings.Identity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Identity</span></code></a>:</p>
+digraph {
+    in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+    in1 [shape=&quot;none&quot;, label=&quot;input 1&quot;];
+    out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+    out1 [shape=&quot;none&quot;, label=&quot;output 1&quot;];
+    scale0 [shape=&quot;box&quot;, label=&quot;Scale(factor=1.2)&quot;];
+    identity0 [shape=&quot;box&quot;, label=&quot;Identity(1)&quot;];
+    rot0 [shape=&quot;box&quot;, label=&quot;Rotation2D(90)&quot;];
+
+    in0 -&gt; scale0;
+    scale0 -&gt; rot0;
+
+    in1 -&gt; identity0;
+    identity0 -&gt; rot0;
+
+    rot0 -&gt; out0;
+    rot0 -&gt; out1;
+}<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">Identity</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">Scale</span><span class="p">(</span><span class="mf">1.2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Identity</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  
+<span class="go">(1.2, 2.0)</span>
+</pre></div>
+</div>
+<p>This scales the first input, and passes the second one through unchanged.  We
+can use this to build up more complicated steps in a many-axis WCS
+transformation.  If for example we had 3 axes and only wanted to scale the
+first one:</p>
+digraph {
+    in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+    in1 [shape=&quot;none&quot;, label=&quot;input 1&quot;];
+    in2 [shape=&quot;none&quot;, label=&quot;input 2&quot;];
+    out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+    out1 [shape=&quot;none&quot;, label=&quot;output 1&quot;];
+    out2 [shape=&quot;none&quot;, label=&quot;output 2&quot;];
+    scale0 [shape=&quot;box&quot;, label=&quot;Scale(1.2)&quot;];
+    identity0 [shape=&quot;box&quot;, label=&quot;Identity(2)&quot;];
+
+    in0 -&gt; scale0;
+    scale0 -&gt; out0;
+
+    in1 -&gt; identity0;
+    in2 -&gt; identity0;
+    identity0 -&gt; out1;
+    identity0 -&gt; out2;
+}<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">Scale</span><span class="p">(</span><span class="mf">1.2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Identity</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>  
+<span class="go">(1.2, 2.0, 3.0)</span>
+</pre></div>
+</div>
+<p>(Naturally, the last example could also be written out <code class="docutils literal notranslate"><span class="pre">Scale(1.2)</span> <span class="pre">&amp;</span>
+<span class="pre">Identity(1)</span> <span class="pre">&amp;</span> <span class="pre">Identity(1)</span></code>.)</p>
+<p>The <a class="reference internal" href="../api/astropy.modeling.mappings.Mapping.html#astropy.modeling.mappings.Mapping" title="astropy.modeling.mappings.Mapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mapping</span></code></a> model is similar in that it does not
+modify any of its inputs.  However, it is more general in that it allows inputs
+to be duplicated, reordered, or even dropped outright.  It is instantiated with
+a single argument: a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>, the number of items of which correspond to the
+number of outputs the <a class="reference internal" href="../api/astropy.modeling.mappings.Mapping.html#astropy.modeling.mappings.Mapping" title="astropy.modeling.mappings.Mapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mapping</span></code></a> should produce.  A
+1-tuple means that whatever inputs come in to the
+<a class="reference internal" href="../api/astropy.modeling.mappings.Mapping.html#astropy.modeling.mappings.Mapping" title="astropy.modeling.mappings.Mapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mapping</span></code></a>, only one will be output.  And so on for
+2-tuple or higher (though the length of the tuple cannot be greater than the
+number of inputs–it will not pull values out of thin air).  The elements of
+this mapping are integers corresponding to the indices of the inputs.  For
+example, a mapping of <code class="docutils literal notranslate"><span class="pre">Mapping((0,))</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">Identity(1)</span></code>–it
+simply takes the first (0-th) input and returns it:</p>
+digraph G {
+    in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+
+    subgraph cluster_A {
+        shape=rect;
+        color=black;
+        label=&quot;(0,)&quot;;
+
+        a [shape=point, label=&quot;&quot;];
+    }
+
+    out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+
+    in0 -&gt; a;
+    a -&gt; out0;
+}<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">Mapping</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">Mapping</span><span class="p">((</span><span class="mi">0</span><span class="p">,))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="go">1.0</span>
+</pre></div>
+</div>
+<p>Likewise <code class="docutils literal notranslate"><span class="pre">Mapping((0,</span> <span class="pre">1))</span></code> is equivalent to <code class="docutils literal notranslate"><span class="pre">Identity(2)</span></code>, and so on.
+However, <a class="reference internal" href="../api/astropy.modeling.mappings.Mapping.html#astropy.modeling.mappings.Mapping" title="astropy.modeling.mappings.Mapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mapping</span></code></a> also allows outputs to be
+reordered arbitrarily:</p>
+digraph G {
+    {
+        rank=same;
+        in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+        in1 [shape=&quot;none&quot;, label=&quot;input 1&quot;];
+    }
+
+    subgraph cluster_A {
+        shape=rect;
+        color=black;
+        label=&quot;(1, 0)&quot;;
+
+        {
+            rank=same;
+            a [shape=point, label=&quot;&quot;];
+            b [shape=point, label=&quot;&quot;];
+        }
+
+        {
+            rank=same;
+            c [shape=point, label=&quot;&quot;];
+            d [shape=point, label=&quot;&quot;];
+        }
+
+        a -&gt; c [style=invis];
+        a -&gt; d [constraint=false];
+        b -&gt; c [constraint=false];
+    }
+
+    {
+        rank=same;
+        out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+        out1 [shape=&quot;none&quot;, label=&quot;output 1&quot;];
+    }
+
+    in0 -&gt; a;
+    in1 -&gt; b;
+    c -&gt; out0;
+    d -&gt; out1;
+}<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">Mapping</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="go">(2.0, 1.0)</span>
+</pre></div>
+</div>
+digraph G {
+    {
+        rank=same;
+        in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+        in1 [shape=&quot;none&quot;, label=&quot;input 1&quot;];
+        in2 [shape=&quot;none&quot;, label=&quot;input 2&quot;];
+    }
+
+    subgraph cluster_A {
+        shape=rect;
+        color=black;
+        label=&quot;(1, 0, 2)&quot;;
+
+        {
+            rank=same;
+            a [shape=point, label=&quot;&quot;];
+            b [shape=point, label=&quot;&quot;];
+            c [shape=point, label=&quot;&quot;];
+        }
+
+        {
+            rank=same;
+            d [shape=point, label=&quot;&quot;];
+            e [shape=point, label=&quot;&quot;];
+            f [shape=point, label=&quot;&quot;];
+        }
+
+        a -&gt; d [style=invis];
+        a -&gt; e [constraint=false];
+        b -&gt; d [constraint=false];
+        c -&gt; f [constraint=false];
+    }
+
+    {
+        rank=same;
+        out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+        out1 [shape=&quot;none&quot;, label=&quot;output 1&quot;];
+        out2 [shape=&quot;none&quot;, label=&quot;output 2&quot;];
+    }
+
+    in0 -&gt; a;
+    in1 -&gt; b;
+    in2 -&gt; c;
+    d -&gt; out0;
+    e -&gt; out1;
+    f -&gt; out2;
+}<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">Mapping</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">)</span>
+<span class="go">(2.0, 1.0, 3.0)</span>
+</pre></div>
+</div>
+<p>Outputs may also be dropped:</p>
+digraph G {
+    {
+        rank=same;
+        in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+        in1 [shape=&quot;none&quot;, label=&quot;input 1&quot;];
+    }
+
+    subgraph cluster_A {
+        shape=rect;
+        color=black;
+        label=&quot;(1,)&quot;;
+
+        {
+            rank=same;
+            a [shape=point, label=&quot;&quot;];
+            b [shape=point, label=&quot;&quot;];
+        }
+
+        {
+            rank=same;
+            c [shape=point, label=&quot;&quot;];
+        }
+
+        a -&gt; c [style=invis];
+        b -&gt; c [constraint=false];
+    }
+
+    out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+
+    in0 -&gt; a;
+    in1 -&gt; b;
+    c -&gt; out0;
+}<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">Mapping</span><span class="p">((</span><span class="mi">1</span><span class="p">,))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="go">2.0</span>
+</pre></div>
+</div>
+digraph G {
+    {
+        rank=same;
+        in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+        in1 [shape=&quot;none&quot;, label=&quot;input 1&quot;];
+        in2 [shape=&quot;none&quot;, label=&quot;input 2&quot;];
+    }
+
+    subgraph cluster_A {
+        shape=rect;
+        color=black;
+        label=&quot;(0, 2)&quot;;
+
+        {
+            rank=same;
+            a [shape=point, label=&quot;&quot;];
+            b [shape=point, label=&quot;&quot;];
+            c [shape=point, label=&quot;&quot;];
+        }
+
+        {
+            rank=same;
+            d [shape=point, label=&quot;&quot;];
+            e [shape=point, label=&quot;&quot;];
+        }
+
+        a -&gt; d [style=invis];
+        a -&gt; d [constraint=false];
+        c -&gt; e [constraint=false];
+    }
+
+    {
+        rank=same;
+        out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+        out1 [shape=&quot;none&quot;, label=&quot;output 1&quot;];
+    }
+
+    in0 -&gt; a;
+    in1 -&gt; b;
+    in2 -&gt; c;
+    d -&gt; out0;
+    e -&gt; out1;
+}<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">Mapping</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">)</span>
+<span class="go">(1.0, 3.0)</span>
+</pre></div>
+</div>
+<p>Or duplicated:</p>
+digraph G {
+    in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+
+    subgraph cluster_A {
+        shape=rect;
+        color=black;
+        label=&quot;(0, 0)&quot;;
+
+        a [shape=point, label=&quot;&quot;];
+
+        {
+            rank=same;
+            b [shape=point, label=&quot;&quot;];
+            c [shape=point, label=&quot;&quot;];
+        }
+
+        a -&gt; b [style=invis];
+        a -&gt; b [constraint=false];
+        a -&gt; c [constraint=false];
+    }
+
+    {
+        rank=same;
+        out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+        out1 [shape=&quot;none&quot;, label=&quot;output 1&quot;];
+    }
+
+    in0 -&gt; a;
+    b -&gt; out0;
+    c -&gt; out1;
+}<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">Mapping</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="go">(1.0, 1.0)</span>
+</pre></div>
+</div>
+digraph G {
+    {
+        rank=same;
+        in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+        in1 [shape=&quot;none&quot;, label=&quot;input 1&quot;];
+        in2 [shape=&quot;none&quot;, label=&quot;input 2&quot;];
+    }
+
+    subgraph cluster_A {
+        shape=rect;
+        color=black;
+        label=&quot;(0, 1, 1, 2)&quot;;
+
+        {
+            rank=same;
+            a [shape=point, label=&quot;&quot;];
+            b [shape=point, label=&quot;&quot;];
+            c [shape=point, label=&quot;&quot;];
+        }
+
+        {
+            rank=same;
+            d [shape=point, label=&quot;&quot;];
+            e [shape=point, label=&quot;&quot;];
+            f [shape=point, label=&quot;&quot;];
+            g [shape=point, label=&quot;&quot;];
+        }
+
+        a -&gt; d [style=invis];
+        a -&gt; d [constraint=false];
+        b -&gt; e [constraint=false];
+        b -&gt; f [constraint=false];
+        c -&gt; g [constraint=false];
+    }
+
+    {
+        rank=same;
+        out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+        out1 [shape=&quot;none&quot;, label=&quot;output 1&quot;];
+        out2 [shape=&quot;none&quot;, label=&quot;output 2&quot;];
+        out3 [shape=&quot;none&quot;, label=&quot;output 3&quot;];
+    }
+
+    in0 -&gt; a;
+    in1 -&gt; b;
+    in2 -&gt; c;
+    d -&gt; out0;
+    e -&gt; out1;
+    f -&gt; out2;
+    g -&gt; out3;
+}<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">Mapping</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">)</span>
+<span class="go">(1.0, 2.0, 2.0, 3.0)</span>
+</pre></div>
+</div>
+<p>A complicated example that performs multiple transformations, some separable,
+some not, on three coordinate axes might look something like:</p>
+digraph G {
+    {
+        rank=same;
+        in0 [shape=&quot;none&quot;, label=&quot;input 0&quot;];
+        in1 [shape=&quot;none&quot;, label=&quot;input 1&quot;];
+        in2 [shape=&quot;none&quot;, label=&quot;input 2&quot;];
+    }
+
+    {
+        rank=same;
+        poly0 [shape=rect, label=&quot;Poly1D(3, c0=1, c3=1)&quot;];
+        identity0 [shape=rect, label=&quot;Identity(1)&quot;];
+        poly1 [shape=rect, label=&quot;Poly1D(2, c2=1)&quot;];
+    }
+
+    subgraph cluster_A {
+        shape=rect;
+        color=black;
+        label=&quot;(0, 2, 1)&quot;;
+
+        {
+            rank=same;
+            a [shape=point, label=&quot;&quot;];
+            b [shape=point, label=&quot;&quot;];
+            c [shape=point, label=&quot;&quot;];
+        }
+
+        {
+            rank=same;
+            d [shape=point, label=&quot;&quot;];
+            e [shape=point, label=&quot;&quot;];
+            f [shape=point, label=&quot;&quot;];
+        }
+
+        a -&gt; d [style=invis];
+        d -&gt; e [style=invis];
+        a -&gt; d [constraint=false];
+        c -&gt; e [constraint=false];
+        b -&gt; f [constraint=false];
+    }
+
+    poly2 [shape=&quot;rect&quot;, label=&quot;Poly2D(4, c0_0=1, c1_1=1, c2_2=2)&quot;];
+    gaussian0 [shape=&quot;rect&quot;, label=&quot;Gaussian1D(1, 0, 4)&quot;];
+
+    {
+        rank=same;
+        out0 [shape=&quot;none&quot;, label=&quot;output 0&quot;];
+        out1 [shape=&quot;none&quot;, label=&quot;output 1&quot;];
+    }
+
+    in0 -&gt; poly0;
+    in1 -&gt; identity0;
+    in2 -&gt; poly1;
+    poly0 -&gt; a;
+    identity0 -&gt; b;
+    poly1 -&gt; c;
+    d -&gt; poly2;
+    e -&gt; poly2;
+    f -&gt; gaussian0;
+    poly2 -&gt; out0;
+    gaussian0 -&gt; out1;
+}<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">Polynomial1D</span> <span class="k">as</span> <span class="n">Poly1D</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">Polynomial2D</span> <span class="k">as</span> <span class="n">Poly2D</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="p">((</span><span class="n">Poly1D</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">c0</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">c3</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Identity</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Poly1D</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">c2</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span> <span class="o">|</span>
+<span class="gp">... </span>     <span class="n">Mapping</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">|</span>
+<span class="gp">... </span>     <span class="p">(</span><span class="n">Poly2D</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">c0_0</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">c1_1</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">c2_2</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">)))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>  
+<span class="go">(41617.0, 0.7548396019890073)</span>
+</pre></div>
+</div>
+<p>This expression takes three inputs: <span class="math notranslate nohighlight">\(x\)</span>, <span class="math notranslate nohighlight">\(y\)</span>, and <span class="math notranslate nohighlight">\(z\)</span>.  It
+first takes <span class="math notranslate nohighlight">\(x \rightarrow x^3 + 1\)</span> and <span class="math notranslate nohighlight">\(z \rightarrow z^2\)</span>.
+Then it remaps the axes so that <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(z\)</span> are passed in to the
+<a class="reference internal" href="../api/astropy.modeling.polynomial.Polynomial2D.html#astropy.modeling.polynomial.Polynomial2D" title="astropy.modeling.polynomial.Polynomial2D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Polynomial2D</span></code></a> to evaluate
+<span class="math notranslate nohighlight">\(2x^2z^2 + xz + 1\)</span>, while simultaneously evaluating a Gaussian on
+<span class="math notranslate nohighlight">\(y\)</span>.  The end result is a reduction down to two coordinates.  You can
+confirm for yourself that the result is correct.</p>
+<p>This opens up the possibility of essentially arbitrarily complex transformation
+graphs.  Currently the tools do not exist to make it easy to navigate and
+reason about highly complex compound models that use these mappings, but that
+is a possible enhancement for future versions.</p>
+</div>
+<div class="section" id="model-reduction">
+<span id="id1"></span><h3>Model Reduction<a class="headerlink" href="#model-reduction" title="Permalink to this headline">¶</a></h3>
+<p>In order to save much duplication in the construction of complex models, it is
+possible to define one complex model that covers all cases where the
+variables that distinguish the models are made part of the model’s input
+variables. The <code class="docutils literal notranslate"><span class="pre">fix_inputs</span></code> function allows defining models derived from
+the more complex one by setting one or more of the inputs to a constant
+value. Examples of this sort of situation arise when working out
+the transformations from detector pixel to RA, Dec, and lambda for
+spectrographs when the slit locations may be moved (e.g., fiber fed or
+commandable slit masks), or different orders may be selected (e.g., Eschelle).
+In the case of order, one may have a function of pixel <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>, <code class="docutils literal notranslate"><span class="pre">spectral_order</span></code>
+that map into <code class="docutils literal notranslate"><span class="pre">RA</span></code>, <code class="docutils literal notranslate"><span class="pre">Dec</span></code> and <code class="docutils literal notranslate"><span class="pre">lambda</span></code>. Without specifying <code class="docutils literal notranslate"><span class="pre">spectral_order</span></code>, it is
+ambiguous what <code class="docutils literal notranslate"><span class="pre">RA</span></code>, <code class="docutils literal notranslate"><span class="pre">Dec</span></code> and <code class="docutils literal notranslate"><span class="pre">Lambda</span></code> corresponds to a pixel location. It
+is usually possible to define a function of all three inputs. Presuming
+this model is <code class="docutils literal notranslate"><span class="pre">general_transform</span></code> then <code class="docutils literal notranslate"><span class="pre">fix_inputs</span></code> may be used to define
+the transform for a specific order as follows:</p>
+<dl>
+<dt>::</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">order1_transform</span> <span class="o">=</span> <span class="n">fix_inputs</span><span class="p">(</span><span class="n">general_transform</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;order&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>  
+</pre></div>
+</div>
+</dd>
+</dl>
+<p>creates a new compound model that takes only pixel position and generates
+<code class="docutils literal notranslate"><span class="pre">RA</span></code>, <code class="docutils literal notranslate"><span class="pre">Dec</span></code>, and <code class="docutils literal notranslate"><span class="pre">lambda</span></code>. The <code class="docutils literal notranslate"><span class="pre">fix_inputs</span></code> function can be used to set input
+values by position (0 is the first) or by input variable name, and more
+than one can be set in the dictionary supplied.</p>
+<p>If the input model has a bounding_box, the generated model will have the
+bounding for the input coordinate removed.</p>
+</div>
+<div class="section" id="replace-submodels">
+<h3>Replace submodels<a class="headerlink" href="#replace-submodels" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference internal" href="../api/astropy.modeling.CompoundModel.html#astropy.modeling.CompoundModel.replace_submodel" title="astropy.modeling.core.CompoundModel"><code class="xref py py-meth docutils literal notranslate"><span class="pre">replace_submodel()</span></code></a> creates a new model by
+replacing a submodel with a matching name with another submodel. The number of
+inputs and outputs of the old and new submodels should match.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling</span> <span class="kn">import</span> <span class="n">models</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">shift</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Shift</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">models</span><span class="o">.</span><span class="n">Shift</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scale</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Scale</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">models</span><span class="o">.</span><span class="n">Scale</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scale</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Scale&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">shift</span> <span class="o">|</span> <span class="n">scale</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  
+<span class="go">(2.0, 0.0)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new_model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">replace_submodel</span><span class="p">(</span><span class="s1">&#39;Scale&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">Rotation2D</span><span class="p">(</span><span class="mi">90</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Rotation&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new_model</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  
+<span class="go">(6.12e-17, 1.0)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Combining Models</a><ul>
+<li><a class="reference internal" href="#basics">Basics</a></li>
+<li><a class="reference internal" href="#a-comprehensive-description">A comprehensive description</a><ul>
+<li><a class="reference internal" href="#some-terminology">Some terminology</a></li>
+<li><a class="reference internal" href="#creating-compound-models">Creating compound models</a></li>
+<li><a class="reference internal" href="#operators">Operators</a></li>
+<li><a class="reference internal" href="#arithmetic-operators">Arithmetic operators</a></li>
+<li><a class="reference internal" href="#model-composition">Model composition</a></li>
+<li><a class="reference internal" href="#model-concatenation">Model concatenation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#other-topics">Other Topics</a><ul>
+<li><a class="reference internal" href="#model-names">Model names</a></li>
+<li><a class="reference internal" href="#indexing-and-slicing">Indexing and slicing</a></li>
+<li><a class="reference internal" href="#parameters">Parameters</a></li>
+<li><a class="reference internal" href="#advanced-mappings">Advanced mappings</a></li>
+<li><a class="reference internal" href="#model-reduction">Model Reduction</a></li>
+<li><a class="reference internal" href="#replace-submodels">Replace submodels</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/modeling/compound-models.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

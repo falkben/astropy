@@ -1,0 +1,802 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Using and Designing Coordinate Frames &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Working with Velocities in Astropy Coordinates" href="velocities.html" />
+    <link rel="prev" title="Using and Designing Coordinate Representations" href="representations.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="velocities.html" title="Working with Velocities in Astropy Coordinates">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="representations.html" title="Using and Designing Coordinate Representations">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Astronomical Coordinate Systems (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code>)</a> &#187;</li>
+      
+      <li>Using and Designing Coordinate Frames</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="using-and-designing-coordinate-frames">
+<h1>Using and Designing Coordinate Frames<a class="headerlink" href="#using-and-designing-coordinate-frames" title="Permalink to this headline">¶</a></h1>
+<p>In <a class="reference internal" href="index.html#module-astropy.coordinates" title="astropy.coordinates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code></a>, as outlined in the
+<a class="reference internal" href="index.html#astropy-coordinates-overview"><span class="std std-ref">Overview of astropy.coordinates Concepts</span></a>, subclasses of <a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame" title="astropy.coordinates.BaseCoordinateFrame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseCoordinateFrame</span></code></a> (“frame
+classes”) define particular coordinate frames. They can (but do not
+<em>have</em> to) contain representation objects storing the actual coordinate
+data. The actual coordinate transformations are defined as functions
+that transform representations between frame classes. This approach
+serves to separate high-level user functionality (see <a class="reference internal" href="skycoord.html"><span class="doc">Using the SkyCoord High-Level Class</span></a>)
+and details of how the coordinates are actually stored (see
+<a class="reference internal" href="representations.html"><span class="doc">Using and Designing Coordinate Representations</span></a>) from the definition of frames and how they are
+transformed.</p>
+<div class="section" id="using-frame-objects">
+<h2>Using Frame Objects<a class="headerlink" href="#using-frame-objects" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="frames-without-data">
+<h3>Frames without Data<a class="headerlink" href="#frames-without-data" title="Permalink to this headline">¶</a></h3>
+<p>Frame objects have two distinct (but related) uses. The first is
+storing the information needed to uniquely define a frame (e.g.,
+equinox, observation time). This information is stored on the frame
+objects as (read-only) Python attributes, which are set when the object
+is first created:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">ICRS</span><span class="p">,</span> <span class="n">FK5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">FK5</span><span class="p">(</span><span class="n">equinox</span><span class="o">=</span><span class="s1">&#39;J1975&#39;</span><span class="p">)</span>
+<span class="go">&lt;FK5 Frame (equinox=J1975.000)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">()</span>  <span class="c1"># has no attributes</span>
+<span class="go">&lt;ICRS Frame&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">FK5</span><span class="p">()</span>  <span class="c1"># uses default equinox</span>
+<span class="go">&lt;FK5 Frame (equinox=J2000.000)&gt;</span>
+</pre></div>
+</div>
+<p>The specific names of attributes available for a particular frame (and
+their default values) are available as the class method
+<code class="docutils literal notranslate"><span class="pre">get_frame_attr_names</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">FK5</span><span class="o">.</span><span class="n">get_frame_attr_names</span><span class="p">()</span>
+<span class="go">{&#39;equinox&#39;: &lt;Time object: scale=&#39;tt&#39; format=&#39;jyear_str&#39; value=J2000.000&gt;}</span>
+</pre></div>
+</div>
+<p>You can access any of the attributes on a frame by using standard Python
+attribute access. Note that for cases like <code class="docutils literal notranslate"><span class="pre">equinox</span></code>, which are time
+inputs, if you pass in any unambiguous time string, it will be converted
+into an <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> object (see
+<a class="reference internal" href="../time/index.html#astropy-time-inferring-input"><span class="std std-ref">Inferring Input Format</span></a>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">FK5</span><span class="p">(</span><span class="n">equinox</span><span class="o">=</span><span class="s1">&#39;J1975&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">equinox</span>
+<span class="go">&lt;Time object: scale=&#39;tt&#39; format=&#39;jyear_str&#39; value=J1975.000&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">FK5</span><span class="p">(</span><span class="n">equinox</span><span class="o">=</span><span class="s1">&#39;2011-05-15T12:13:14&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">equinox</span>
+<span class="go">&lt;Time object: scale=&#39;utc&#39; format=&#39;isot&#39; value=2011-05-15T12:13:14.000&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="frames-with-data">
+<h3>Frames with Data<a class="headerlink" href="#frames-with-data" title="Permalink to this headline">¶</a></h3>
+<p>The second use for frame objects is to store actual realized coordinate
+data for frames like those described above. In this use, it is similar
+to the <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> class, and in fact, the <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> class internally
+uses the frame classes as its implementation. However, the frame
+classes have fewer “convenience” features, thereby streamlining the
+implementation of frame classes. As such, they are created
+similarly to <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> objects. One suggested way is to use
+with keywords appropriate for the frame (e.g., <code class="docutils literal notranslate"><span class="pre">ra</span></code> and <code class="docutils literal notranslate"><span class="pre">dec</span></code> for
+equatorial systems):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">1.1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">2.2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>  
+<span class="go">&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="go">    (1.1, 2.2)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">FK5</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">1.1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">2.2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">equinox</span><span class="o">=</span><span class="s1">&#39;J1975&#39;</span><span class="p">)</span>  
+<span class="go">&lt;FK5 Coordinate (equinox=J1975.000): (ra, dec) in deg</span>
+<span class="go">    (1.1, 2.2)&gt;</span>
+</pre></div>
+</div>
+<p>These same attributes can be used to access the data in the frames as
+<a class="reference internal" href="../api/astropy.coordinates.Angle.html#astropy.coordinates.Angle" title="astropy.coordinates.Angle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Angle</span></code></a> objects (or <a class="reference internal" href="../api/astropy.coordinates.Angle.html#astropy.coordinates.Angle" title="astropy.coordinates.Angle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Angle</span></code></a> subclasses):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">coo</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">1.1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">2.2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coo</span><span class="o">.</span><span class="n">ra</span>  
+<span class="go">&lt;Longitude 1.1 deg&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coo</span><span class="o">.</span><span class="n">ra</span><span class="o">.</span><span class="n">value</span>  
+<span class="go">1.1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coo</span><span class="o">.</span><span class="n">ra</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">hourangle</span><span class="p">)</span>  
+<span class="go">&lt;Longitude 0.07333333 hourangle&gt;</span>
+</pre></div>
+</div>
+<p>You can use the <code class="docutils literal notranslate"><span class="pre">representation_type</span></code> attribute in conjunction
+with the <code class="docutils literal notranslate"><span class="pre">representation_component_names</span></code> attribute to figure out what
+keywords are accepted by a particular class object. The former will be the
+representation class in which the system is expressed (e.g., spherical for
+equatorial frames), and the latter will be a dictionary mapping names for that
+frame to the attribute name on the representation class:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">representation_type</span>
+<span class="go">&lt;class &#39;astropy.coordinates.representation.SphericalRepresentation&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">representation_component_names</span>
+<span class="go">{&#39;ra&#39;: &#39;lon&#39;, &#39;dec&#39;: &#39;lat&#39;, &#39;distance&#39;: &#39;distance&#39;}</span>
+</pre></div>
+</div>
+<p>You can get the data in a different representation if needed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">represent_as</span><span class="p">(</span><span class="s1">&#39;cartesian&#39;</span><span class="p">)</span>  
+<span class="go">&lt;CartesianRepresentation (x, y, z) [dimensionless]</span>
+<span class="go">     (0.99923861, 0.01744177, 0.0348995)&gt;</span>
+</pre></div>
+</div>
+<p>The representation of the coordinate object can also be changed directly, as
+shown below. This does <em>nothing</em> to the object internal data which stores the
+coordinate values, but it changes the external view of that data in two ways:
+(1) the object prints itself in accord with the new representation, and (2) the
+available attributes change to match those of the new representation (e.g., from
+<code class="docutils literal notranslate"><span class="pre">ra,</span> <span class="pre">dec,</span> <span class="pre">distance</span></code> to <code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">z</span></code>). Setting the <code class="docutils literal notranslate"><span class="pre">representation_type</span></code>
+thus changes a <em>property</em> of the object (how it appears) without changing the
+intrinsic object itself which represents a point in 3D space.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">CartesianRepresentation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">representation_type</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span>  
+<span class="go">&lt;ICRS Coordinate: (x, y, z) [dimensionless]</span>
+<span class="go">    (0.99923861, 0.01744177, 0.0348995)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">x</span>  
+<span class="go">&lt;Quantity 0.99923861&gt;</span>
+</pre></div>
+</div>
+<p>The representation can also be set at the time of creating a coordinate
+and affects the set of keywords used to supply the coordinate data. For
+example, to create a coordinate with Cartesian data do:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">3</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">)</span>  
+<span class="go">&lt;ICRS Coordinate: (x, y, z) in kpc</span>
+<span class="go">    (1., 2., 3.)&gt;</span>
+</pre></div>
+</div>
+<p>For more information about the use of representations in coordinates see the
+<a class="reference internal" href="skycoord.html#astropy-skycoord-representations"><span class="std std-ref">Representations</span></a> section, and for details about the
+representations themselves see <a class="reference internal" href="representations.html#astropy-coordinates-representations"><span class="std std-ref">Using and Designing Coordinate Representations</span></a>.</p>
+<p>There are two other ways to create frame classes with coordinates. A
+representation class can be passed in directly at creation, along with
+any frame attributes required:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SphericalRepresentation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rep</span> <span class="o">=</span> <span class="n">SphericalRepresentation</span><span class="p">(</span><span class="n">lon</span><span class="o">=</span><span class="mf">1.1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="mf">2.2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mf">3.3</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">FK5</span><span class="p">(</span><span class="n">rep</span><span class="p">,</span> <span class="n">equinox</span><span class="o">=</span><span class="s1">&#39;J1975&#39;</span><span class="p">)</span>  
+<span class="go">&lt;FK5 Coordinate (equinox=J1975.000): (ra, dec, distance) in (deg, deg, kpc)</span>
+<span class="go">    (1.1, 2.2, 3.3)&gt;</span>
+</pre></div>
+</div>
+<p>A final way is to create a frame object from an already existing frame
+(either one with or without data), using the <code class="docutils literal notranslate"><span class="pre">realize_frame</span></code> method. This
+will yield a frame with the same attributes, but new data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f1</span> <span class="o">=</span> <span class="n">FK5</span><span class="p">(</span><span class="n">equinox</span><span class="o">=</span><span class="s1">&#39;J1975&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f1</span>
+<span class="go">&lt;FK5 Frame (equinox=J1975.000)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rep</span> <span class="o">=</span> <span class="n">SphericalRepresentation</span><span class="p">(</span><span class="n">lon</span><span class="o">=</span><span class="mf">1.1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="mf">2.2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mf">3.3</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f1</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">rep</span><span class="p">)</span>  
+<span class="go">&lt;FK5 Coordinate (equinox=J1975.000): (ra, dec, distance) in (deg, deg, kpc)</span>
+<span class="go">    (1.1, 2.2, 3.3)&gt;</span>
+</pre></div>
+</div>
+<p>You can check if a frame object has data using the <code class="docutils literal notranslate"><span class="pre">has_data</span></code> attribute, and
+if it is present, it can be accessed from the <code class="docutils literal notranslate"><span class="pre">data</span></code> attribute:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">()</span><span class="o">.</span><span class="n">has_data</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cooi</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">1.1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">2.2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cooi</span><span class="o">.</span><span class="n">has_data</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cooi</span><span class="o">.</span><span class="n">data</span>  
+<span class="go">&lt;UnitSphericalRepresentation (lon, lat) in deg</span>
+<span class="go">    (1.1, 2.2)&gt;</span>
+</pre></div>
+</div>
+<p>All of the above methods can also accept array data (in the form of
+class:<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Quantity</span></code></a>, or other Python sequences) to create arrays of
+coordinates:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="p">[</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="p">[</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>  
+<span class="go">&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="go">    [(1.5, 3.5), (2.5, 4.5)]&gt;</span>
+</pre></div>
+</div>
+<p>If you pass in mixed arrays and scalars, the arrays will be broadcast
+over the scalars appropriately:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="p">[</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="p">[</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mi">5</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">)</span>  
+<span class="go">&lt;ICRS Coordinate: (ra, dec, distance) in (deg, deg, kpc)</span>
+<span class="go">    [(1.5, 3.5, 5.), (2.5, 4.5, 5.)]&gt;</span>
+</pre></div>
+</div>
+<p>Similar broadcasting happens if you transform to another frame. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span><span class="p">,</span> <span class="n">AltAz</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coo</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">180.</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">51.477811</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lf</span> <span class="o">=</span> <span class="n">AltAz</span><span class="p">(</span><span class="n">location</span><span class="o">=</span><span class="n">EarthLocation</span><span class="o">.</span><span class="n">of_site</span><span class="p">(</span><span class="s1">&#39;greenwich&#39;</span><span class="p">),</span>
+<span class="gp">... </span>           <span class="n">obstime</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;2012-03-21T00:00:00&#39;</span><span class="p">,</span> <span class="s1">&#39;2012-06-21T00:00:00&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lcoo</span> <span class="o">=</span> <span class="n">coo</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">lf</span><span class="p">)</span>  <span class="c1"># this can load finals2000A.all </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lcoo</span>  
+<span class="go">&lt;AltAz Coordinate (obstime=[&#39;2012-03-21T00:00:00.000&#39; &#39;2012-06-21T00:00:00.000&#39;], location=(3980608.9024681724, -102.47522910648239, 4966861.273100675) m, pressure=0.0 hPa, temperature=0.0 deg_C, relative_humidity=0.0, obswl=1.0 micron): (az, alt) in deg</span>
+<span class="go">    [( 94.71264993, 89.21424259), (307.69488825, 37.98077772)]&gt;</span>
+</pre></div>
+</div>
+<p>Above, the shapes — <code class="docutils literal notranslate"><span class="pre">()</span></code> for <code class="docutils literal notranslate"><span class="pre">coo</span></code> and <code class="docutils literal notranslate"><span class="pre">(2,)</span></code> for <code class="docutils literal notranslate"><span class="pre">lf</span></code> — were
+broadcast against each other. If you wish to determine the positions for a
+set of coordinates, you will need to make sure that the shapes allow this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">coo2</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="p">[</span><span class="mf">180.</span><span class="p">,</span> <span class="mf">225.</span><span class="p">,</span> <span class="mf">270.</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="p">[</span><span class="mf">51.5</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">51.5</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coo2</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">lf</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">ValueError</span>: <span class="n">operands could not be broadcast together...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coo2</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(3,)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lf</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(2,)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lf2</span> <span class="o">=</span> <span class="n">lf</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lf2</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(2, 1)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coo2</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">lf2</span><span class="p">)</span>  
+<span class="go">&lt;AltAz Coordinate (obstime=[[&#39;2012-03-21T00:00:00.000&#39; &#39;2012-03-21T00:00:00.000&#39;</span>
+<span class="go">  &#39;2012-03-21T00:00:00.000&#39;]</span>
+<span class="go"> [&#39;2012-06-21T00:00:00.000&#39; &#39;2012-06-21T00:00:00.000&#39;</span>
+<span class="go">  &#39;2012-06-21T00:00:00.000&#39;]], location=(3980608.90246817, -102.47522911, 4966861.27310068) m, pressure=0.0 hPa, temperature=0.0 deg_C, relative_humidity=0.0, obswl=1.0 micron): (az, alt) in deg</span>
+<span class="go">    [[( 93.09845183, 89.21613128), (126.85789664, 25.4660055 ),</span>
+<span class="go">      ( 51.37993234, 37.18532527)],</span>
+<span class="go">     [(307.71713698, 37.99437658), (231.3740787 , 26.36768329),</span>
+<span class="go">      ( 85.42187236, 89.69297998)]]&gt;</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Frames without data have a <code class="docutils literal notranslate"><span class="pre">shape</span></code> that is determined by their frame
+attributes. For frames with data, the <code class="docutils literal notranslate"><span class="pre">shape</span></code> always is that of the data;
+any non-scalar attributes are broadcast to have matching shapes
+(as can be seen for <code class="docutils literal notranslate"><span class="pre">obstime</span></code> in the last line above).</p>
+</div>
+<p>Coordinate values in a array-valued frame object can be modified in-place
+(added in astropy 4.1). This requires that the new values be set from an
+another frame object that is equivalent in all ways except for the actual
+coordinate data values. In this way, no frame transformations are required and
+the item setting operation is extremely robust.</p>
+<p>To modify an array of coordinates use the same syntax for a numpy array:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">coo1</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coo2</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="mi">10</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">20</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coo1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">coo2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coo1</span>
+<span class="go">&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="go">    [(10., 20.), ( 2.,  4.)]&gt;</span>
+</pre></div>
+</div>
+<p>This method is relatively slow because it requires setting from an
+existing frame object and it performs extensive validation to ensure
+that the operation is valid. For some applications it may be necessary to
+take a different lower-level approach which is described in the section
+<a class="reference internal" href="inplace.html#astropy-coordinates-fast-in-place"><span class="std std-ref">Fast In-Place Modification of Coordinates</span></a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>You may be tempted to try an apparently obvious way of modifying a frame
+object in place by updating the component attributes directly, for example
+<code class="docutils literal notranslate"><span class="pre">coo1.ra[1]</span> <span class="pre">=</span> <span class="pre">40</span> <span class="pre">*</span> <span class="pre">u.deg</span></code>. However, while this will <em>appear</em> to give a correct
+result it does not actually modify the underlying representation data. This
+is related to the current implementation of performance-based caching.
+The current cache implementation is similarly unable to handle in-place changes
+to the representation (<code class="docutils literal notranslate"><span class="pre">.data</span></code>) or frame attributes such as <code class="docutils literal notranslate"><span class="pre">.obstime</span></code>.</p>
+</div>
+</div>
+</div>
+<div class="section" id="transforming-between-frames">
+<h2>Transforming between Frames<a class="headerlink" href="#transforming-between-frames" title="Permalink to this headline">¶</a></h2>
+<p>To transform a frame object with data into another frame, use the
+<code class="docutils literal notranslate"><span class="pre">transform_to</span></code> method of an object, and provide it the frame you wish to
+transform to.  This frame should be a frame object (with or without coordinate
+data).  If you wish to use all default frame attributes, you can instantiate
+the frame class with no arguments (i.e., empty parentheses):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cooi</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="mf">1.5</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mf">2.5</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cooi</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">FK5</span><span class="p">())</span>  
+<span class="go">&lt;FK5 Coordinate (equinox=J2000.000): (ra, dec) in deg</span>
+<span class="go">    (1.50000661, 2.50000238)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cooi</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">FK5</span><span class="p">(</span><span class="n">equinox</span><span class="o">=</span><span class="s1">&#39;J1975&#39;</span><span class="p">))</span>  
+<span class="go">&lt;FK5 Coordinate (equinox=J1975.000): (ra, dec) in deg</span>
+<span class="go">    (1.17960348, 2.36085321)&gt;</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="index.html#astropy-coordinates-api"><span class="std std-ref">Reference/API</span></a> includes a list of all of the frames built
+into <a class="reference internal" href="index.html#module-astropy.coordinates" title="astropy.coordinates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code></a>, as well as the defined transformations between
+them. Any transformation that has a valid path, even if it passes through
+other frames, can be transformed too. To programmatically check for or
+manipulate transformations, see the <a class="reference internal" href="../api/astropy.coordinates.TransformGraph.html#astropy.coordinates.TransformGraph" title="astropy.coordinates.TransformGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformGraph</span></code></a>
+documentation.</p>
+</div>
+<div class="section" id="defining-a-new-frame">
+<span id="astropy-coordinates-design"></span><h2>Defining a New Frame<a class="headerlink" href="#defining-a-new-frame" title="Permalink to this headline">¶</a></h2>
+<p>Implementing a new frame class that connects to the <code class="docutils literal notranslate"><span class="pre">astropy.coordinates</span></code>
+infrastructure can be done by subclassing
+<a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame" title="astropy.coordinates.BaseCoordinateFrame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseCoordinateFrame</span></code></a>. Some guidance and examples are given
+below, but detailed instructions for creating new frames are given in the
+docstring of <a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame" title="astropy.coordinates.BaseCoordinateFrame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseCoordinateFrame</span></code></a>.</p>
+<p>All frame classes must specify a default representation for the coordinate
+positions by, at minimum, defining a <code class="docutils literal notranslate"><span class="pre">default_representation</span></code> class attribute
+(see <a class="reference internal" href="representations.html#astropy-coordinates-representations"><span class="std std-ref">Using and Designing Coordinate Representations</span></a> for more information about the
+supported <code class="docutils literal notranslate"><span class="pre">Representation</span></code> objects).</p>
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+<p>To create a new frame that, by default, expects to receive its coordinate data
+in spherical coordinates, we would create a subclass as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">BaseCoordinateFrame</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.coordinates.representation</span> <span class="k">as</span> <span class="nn">r</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyFrame1</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># Specify how coordinate values are represented when outputted</span>
+<span class="gp">... </span>    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span>
+</pre></div>
+</div>
+<p>Already, this is a valid frame class:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> <span class="o">=</span> <span class="n">MyFrame1</span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> 
+<span class="go">&lt;MyFrame1 Coordinate: (lon, lat) in deg</span>
+<span class="go">    (1., 2.)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span><span class="o">.</span><span class="n">lon</span> 
+<span class="go">&lt;Longitude 1. deg&gt;</span>
+</pre></div>
+</div>
+<p>However, as we have defined it above, (1) the coordinate component names will be
+the same as used in the specified <code class="docutils literal notranslate"><span class="pre">default_representation</span></code> (in this case,
+<code class="docutils literal notranslate"><span class="pre">lon</span></code>, <code class="docutils literal notranslate"><span class="pre">lat</span></code>, and <code class="docutils literal notranslate"><span class="pre">distance</span></code> for longitude, latitude, and distance,
+respectively), (2) this frame does not have any additional attributes or
+metadata, (3) this frame does not support transformations to any other
+coordinate frame, and (4) this frame does not support velocity data. We can
+address each of these points by seeing some other ways of customizing frame
+subclasses.</p>
+</div>
+<div class="section" id="customizing-frame-component-names">
+<h3>Customizing Frame Component Names<a class="headerlink" href="#customizing-frame-component-names" title="Permalink to this headline">¶</a></h3>
+<p>First, as mentioned in the point (1) <a class="reference internal" href="#astropy-coordinates-design"><span class="std std-ref">above</span></a>,
+some frame classes have special names for their components. For example, the
+<a class="reference internal" href="../api/astropy.coordinates.ICRS.html#astropy.coordinates.ICRS" title="astropy.coordinates.ICRS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ICRS</span></code></a> frame and other equatorial frame classes often use
+“Right Ascension” or “RA” in place of longitude, and “Declination” or “Dec.” in
+place of latitude. These component name overrides, which change the frame
+component name defaults taken from the <code class="docutils literal notranslate"><span class="pre">Representation</span></code> classes, are defined
+by specifying a set of <a class="reference internal" href="../api/astropy.coordinates.RepresentationMapping.html#astropy.coordinates.RepresentationMapping" title="astropy.coordinates.RepresentationMapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RepresentationMapping</span></code></a> instances
+(one per component) as a part of defining an additional class attribute on a
+frame class: <code class="docutils literal notranslate"><span class="pre">frame_specific_representation_info</span></code>. This attribute must be a
+dictionary, and the keys should be either <code class="docutils literal notranslate"><span class="pre">Representation</span></code> or <code class="docutils literal notranslate"><span class="pre">Differential</span></code>
+classes (see below for a discussion about customizing behavior for velocity
+components, which is done with the <code class="docutils literal notranslate"><span class="pre">Differential</span></code> classes). Using our example
+frame implemented above, we can customize it to use the names “R” and “D”
+instead of “lon” and “lat”:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">RepresentationMapping</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyFrame2</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># Specify how coordinate values are represented when outputted</span>
+<span class="gp">... </span>    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="c1"># Override component names (e.g., &quot;ra&quot; instead of &quot;lon&quot;)</span>
+<span class="gp">... </span>    <span class="n">frame_specific_representation_info</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span><span class="p">:</span> <span class="p">[</span><span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span> <span class="s1">&#39;R&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">)]</span>
+<span class="gp">... </span>    <span class="p">}</span>
+</pre></div>
+</div>
+<p>With this frame, we can now use the names <code class="docutils literal notranslate"><span class="pre">R</span></code> and <code class="docutils literal notranslate"><span class="pre">D</span></code> to access the frame
+data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> <span class="o">=</span> <span class="n">MyFrame2</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">4</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> 
+<span class="go">&lt;MyFrame2 Coordinate: (R, D) in deg</span>
+<span class="go">    (3., 4.)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span><span class="o">.</span><span class="n">R</span> 
+<span class="go">&lt;Longitude 3. deg&gt;</span>
+</pre></div>
+</div>
+<p>We can specify name mappings for any <code class="docutils literal notranslate"><span class="pre">Representation</span></code> class in
+<code class="docutils literal notranslate"><span class="pre">astropy.coordinates</span></code> to change the default component names. For example, the
+<a class="reference internal" href="../api/astropy.coordinates.Galactic.html#astropy.coordinates.Galactic" title="astropy.coordinates.Galactic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Galactic</span></code></a> frame uses the standard longitude and latitude
+names “l” and “b” when used with a
+<a class="reference internal" href="../api/astropy.coordinates.SphericalRepresentation.html#astropy.coordinates.SphericalRepresentation" title="astropy.coordinates.SphericalRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SphericalRepresentation</span></code></a>, but uses the component names
+“x”, “y”, and “z” when the representation is changed to a
+<a class="reference internal" href="../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartesianRepresentation</span></code></a>. With our example above, we could
+add an additional set of mappings to override the Cartesian component names to
+be “a”, “b”, and “c” instead of the default “x”, “y”, and “z”:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyFrame3</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># Specify how coordinate values are represented when outputted</span>
+<span class="gp">... </span>    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="c1"># Override component names (e.g., &quot;ra&quot; instead of &quot;lon&quot;)</span>
+<span class="gp">... </span>    <span class="n">frame_specific_representation_info</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span><span class="p">:</span> <span class="p">[</span><span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span> <span class="s1">&#39;R&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">)],</span>
+<span class="gp">... </span>        <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">:</span> <span class="p">[</span><span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)]</span>
+<span class="gp">... </span>    <span class="p">}</span>
+</pre></div>
+</div>
+<p>For any <a class="reference internal" href="../api/astropy.coordinates.RepresentationMapping.html#astropy.coordinates.RepresentationMapping" title="astropy.coordinates.RepresentationMapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RepresentationMapping</span></code></a>, you can also specify a
+default unit for the component by setting the <code class="docutils literal notranslate"><span class="pre">defaultunit</span></code> keyword argument.</p>
+</div>
+<div class="section" id="defining-frame-attributes">
+<h3>Defining Frame Attributes<a class="headerlink" href="#defining-frame-attributes" title="Permalink to this headline">¶</a></h3>
+<p>Second, as indicated by the point (2) in the <a class="reference internal" href="#astropy-coordinates-design"><span class="std std-ref">introduction above</span></a>, it is often useful for coordinate frames to allow
+specifying frame “attributes” that may specify additional data or parameters
+needed in order to fully specify transformations between a given frame and some
+other frame. For example, the <a class="reference internal" href="../api/astropy.coordinates.FK5.html#astropy.coordinates.FK5" title="astropy.coordinates.FK5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK5</span></code></a> frame allows specifying
+an <code class="docutils literal notranslate"><span class="pre">equinox</span></code> that helps define the transformation between
+<a class="reference internal" href="../api/astropy.coordinates.FK5.html#astropy.coordinates.FK5" title="astropy.coordinates.FK5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK5</span></code></a> and the <a class="reference internal" href="../api/astropy.coordinates.ICRS.html#astropy.coordinates.ICRS" title="astropy.coordinates.ICRS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ICRS</span></code></a> frame. Frame
+attributes are defined by creating class attributes that are instances of
+<a class="reference internal" href="../api/astropy.coordinates.Attribute.html#astropy.coordinates.Attribute" title="astropy.coordinates.Attribute"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Attribute</span></code></a> or its subclasses (e.g.,
+<a class="reference internal" href="../api/astropy.coordinates.TimeAttribute.html#astropy.coordinates.TimeAttribute" title="astropy.coordinates.TimeAttribute"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TimeAttribute</span></code></a>, <a class="reference internal" href="../api/astropy.coordinates.QuantityAttribute.html#astropy.coordinates.QuantityAttribute" title="astropy.coordinates.QuantityAttribute"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QuantityAttribute</span></code></a>,
+etc.). If attributes are defined using these classes, there is often no need to
+define an <code class="docutils literal notranslate"><span class="pre">__init__</span></code> function, as the initializer in
+<a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame" title="astropy.coordinates.BaseCoordinateFrame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseCoordinateFrame</span></code></a> will probably behave in the way you
+want. Let us now modify the above toy frame class implementation to add two
+frame attributes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">TimeAttribute</span><span class="p">,</span> <span class="n">QuantityAttribute</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyFrame4</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># Specify how coordinate values are represented when outputted</span>
+<span class="gp">... </span>    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="c1"># Override component names (e.g., &quot;ra&quot; instead of &quot;lon&quot;)</span>
+<span class="gp">... </span>    <span class="n">frame_specific_representation_info</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span><span class="p">:</span> <span class="p">[</span><span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span> <span class="s1">&#39;R&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">)],</span>
+<span class="gp">... </span>        <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">:</span> <span class="p">[</span><span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)]</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="c1"># Specify frame attributes required to fully specify the frame</span>
+<span class="gp">... </span>    <span class="n">time</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s1">&#39;B1950&#39;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">orientation</span> <span class="o">=</span> <span class="n">QuantityAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">42</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Without specifying an initializer, defining these attributes tells the
+<a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame" title="astropy.coordinates.BaseCoordinateFrame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseCoordinateFrame</span></code></a> what to expect in terms of additional
+arguments passed in to our subclass initializer. For example, when defining a
+frame instance with our subclass, we can now optionally specify values for these
+attributes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> <span class="o">=</span> <span class="n">MyFrame4</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">orientation</span><span class="o">=</span><span class="mi">21</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> 
+<span class="go">&lt;MyFrame4 Coordinate (time=B1950.000, orientation=21.0 deg): (R, D) in deg</span>
+<span class="go">    (1., 2.)&gt;</span>
+</pre></div>
+</div>
+<p>Note that we specified both frame attributes with default values, so they are
+optional arguments to the frame initializer. Note also that the frame attributes
+now appear in the <code class="docutils literal notranslate"><span class="pre">repr</span></code> of the frame instance above. As a bonus, for most of
+the <code class="docutils literal notranslate"><span class="pre">Attribute</span></code> subclasses, even without defining an initializer, attributes
+specified as arguments will be validated. For example, arguments passed in to
+<a class="reference internal" href="../api/astropy.coordinates.QuantityAttribute.html#astropy.coordinates.QuantityAttribute" title="astropy.coordinates.QuantityAttribute"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QuantityAttribute</span></code></a> attributes will be checked that they
+have valid and compatible units with the expected attribute units. Using our
+frame example above, which expects an <code class="docutils literal notranslate"><span class="pre">orientation</span></code> with angular units,
+passing in a time results in an error:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">MyFrame4</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">orientation</span><span class="o">=</span><span class="mi">55</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">microyear</span><span class="p">)</span> 
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">UnitConversionError</span>: <span class="n">&#39;uyr&#39; (time) and &#39;deg&#39; (angle) are not convertible</span>
+</pre></div>
+</div>
+<p>When defining frame attributes, you do not always have to specify a default
+value as long as the <code class="docutils literal notranslate"><span class="pre">Attribute</span></code> subclass is able to validate the input. For
+example, with the above frame, if the <code class="docutils literal notranslate"><span class="pre">orientation</span></code> does not require a default
+value but we still want to enforce it to have angular units, we could instead
+define it as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">orientation</span> <span class="o">=</span> <span class="n">QuantityAttribute</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In the above case, if <code class="docutils literal notranslate"><span class="pre">orientation</span></code> is not specified when a new frame instance
+is created, its value will be <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>: Note that it is up to the frame
+classes and transformation function implementations to define how to handle a
+<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> value. In most cases <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> should signify a special case like “use a
+different frame attribute for this value” or similar.</p>
+<div class="section" id="customizing-display-of-attributes">
+<h4>Customizing Display of Attributes<a class="headerlink" href="#customizing-display-of-attributes" title="Permalink to this headline">¶</a></h4>
+<p>While the default <a class="reference external" href="https://docs.python.org/3/library/functions.html#repr" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr</span></code></a> for coordinate frames is suitable for most cases, you
+may want to customize how frame attributes are displayed in certain cases. To
+do this you can define a method named <code class="docutils literal notranslate"><span class="pre">_astropy_repr_in_frame</span></code>. This method
+should be defined on the object that is set to the frame attribute itself,
+<strong>not</strong> the <a class="reference internal" href="../api/astropy.coordinates.Attribute.html#astropy.coordinates.Attribute" title="astropy.coordinates.Attribute"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Attribute</span></code></a> descriptor.</p>
+<div class="section" id="example">
+<h5>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h5>
+<p>As an example of method <code class="docutils literal notranslate"><span class="pre">_astropy_repr_in_frame</span></code>, say you have an
+object <code class="docutils literal notranslate"><span class="pre">Spam</span></code> which you have as an attribute of your frame:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Spam</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">_astropy_repr_in_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="s2">&quot;&lt;A can of Spam&gt;&quot;</span>
+</pre></div>
+</div>
+<p>If your frame has this class as an attribute:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">Attribute</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Egg</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">can</span> <span class="o">=</span> <span class="n">Attribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">Spam</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>When it is displayed by the frame it will use the result of
+<code class="docutils literal notranslate"><span class="pre">_astropy_repr_in_frame</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Egg</span><span class="p">()</span>
+<span class="go">&lt;Egg Frame (can=&lt;A can of Spam&gt;)&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="defining-transformations-between-frames">
+<h3>Defining Transformations between Frames<a class="headerlink" href="#defining-transformations-between-frames" title="Permalink to this headline">¶</a></h3>
+<p>As indicated by the point (3) in the <a class="reference internal" href="#astropy-coordinates-design"><span class="std std-ref">introduction above</span></a>, a frame class on its own is likely not very
+useful until transformations are defined between it and other coordinate frame
+classes. The key concept for defining transformations in <code class="docutils literal notranslate"><span class="pre">astropy.coordinates</span></code>
+is the “frame transform graph” (in the “graph theory” sense, not “plot”), which
+stores all of the transformations between the built-in frames, as well as tools
+for finding the shortest paths through this graph to transform from any frame to
+any other by composing the transformations. The power behind this concept is
+available to user-created frames as well, meaning that once you define even one
+transform from your frame to any frame in the graph, coordinates defined in your
+frame can be transformed to <em>any</em> other frame in the graph. The “frame transform
+graph” is available in code as <code class="docutils literal notranslate"><span class="pre">astropy.coordinates.frame_transform_graph</span></code>,
+which is an instance of the <a class="reference internal" href="../api/astropy.coordinates.TransformGraph.html#astropy.coordinates.TransformGraph" title="astropy.coordinates.TransformGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformGraph</span></code></a> class.</p>
+<p>The transformations themselves are represented as
+<a class="reference internal" href="../api/astropy.coordinates.CoordinateTransform.html#astropy.coordinates.CoordinateTransform" title="astropy.coordinates.CoordinateTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CoordinateTransform</span></code></a> objects or their subclasses. The
+useful subclasses/types of transformations are:</p>
+<ul>
+<li><p><a class="reference internal" href="../api/astropy.coordinates.FunctionTransform.html#astropy.coordinates.FunctionTransform" title="astropy.coordinates.FunctionTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FunctionTransform</span></code></a></p>
+<blockquote>
+<div><p>A transform that is defined as a function that takes a frame object
+of one frame class and returns an object of another class.</p>
+</div></blockquote>
+</li>
+<li><p><a class="reference internal" href="../api/astropy.coordinates.AffineTransform.html#astropy.coordinates.AffineTransform" title="astropy.coordinates.AffineTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineTransform</span></code></a></p>
+<blockquote>
+<div><p>A transformation that includes a linear matrix operation and a translation
+(vector offset). These transformations are defined by a 3x3 matrix and a
+3-vector for the offset (supplied as a Cartesian representation). The
+transformation is applied to the Cartesian representation of one frame and
+transforms into the Cartesian representation of the target frame.</p>
+</div></blockquote>
+</li>
+<li><p><a class="reference internal" href="../api/astropy.coordinates.StaticMatrixTransform.html#astropy.coordinates.StaticMatrixTransform" title="astropy.coordinates.StaticMatrixTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StaticMatrixTransform</span></code></a></p></li>
+<li><p><a class="reference internal" href="../api/astropy.coordinates.DynamicMatrixTransform.html#astropy.coordinates.DynamicMatrixTransform" title="astropy.coordinates.DynamicMatrixTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DynamicMatrixTransform</span></code></a></p>
+<blockquote>
+<div><p>The matrix transforms are <a class="reference internal" href="../api/astropy.coordinates.AffineTransform.html#astropy.coordinates.AffineTransform" title="astropy.coordinates.AffineTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineTransform</span></code></a>
+transformations without a translation (i.e., only a rotation). The static
+version is for the case where the matrix is independent of the frame
+attributes (e.g., the ICRS-&gt;FK5 transformation, because ICRS has no frame
+attributes). The dynamic case is for transformations where the
+transformation matrix depends on the frame attributes of either the
+to or from frame.</p>
+</div></blockquote>
+</li>
+</ul>
+<p>Generally, it is not necessary to use these classes directly. Instead,
+use methods on the <code class="docutils literal notranslate"><span class="pre">frame_transform_graph</span></code> that can be used as function
+decorators. Define functions that either do the actual
+transformation (for <a class="reference internal" href="../api/astropy.coordinates.FunctionTransform.html#astropy.coordinates.FunctionTransform" title="astropy.coordinates.FunctionTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FunctionTransform</span></code></a>), or that compute
+the necessary transformation matrices to transform. Then decorate the functions
+to register these transformations with the frame transform graph:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">frame_transform_graph</span>
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">DynamicMatrixTransform</span><span class="p">,</span> <span class="n">ICRS</span><span class="p">,</span> <span class="n">FK5</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">icrs_to_fk5</span><span class="p">(</span><span class="n">icrscoord</span><span class="p">,</span> <span class="n">fk5frame</span><span class="p">):</span>
+    <span class="o">...</span>
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">DynamicMatrixTransform</span><span class="p">,</span> <span class="n">FK5</span><span class="p">,</span> <span class="n">ICRS</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">fk5_to_icrs</span><span class="p">(</span><span class="n">fk5coord</span><span class="p">,</span> <span class="n">icrsframe</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>If the transformation to your coordinate frame of interest is not
+representable by a matrix operation, you can also specify a function to do
+the actual transformation, and pass the
+<a class="reference internal" href="../api/astropy.coordinates.FunctionTransform.html#astropy.coordinates.FunctionTransform" title="astropy.coordinates.FunctionTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FunctionTransform</span></code></a> class to the transform graph
+decorator instead:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">FunctionTransform</span><span class="p">,</span> <span class="n">FK4NoETerms</span><span class="p">,</span> <span class="n">FK4</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">fk4_no_e_to_fk4</span><span class="p">(</span><span class="n">fk4noecoord</span><span class="p">,</span> <span class="n">fk4frame</span><span class="p">):</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>Furthermore, the <code class="docutils literal notranslate"><span class="pre">frame_transform_graph</span></code> does some caching and
+optimization to speed up transformations after the first attempt to go
+from one frame to another, and shortcuts steps where relevant (for
+example, combining multiple static matrix transforms into a single
+matrix). Hence, in general, it is better to define whatever are the
+most natural transformations for a user-defined frame, rather than
+worrying about optimizing or caching a transformation to speed up the
+process.</p>
+<p>For a demonstration of how to define transformation functions that also work for
+transforming velocity components, see
+<a class="reference internal" href="velocities.html#astropy-coordinate-transform-with-velocities"><span class="std std-ref">Transforming Frames with Velocities</span></a>.</p>
+</div>
+<div class="section" id="supporting-velocity-data-in-frames">
+<h3>Supporting Velocity Data in Frames<a class="headerlink" href="#supporting-velocity-data-in-frames" title="Permalink to this headline">¶</a></h3>
+<p>As alluded to by point (4) in the <a class="reference internal" href="#astropy-coordinates-design"><span class="std std-ref">introduction above</span></a>, the examples we have seen above mostly deal with
+customizing frame behavior for positional information. (For some context about
+how velocities are handled in <code class="docutils literal notranslate"><span class="pre">astropy.coordinates</span></code>, it may be useful to read
+the overview: <a class="reference internal" href="velocities.html#astropy-coordinate-custom-frame-with-velocities"><span class="std std-ref">Creating Frame Objects with Velocity Data</span></a>.)</p>
+<p>When defining a frame class, it is also possible to set a
+<code class="docutils literal notranslate"><span class="pre">default_differential</span></code> (analogous to <code class="docutils literal notranslate"><span class="pre">default_representation</span></code>), and to
+customize how velocity data components are named. Expanding on our custom frame
+example above, we can use <a class="reference internal" href="../api/astropy.coordinates.RepresentationMapping.html#astropy.coordinates.RepresentationMapping" title="astropy.coordinates.RepresentationMapping"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RepresentationMapping</span></code></a> to
+override <code class="docutils literal notranslate"><span class="pre">Differential</span></code> component names. The default <code class="docutils literal notranslate"><span class="pre">Differential</span></code>
+components are typically named after the corresponding <code class="docutils literal notranslate"><span class="pre">Representation</span></code>
+component, preceded by <code class="docutils literal notranslate"><span class="pre">d_</span></code>. So, for example, the longitude <code class="docutils literal notranslate"><span class="pre">Differential</span></code>
+component is, by default, <code class="docutils literal notranslate"><span class="pre">d_lon</span></code>. However, there are some defaults to be
+aware of. Here, if we set the default <code class="docutils literal notranslate"><span class="pre">Differential</span></code> class to also be
+Spherical, it will implement a set of default “nicer” names for the velocity
+components, mapping <code class="docutils literal notranslate"><span class="pre">pm_R</span></code> to <code class="docutils literal notranslate"><span class="pre">d_lon</span></code>, <code class="docutils literal notranslate"><span class="pre">pm_D</span></code> to <code class="docutils literal notranslate"><span class="pre">d_lat</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">radial_velocity</span></code> to <code class="docutils literal notranslate"><span class="pre">d_distance</span></code> (taking the previously overridden
+longitude and latitude component names):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyFrame4WithVelocity</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># Specify how coordinate values are represented when outputted</span>
+<span class="gp">... </span>    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span>
+<span class="gp">... </span>    <span class="n">default_differential</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">SphericalDifferential</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="c1"># Override component names (e.g., &quot;ra&quot; instead of &quot;lon&quot;)</span>
+<span class="gp">... </span>    <span class="n">frame_specific_representation_info</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span><span class="p">:</span> <span class="p">[</span><span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span> <span class="s1">&#39;R&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">)],</span>
+<span class="gp">... </span>        <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">:</span> <span class="p">[</span><span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)]</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> <span class="o">=</span> <span class="n">MyFrame4WithVelocity</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+<span class="gp">... </span>                          <span class="n">pm_R</span><span class="o">=</span><span class="mi">3</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span> <span class="n">pm_D</span><span class="o">=</span><span class="mi">4</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> 
+<span class="go">&lt;MyFrame4WithVelocity Coordinate: (R, D) in deg</span>
+<span class="go">    (1., 2.)</span>
+<span class="go">(pm_R, pm_D) in mas / yr</span>
+<span class="go">    (3., 4.)&gt;</span>
+</pre></div>
+</div>
+<p>If you want to override the default “nicer” names, you can specify a new key in
+the <code class="docutils literal notranslate"><span class="pre">frame_specific_representation_info</span></code> for any of the <code class="docutils literal notranslate"><span class="pre">Differential</span></code>
+classes, for example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">MyFrame4WithVelocity2</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># Specify how coordinate values are represented when outputted</span>
+<span class="gp">... </span>    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span>
+<span class="gp">... </span>    <span class="n">default_differential</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">SphericalDifferential</span>
+<span class="gp">...</span>
+<span class="gp">... </span>    <span class="c1"># Override component names (e.g., &quot;ra&quot; instead of &quot;lon&quot;)</span>
+<span class="gp">... </span>    <span class="n">frame_specific_representation_info</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span><span class="p">:</span> <span class="p">[</span><span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span> <span class="s1">&#39;R&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">)],</span>
+<span class="gp">... </span>        <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">:</span> <span class="p">[</span><span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                    <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)],</span>
+<span class="gp">... </span>        <span class="n">r</span><span class="o">.</span><span class="n">SphericalDifferential</span><span class="p">:</span> <span class="p">[</span><span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;d_lon&#39;</span><span class="p">,</span> <span class="s1">&#39;pm1&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                  <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;d_lat&#39;</span><span class="p">,</span> <span class="s1">&#39;pm2&#39;</span><span class="p">),</span>
+<span class="gp">... </span>                                  <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;d_distance&#39;</span><span class="p">,</span> <span class="s1">&#39;rv&#39;</span><span class="p">)]</span>
+<span class="gp">... </span>    <span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> <span class="o">=</span> <span class="n">MyFrame4WithVelocity2</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+<span class="gp">... </span>                          <span class="n">pm1</span><span class="o">=</span><span class="mi">3</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span> <span class="n">pm2</span><span class="o">=</span><span class="mi">4</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> 
+<span class="go">&lt;MyFrame4WithVelocity2 Coordinate: (R, D) in deg</span>
+<span class="go">    (1., 2.)</span>
+<span class="go">(pm1, pm2) in mas / yr</span>
+<span class="go">    (3., 4.)&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="final-notes">
+<h3>Final Notes<a class="headerlink" href="#final-notes" title="Permalink to this headline">¶</a></h3>
+<p>You can also define arbitrary methods for any added functionality you
+want your frame to have that is unique to that frame. These methods will
+be available in any <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> that is created using your user-defined
+frame.</p>
+<p>For examples of defining frame classes, the first place to look is
+at the source code for the frames that are included in <code class="docutils literal notranslate"><span class="pre">astropy</span></code>
+(available at <code class="docutils literal notranslate"><span class="pre">astropy.coordinates.builtin_frames</span></code>). These are not
+special-cased, but rather use all of the same API and features available to
+user-created frames.</p>
+<div class="topic">
+<p class="topic-title">Examples:</p>
+<p>See also <a class="reference internal" href="../generated/examples/coordinates/plot_sgr-coordinate-frame.html#sphx-glr-generated-examples-coordinates-plot-sgr-coordinate-frame-py"><span class="std std-ref">Create a new coordinate class (for the Sagittarius stream)</span></a>
+for a more annotated example of defining a new coordinate frame.</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Using and Designing Coordinate Frames</a><ul>
+<li><a class="reference internal" href="#using-frame-objects">Using Frame Objects</a><ul>
+<li><a class="reference internal" href="#frames-without-data">Frames without Data</a></li>
+<li><a class="reference internal" href="#frames-with-data">Frames with Data</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#transforming-between-frames">Transforming between Frames</a></li>
+<li><a class="reference internal" href="#defining-a-new-frame">Defining a New Frame</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#customizing-frame-component-names">Customizing Frame Component Names</a></li>
+<li><a class="reference internal" href="#defining-frame-attributes">Defining Frame Attributes</a><ul>
+<li><a class="reference internal" href="#customizing-display-of-attributes">Customizing Display of Attributes</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#defining-transformations-between-frames">Defining Transformations between Frames</a></li>
+<li><a class="reference internal" href="#supporting-velocity-data-in-frames">Supporting Velocity Data in Frames</a></li>
+<li><a class="reference internal" href="#final-notes">Final Notes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/coordinates/frames.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

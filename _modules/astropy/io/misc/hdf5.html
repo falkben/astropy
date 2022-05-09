@@ -1,0 +1,483 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.io.misc.hdf5 &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.io.misc.hdf5</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This package contains functions for reading and writing HDF5 tables that are</span>
+<span class="sd">not meant to be used directly, but instead are available as readers/writers in</span>
+<span class="sd">`astropy.table`. See :ref:`astropy:table_io` for more details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># NOTE: Do not import anything from astropy.table here.</span>
+<span class="c1"># https://github.com/astropy/astropy/issues/6604</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.exceptions</span> <span class="kn">import</span> <span class="n">AstropyUserWarning</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.misc</span> <span class="kn">import</span> <span class="n">NOT_OVERWRITING_MSG</span>
+
+<span class="n">HDF5_SIGNATURE</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x89</span><span class="s1">HDF</span><span class="se">\r\n\x1a\n</span><span class="s1">&#39;</span>
+<span class="n">META_KEY</span> <span class="o">=</span> <span class="s1">&#39;__table_column_meta__&#39;</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;read_table_hdf5&#39;</span><span class="p">,</span> <span class="s1">&#39;write_table_hdf5&#39;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">meta_path</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">path</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">META_KEY</span>
+
+
+<span class="k">def</span> <span class="nf">_find_all_structured_arrays</span><span class="p">(</span><span class="n">handle</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find all structured arrays in an HDF5 file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">h5py</span>
+    <span class="n">structured_arrays</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">append_structured_arrays</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="ow">and</span> <span class="n">obj</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;V&#39;</span><span class="p">:</span>
+            <span class="n">structured_arrays</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">handle</span><span class="o">.</span><span class="n">visititems</span><span class="p">(</span><span class="n">append_structured_arrays</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">structured_arrays</span>
+
+
+<span class="k">def</span> <span class="nf">is_hdf5</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="n">fileobj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">loc</span> <span class="o">=</span> <span class="n">fileobj</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">signature</span> <span class="o">=</span> <span class="n">fileobj</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">fileobj</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">loc</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">signature</span> <span class="o">==</span> <span class="n">HDF5_SIGNATURE</span>
+    <span class="k">elif</span> <span class="n">filepath</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">filepath</span><span class="o">.</span><span class="n">endswith</span><span class="p">((</span><span class="s1">&#39;.hdf5&#39;</span><span class="p">,</span> <span class="s1">&#39;.h5&#39;</span><span class="p">))</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">h5py</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="read_table_hdf5"><a class="viewcode-back" href="../../../../api/astropy.io.misc.hdf5.read_table_hdf5.html#astropy.io.misc.hdf5.read_table_hdf5">[docs]</a><span class="k">def</span> <span class="nf">read_table_hdf5</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">character_as_bytes</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read a Table object from an HDF5 file</span>
+
+<span class="sd">    This requires `h5py &lt;http://www.h5py.org/&gt;`_ to be installed. If more than one</span>
+<span class="sd">    table is present in the HDF5 file or group, the first table is read in and</span>
+<span class="sd">    a warning is displayed.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input : str or :class:`h5py.File` or :class:`h5py.Group` or</span>
+<span class="sd">        :class:`h5py.Dataset` If a string, the filename to read the table from.</span>
+<span class="sd">        If an h5py object, either the file or the group object to read the</span>
+<span class="sd">        table from.</span>
+<span class="sd">    path : str</span>
+<span class="sd">        The path from which to read the table inside the HDF5 file.</span>
+<span class="sd">        This should be relative to the input file or group.</span>
+<span class="sd">    character_as_bytes : bool</span>
+<span class="sd">        If `True` then Table columns are left as bytes.</span>
+<span class="sd">        If `False` then Table columns are converted to unicode.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">h5py</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;h5py is required to read and write HDF5 files&quot;</span><span class="p">)</span>
+
+    <span class="c1"># This function is iterative, and only gets to writing the file when</span>
+    <span class="c1"># the input is an hdf5 Group. Moreover, the input variable is changed in</span>
+    <span class="c1"># place.</span>
+    <span class="c1"># Here, we save its value to be used at the end when the conditions are</span>
+    <span class="c1"># right.</span>
+    <span class="n">input_save</span> <span class="o">=</span> <span class="nb">input</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="p">(</span><span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">)):</span>
+
+        <span class="c1"># If a path was specified, follow the path</span>
+
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">input</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="n">path</span><span class="p">]</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Path </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> does not exist&quot;</span><span class="p">)</span>
+
+        <span class="c1"># `input` is now either a group or a dataset. If it is a group, we</span>
+        <span class="c1"># will search for all structured arrays inside the group, and if there</span>
+        <span class="c1"># is one we can proceed otherwise an error is raised. If it is a</span>
+        <span class="c1"># dataset, we just proceed with the reading.</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">):</span>
+
+            <span class="c1"># Find all structured arrays in group</span>
+            <span class="n">arrays</span> <span class="o">=</span> <span class="n">_find_all_structured_arrays</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;no table found in HDF5 group </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">path</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;path= was not specified but multiple tables&quot;</span>
+                                  <span class="s2">&quot; are present, reading in first available&quot;</span>
+                                  <span class="s2">&quot; table (path=</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">),</span>
+                                  <span class="n">AstropyUserWarning</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">read_table_hdf5</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+
+        <span class="c1"># If a file object was passed, then we need to extract the filename</span>
+        <span class="c1"># because h5py cannot properly read in file objects.</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">input</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;h5py can only open regular files&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Open the file for reading, and recursively call read_table_hdf5 with</span>
+        <span class="c1"># the file object and the path.</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">read_table_hdf5</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">character_as_bytes</span><span class="o">=</span><span class="n">character_as_bytes</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># If we are here, `input` should be a Dataset object, which we can now</span>
+    <span class="c1"># convert to a Table.</span>
+
+    <span class="c1"># Create a Table object</span>
+    <span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">meta</span><span class="p">,</span> <span class="n">serialize</span>
+
+    <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">input</span><span class="p">))</span>
+
+    <span class="c1"># Read the meta-data from the file. For back-compatibility, we can read</span>
+    <span class="c1"># the old file format where the serialized metadata were saved in the</span>
+    <span class="c1"># attributes of the HDF5 dataset.</span>
+    <span class="c1"># In the new format, instead, metadata are stored in a new dataset in the</span>
+    <span class="c1"># same file. This is introduced in Astropy 3.0</span>
+    <span class="n">old_version_meta</span> <span class="o">=</span> <span class="n">META_KEY</span> <span class="ow">in</span> <span class="nb">input</span><span class="o">.</span><span class="n">attrs</span>
+    <span class="n">new_version_meta</span> <span class="o">=</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">meta_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="ow">in</span> <span class="n">input_save</span>
+    <span class="k">if</span> <span class="n">old_version_meta</span> <span class="ow">or</span> <span class="n">new_version_meta</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">new_version_meta</span><span class="p">:</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">get_header_from_yaml</span><span class="p">(</span>
+                <span class="n">h</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">input_save</span><span class="p">[</span><span class="n">meta_path</span><span class="p">(</span><span class="n">path</span><span class="p">)])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Must be old_version_meta is True. if (A or B) and not A then B is True</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">get_header_from_yaml</span><span class="p">(</span>
+                <span class="n">h</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">input</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">META_KEY</span><span class="p">])</span>
+        <span class="k">if</span> <span class="s1">&#39;meta&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">header</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">meta</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s1">&#39;meta&#39;</span><span class="p">]</span>
+
+        <span class="n">header_cols</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">header</span><span class="p">[</span><span class="s1">&#39;datatype&#39;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="s1">&#39;format&#39;</span><span class="p">,</span> <span class="s1">&#39;unit&#39;</span><span class="p">,</span> <span class="s1">&#39;meta&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">header_cols</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">]:</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">header_cols</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="n">attr</span><span class="p">])</span>
+
+        <span class="c1"># Construct new table with mixins, using tbl.meta[&#39;__serialized_columns__&#39;]</span>
+        <span class="c1"># as guidance.</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">serialize</span><span class="o">.</span><span class="n">_construct_mixins_from_columns</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Read the meta-data from the file</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">character_as_bytes</span><span class="p">:</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">convert_bytestring_to_unicode</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">table</span></div>
+
+
+<span class="k">def</span> <span class="nf">_encode_mixins</span><span class="p">(</span><span class="n">tbl</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Encode a Table ``tbl`` that may have mixin columns to a Table with only</span>
+<span class="sd">    astropy Columns + appropriate meta-data to allow subsequent decoding.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">serialize</span>
+    <span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+    <span class="kn">from</span> <span class="nn">astropy.utils.data_info</span> <span class="kn">import</span> <span class="n">serialize_context_as</span>
+
+    <span class="c1"># Convert the table to one with no mixins, only Column objects.  This adds</span>
+    <span class="c1"># meta data which is extracted with meta.get_yaml_from_table.</span>
+    <span class="k">with</span> <span class="n">serialize_context_as</span><span class="p">(</span><span class="s1">&#39;hdf5&#39;</span><span class="p">):</span>
+        <span class="n">encode_tbl</span> <span class="o">=</span> <span class="n">serialize</span><span class="o">.</span><span class="n">represent_mixins_as_columns</span><span class="p">(</span><span class="n">tbl</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">encode_tbl</span>
+
+
+<div class="viewcode-block" id="write_table_hdf5"><a class="viewcode-back" href="../../../../api/astropy.io.misc.hdf5.write_table_hdf5.html#astropy.io.misc.hdf5.write_table_hdf5">[docs]</a><span class="k">def</span> <span class="nf">write_table_hdf5</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                     <span class="n">append</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">serialize_meta</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                     <span class="o">**</span><span class="n">create_dataset_kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write a Table object to an HDF5 file</span>
+
+<span class="sd">    This requires `h5py &lt;http://www.h5py.org/&gt;`_ to be installed.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    table : `~astropy.table.Table`</span>
+<span class="sd">        Data table that is to be written to file.</span>
+<span class="sd">    output : str or :class:`h5py.File` or :class:`h5py.Group`</span>
+<span class="sd">        If a string, the filename to write the table to. If an h5py object,</span>
+<span class="sd">        either the file or the group object to write the table to.</span>
+<span class="sd">    path : str</span>
+<span class="sd">        The path to which to write the table inside the HDF5 file.</span>
+<span class="sd">        This should be relative to the input file or group.</span>
+<span class="sd">        If not specified, defaults to ``__astropy_table__``.</span>
+<span class="sd">    compression : bool or str or int</span>
+<span class="sd">        Whether to compress the table inside the HDF5 file. If set to `True`,</span>
+<span class="sd">        ``&#39;gzip&#39;`` compression is used. If a string is specified, it should be</span>
+<span class="sd">        one of ``&#39;gzip&#39;``, ``&#39;szip&#39;``, or ``&#39;lzf&#39;``. If an integer is</span>
+<span class="sd">        specified (in the range 0-9), ``&#39;gzip&#39;`` compression is used, and the</span>
+<span class="sd">        integer denotes the compression level.</span>
+<span class="sd">    append : bool</span>
+<span class="sd">        Whether to append the table to an existing HDF5 file.</span>
+<span class="sd">    overwrite : bool</span>
+<span class="sd">        Whether to overwrite any existing file without warning.</span>
+<span class="sd">        If ``append=True`` and ``overwrite=True`` then only the dataset will be</span>
+<span class="sd">        replaced; the file/group will not be overwritten.</span>
+<span class="sd">    serialize_meta : bool</span>
+<span class="sd">        Whether to serialize rich table meta-data when writing the HDF5 file, in</span>
+<span class="sd">        particular such data required to write and read back mixin columns like</span>
+<span class="sd">        ``Time``, ``SkyCoord``, or ``Quantity`` to the file.</span>
+<span class="sd">    **create_dataset_kwargs</span>
+<span class="sd">        Additional keyword arguments are passed to</span>
+<span class="sd">        ``h5py.File.create_dataset()`` or ``h5py.Group.create_dataset()``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">meta</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">h5py</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;h5py is required to read and write HDF5 files&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># table is just an arbitrary, hardcoded string here.</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;__astropy_table__&#39;</span>
+    <span class="k">elif</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;table path should end with table name, not /&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;/&#39;</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
+        <span class="n">group</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">group</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">path</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">(</span><span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;__astropy_table__&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;table path should always be set via the &quot;</span>
+                             <span class="s2">&quot;path= argument when writing to existing &quot;</span>
+                             <span class="s2">&quot;files&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;__astropy_table__&#39;</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;table path was not set via the path= argument; &quot;</span>
+                          <span class="s2">&quot;using default path </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">group</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">output_group</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="n">group</span><span class="p">]</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                <span class="n">output_group</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output_group</span> <span class="o">=</span> <span class="n">output</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">append</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">append</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">NOT_OVERWRITING_MSG</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output</span><span class="p">))</span>
+
+        <span class="c1"># Open the file for appending or writing</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span> <span class="k">if</span> <span class="n">append</span> <span class="k">else</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Recursively call the write function</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">write_table_hdf5</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
+                                    <span class="n">compression</span><span class="o">=</span><span class="n">compression</span><span class="p">,</span> <span class="n">append</span><span class="o">=</span><span class="n">append</span><span class="p">,</span>
+                                    <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">,</span>
+                                    <span class="n">serialize_meta</span><span class="o">=</span><span class="n">serialize_meta</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;output should be a string or an h5py File or &#39;</span>
+                        <span class="s1">&#39;Group object&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Check whether table already exists</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">output_group</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">append</span> <span class="ow">and</span> <span class="n">overwrite</span><span class="p">:</span>
+            <span class="c1"># Delete only the dataset itself</span>
+            <span class="k">del</span> <span class="n">output_group</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">serialize_meta</span> <span class="ow">and</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.__table_column_meta__&#39;</span> <span class="ow">in</span> <span class="n">output_group</span><span class="p">:</span>
+                <span class="k">del</span> <span class="n">output_group</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.__table_column_meta__&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Table </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> already exists&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Encode any mixin columns as plain columns + appropriate metadata</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">_encode_mixins</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+    <span class="c1"># Table with numpy unicode strings can&#39;t be written in HDF5 so</span>
+    <span class="c1"># to write such a table a copy of table is made containing columns as</span>
+    <span class="c1"># bytestrings.  Now this copy of the table can be written in HDF5.</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;U&#39;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">itercols</span><span class="p">()):</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">copy_data</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">convert_unicode_to_bytestring</span><span class="p">()</span>
+
+    <span class="c1"># Warn if information will be lost when serialize_meta=False.  This is</span>
+    <span class="c1"># hardcoded to the set difference between column info attributes and what</span>
+    <span class="c1"># HDF5 can store natively (name, dtype) with no meta.</span>
+    <span class="k">if</span> <span class="n">serialize_meta</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">itercols</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;unit&#39;</span><span class="p">,</span> <span class="s1">&#39;format&#39;</span><span class="p">,</span> <span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="s1">&#39;meta&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">info</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">{}):</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;table contains column(s) with defined &#39;unit&#39;, &#39;format&#39;,&quot;</span>
+                                  <span class="s2">&quot; &#39;description&#39;, or &#39;meta&#39; info attributes. These will&quot;</span>
+                                  <span class="s2">&quot; be dropped since serialize_meta=False.&quot;</span><span class="p">,</span>
+                                  <span class="n">AstropyUserWarning</span><span class="p">)</span>
+
+    <span class="c1"># Write the table to the file</span>
+    <span class="k">if</span> <span class="n">compression</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">compression</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">compression</span> <span class="o">=</span> <span class="s1">&#39;gzip&#39;</span>
+        <span class="n">dset</span> <span class="o">=</span> <span class="n">output_group</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">as_array</span><span class="p">(),</span>
+                                           <span class="n">compression</span><span class="o">=</span><span class="n">compression</span><span class="p">,</span>
+                                           <span class="o">**</span><span class="n">create_dataset_kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dset</span> <span class="o">=</span> <span class="n">output_group</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">as_array</span><span class="p">(),</span>
+                                           <span class="o">**</span><span class="n">create_dataset_kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">serialize_meta</span><span class="p">:</span>
+        <span class="n">header_yaml</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">get_yaml_from_table</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">header_encoded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">h</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">header_yaml</span><span class="p">])</span>
+        <span class="n">output_group</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">meta_path</span><span class="p">(</span><span class="n">name</span><span class="p">),</span>
+                                    <span class="n">data</span><span class="o">=</span><span class="n">header_encoded</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Write the Table meta dict key:value pairs to the file as HDF5</span>
+        <span class="c1"># attributes.  This works only for a limited set of scalar data types</span>
+        <span class="c1"># like numbers, strings, etc., but not any complex types.  This path</span>
+        <span class="c1"># also ignores column meta like unit or format.</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">dset</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Attribute `</span><span class="si">{}</span><span class="s2">` of type </span><span class="si">{}</span><span class="s2"> cannot be written to &quot;</span>
+                              <span class="s2">&quot;HDF5 files - skipping. (Consider specifying &quot;</span>
+                              <span class="s2">&quot;serialize_meta=True to write all meta data)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)),</span>
+                              <span class="n">AstropyUserWarning</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">register_hdf5</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Register HDF5 with Unified I/O.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">registry</span> <span class="k">as</span> <span class="n">io_registry</span>
+    <span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+
+    <span class="n">io_registry</span><span class="o">.</span><span class="n">register_reader</span><span class="p">(</span><span class="s1">&#39;hdf5&#39;</span><span class="p">,</span> <span class="n">Table</span><span class="p">,</span> <span class="n">read_table_hdf5</span><span class="p">)</span>
+    <span class="n">io_registry</span><span class="o">.</span><span class="n">register_writer</span><span class="p">(</span><span class="s1">&#39;hdf5&#39;</span><span class="p">,</span> <span class="n">Table</span><span class="p">,</span> <span class="n">write_table_hdf5</span><span class="p">)</span>
+    <span class="n">io_registry</span><span class="o">.</span><span class="n">register_identifier</span><span class="p">(</span><span class="s1">&#39;hdf5&#39;</span><span class="p">,</span> <span class="n">Table</span><span class="p">,</span> <span class="n">is_hdf5</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,460 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.cosmology.units &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.cosmology.units</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="sd">&quot;&quot;&quot;Cosmological units and equivalencies.</span>
+<span class="sd">&quot;&quot;&quot;</span>  <span class="c1"># (newline needed for unit summary)</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">from</span> <span class="nn">astropy.units.utils</span> <span class="kn">import</span> <span class="n">generate_unit_summary</span> <span class="k">as</span> <span class="n">_generate_unit_summary</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;littleh&quot;</span><span class="p">,</span> <span class="s2">&quot;redshift&quot;</span><span class="p">,</span>
+           <span class="c1"># redshift equivalencies</span>
+           <span class="s2">&quot;dimensionless_redshift&quot;</span><span class="p">,</span> <span class="s2">&quot;with_redshift&quot;</span><span class="p">,</span>
+           <span class="s2">&quot;redshift_distance&quot;</span><span class="p">,</span> <span class="s2">&quot;redshift_hubble&quot;</span><span class="p">,</span> <span class="s2">&quot;redshift_temperature&quot;</span><span class="p">,</span>
+           <span class="c1"># other equivalencies</span>
+           <span class="s2">&quot;with_H0&quot;</span><span class="p">]</span>
+
+<span class="n">__doctest_requires__</span> <span class="o">=</span> <span class="p">{(</span><span class="s1">&#39;with_redshift&#39;</span><span class="p">,</span> <span class="s1">&#39;redshift_distance&#39;</span><span class="p">):</span> <span class="p">[</span><span class="s1">&#39;scipy&#39;</span><span class="p">]}</span>
+
+<span class="n">_ns</span> <span class="o">=</span> <span class="nb">globals</span><span class="p">()</span>
+
+
+<span class="c1">###############################################################################</span>
+<span class="c1"># Cosmological Units</span>
+
+<span class="c1"># This is not formally a unit, but is used in that way in many contexts, and</span>
+<span class="c1"># an appropriate equivalency is only possible if it&#39;s treated as a unit.</span>
+<span class="n">redshift</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">def_unit</span><span class="p">([</span><span class="s1">&#39;redshift&#39;</span><span class="p">],</span> <span class="n">prefixes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">_ns</span><span class="p">,</span>
+                      <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;Cosmological redshift.&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;latex&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;&#39;</span><span class="p">})</span>
+
+<span class="c1"># This is not formally a unit, but is used in that way in many contexts, and</span>
+<span class="c1"># an appropriate equivalency is only possible if it&#39;s treated as a unit (see</span>
+<span class="c1"># https://arxiv.org/pdf/1308.4150.pdf for more)</span>
+<span class="c1"># Also note that h or h100 or h_100 would be a better name, but they either</span>
+<span class="c1"># conflict or have numbers in them, which is disallowed</span>
+<span class="n">littleh</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">def_unit</span><span class="p">([</span><span class="s1">&#39;littleh&#39;</span><span class="p">],</span> <span class="n">namespace</span><span class="o">=</span><span class="n">_ns</span><span class="p">,</span> <span class="n">prefixes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                     <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Reduced/&quot;dimensionless&quot; Hubble constant&#39;</span><span class="p">,</span>
+                     <span class="nb">format</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;latex&#39;</span><span class="p">:</span> <span class="sa">r</span><span class="s1">&#39;h_</span><span class="si">{100}</span><span class="s1">&#39;</span><span class="p">})</span>
+
+
+<span class="c1">###############################################################################</span>
+<span class="c1"># Equivalencies</span>
+
+
+<div class="viewcode-block" id="dimensionless_redshift"><a class="viewcode-back" href="../../../api/astropy.cosmology.units.dimensionless_redshift.html#astropy.cosmology.units.dimensionless_redshift">[docs]</a><span class="k">def</span> <span class="nf">dimensionless_redshift</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Allow redshift to be 1-to-1 equivalent to dimensionless.</span>
+
+<span class="sd">    It is special compared to other equivalency pairs in that it</span>
+<span class="sd">    allows this independent of the power to which the redshift is raised,</span>
+<span class="sd">    and independent of whether it is part of a more complicated unit.</span>
+<span class="sd">    It is similar to u.dimensionless_angles() in this respect.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Equivalency</span><span class="p">([(</span><span class="n">redshift</span><span class="p">,</span> <span class="kc">None</span><span class="p">)],</span> <span class="s2">&quot;dimensionless_redshift&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="redshift_distance"><a class="viewcode-back" href="../../../api/astropy.cosmology.units.redshift_distance.html#astropy.cosmology.units.redshift_distance">[docs]</a><span class="k">def</span> <span class="nf">redshift_distance</span><span class="p">(</span><span class="n">cosmology</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;comoving&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">atzkw</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert quantities between redshift and distance.</span>
+
+<span class="sd">    Care should be taken to not misinterpret a relativistic, gravitational, etc</span>
+<span class="sd">    redshift as a cosmological one.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cosmology : `~astropy.cosmology.Cosmology`, str, or None, optional</span>
+<span class="sd">        A cosmology realization or built-in cosmology&#39;s name (e.g. &#39;Planck18&#39;).</span>
+<span class="sd">        If None, will use the default cosmology</span>
+<span class="sd">        (controlled by :class:`~astropy.cosmology.default_cosmology`).</span>
+<span class="sd">    kind : {&#39;comoving&#39;, &#39;lookback&#39;, &#39;luminosity&#39;} or None, optional</span>
+<span class="sd">        The distance type for the Equivalency.</span>
+<span class="sd">        Note this does NOT include the angular diameter distance as this</span>
+<span class="sd">        distance measure is not monotonic.</span>
+<span class="sd">    **atzkw</span>
+<span class="sd">        keyword arguments for :func:`~astropy.cosmology.z_at_value`</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    `~astropy.units.equivalencies.Equivalency`</span>
+<span class="sd">        Equivalency between redshift and temperature.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import astropy.units as u</span>
+<span class="sd">    &gt;&gt;&gt; import astropy.cosmology.units as cu</span>
+<span class="sd">    &gt;&gt;&gt; from astropy.cosmology import WMAP9</span>
+
+<span class="sd">    &gt;&gt;&gt; z = 1100 * cu.redshift</span>
+<span class="sd">    &gt;&gt;&gt; z.to(u.Mpc, cu.redshift_distance(WMAP9, kind=&quot;comoving&quot;))  # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 14004.03157418 Mpc&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">default_cosmology</span><span class="p">,</span> <span class="n">z_at_value</span>
+
+    <span class="c1"># get cosmology: None -&gt; default and process str / class</span>
+    <span class="n">cosmology</span> <span class="o">=</span> <span class="n">cosmology</span> <span class="k">if</span> <span class="n">cosmology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">cosmology</span><span class="p">):</span>  <span class="c1"># if already cosmo, passes through</span>
+        <span class="n">cosmology</span> <span class="o">=</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+    <span class="n">allowed_kinds</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;comoving&#39;</span><span class="p">,</span> <span class="s1">&#39;lookback&#39;</span><span class="p">,</span> <span class="s1">&#39;luminosity&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">kind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_kinds</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`kind` is not one of </span><span class="si">{</span><span class="n">allowed_kinds</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="n">kind</span> <span class="o">+</span> <span class="s2">&quot;_distance&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">z_to_distance</span><span class="p">(</span><span class="n">z</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Redshift to distance.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">distance_to_z</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Distance to redshift.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">z_at_value</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">d</span> <span class="o">&lt;&lt;</span> <span class="n">u</span><span class="o">.</span><span class="n">Mpc</span><span class="p">,</span> <span class="o">**</span><span class="n">atzkw</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Equivalency</span><span class="p">([(</span><span class="n">redshift</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">Mpc</span><span class="p">,</span> <span class="n">z_to_distance</span><span class="p">,</span> <span class="n">distance_to_z</span><span class="p">)],</span>
+                         <span class="s2">&quot;redshift_distance&quot;</span><span class="p">,</span>
+                         <span class="p">{</span><span class="s1">&#39;cosmology&#39;</span><span class="p">:</span> <span class="n">cosmology</span><span class="p">,</span> <span class="s2">&quot;distance&quot;</span><span class="p">:</span> <span class="n">kind</span><span class="p">})</span></div>
+
+
+<div class="viewcode-block" id="redshift_hubble"><a class="viewcode-back" href="../../../api/astropy.cosmology.units.redshift_hubble.html#astropy.cosmology.units.redshift_hubble">[docs]</a><span class="k">def</span> <span class="nf">redshift_hubble</span><span class="p">(</span><span class="n">cosmology</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">atzkw</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert quantities between redshift and Hubble parameter and little-h.</span>
+
+<span class="sd">    Care should be taken to not misinterpret a relativistic, gravitational, etc</span>
+<span class="sd">    redshift as a cosmological one.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cosmology : `~astropy.cosmology.Cosmology`, str, or None, optional</span>
+<span class="sd">        A cosmology realization or built-in cosmology&#39;s name (e.g. &#39;Planck18&#39;).</span>
+<span class="sd">        If None, will use the default cosmology</span>
+<span class="sd">        (controlled by :class:`~astropy.cosmology.default_cosmology`).</span>
+<span class="sd">    **atzkw</span>
+<span class="sd">        keyword arguments for :func:`~astropy.cosmology.z_at_value`</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    `~astropy.units.equivalencies.Equivalency`</span>
+<span class="sd">        Equivalency between redshift and Hubble parameter and little-h unit.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import astropy.units as u</span>
+<span class="sd">    &gt;&gt;&gt; import astropy.cosmology.units as cu</span>
+<span class="sd">    &gt;&gt;&gt; from astropy.cosmology import WMAP9</span>
+
+<span class="sd">    &gt;&gt;&gt; z = 1100 * cu.redshift</span>
+<span class="sd">    &gt;&gt;&gt; equivalency = cu.redshift_hubble(WMAP9)  # construct equivalency</span>
+
+<span class="sd">    &gt;&gt;&gt; z.to(u.km / u.s / u.Mpc, equivalency)  # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 1565637.40154275 km / (Mpc s)&gt;</span>
+
+<span class="sd">    &gt;&gt;&gt; z.to(cu.littleh, equivalency)  # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 15656.37401543 littleh&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">default_cosmology</span><span class="p">,</span> <span class="n">z_at_value</span>
+
+    <span class="c1"># get cosmology: None -&gt; default and process str / class</span>
+    <span class="n">cosmology</span> <span class="o">=</span> <span class="n">cosmology</span> <span class="k">if</span> <span class="n">cosmology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">cosmology</span><span class="p">):</span>  <span class="c1"># if already cosmo, passes through</span>
+        <span class="n">cosmology</span> <span class="o">=</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">z_to_hubble</span><span class="p">(</span><span class="n">z</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Redshift to Hubble parameter.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">H</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">hubble_to_z</span><span class="p">(</span><span class="n">H</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Hubble parameter to redshift.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">z_at_value</span><span class="p">(</span><span class="n">cosmology</span><span class="o">.</span><span class="n">H</span><span class="p">,</span> <span class="n">H</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">Mpc</span><span class="p">),</span> <span class="o">**</span><span class="n">atzkw</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">z_to_littleh</span><span class="p">(</span><span class="n">z</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Redshift to :math:`h`-unit Quantity.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">z_to_hubble</span><span class="p">(</span><span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">Mpc</span><span class="p">)</span> <span class="o">/</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">littleh</span>
+
+    <span class="k">def</span> <span class="nf">littleh_to_z</span><span class="p">(</span><span class="n">h</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;:math:`h`-unit Quantity to redshift.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">hubble_to_z</span><span class="p">(</span><span class="n">h</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Equivalency</span><span class="p">([(</span><span class="n">redshift</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">Mpc</span><span class="p">,</span> <span class="n">z_to_hubble</span><span class="p">,</span> <span class="n">hubble_to_z</span><span class="p">),</span>
+                          <span class="p">(</span><span class="n">redshift</span><span class="p">,</span> <span class="n">littleh</span><span class="p">,</span> <span class="n">z_to_littleh</span><span class="p">,</span> <span class="n">littleh_to_z</span><span class="p">)],</span>
+                         <span class="s2">&quot;redshift_hubble&quot;</span><span class="p">,</span>
+                         <span class="p">{</span><span class="s1">&#39;cosmology&#39;</span><span class="p">:</span> <span class="n">cosmology</span><span class="p">})</span></div>
+
+
+<div class="viewcode-block" id="redshift_temperature"><a class="viewcode-back" href="../../../api/astropy.cosmology.units.redshift_temperature.html#astropy.cosmology.units.redshift_temperature">[docs]</a><span class="k">def</span> <span class="nf">redshift_temperature</span><span class="p">(</span><span class="n">cosmology</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">atzkw</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert quantities between redshift and CMB temperature.</span>
+
+<span class="sd">    Care should be taken to not misinterpret a relativistic, gravitational, etc</span>
+<span class="sd">    redshift as a cosmological one.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cosmology : `~astropy.cosmology.Cosmology`, str, or None, optional</span>
+<span class="sd">        A cosmology realization or built-in cosmology&#39;s name (e.g. &#39;Planck18&#39;).</span>
+<span class="sd">        If None, will use the default cosmology</span>
+<span class="sd">        (controlled by :class:`~astropy.cosmology.default_cosmology`).</span>
+<span class="sd">    **atzkw</span>
+<span class="sd">        keyword arguments for :func:`~astropy.cosmology.z_at_value`</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    `~astropy.units.equivalencies.Equivalency`</span>
+<span class="sd">        Equivalency between redshift and temperature.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import astropy.units as u</span>
+<span class="sd">    &gt;&gt;&gt; import astropy.cosmology.units as cu</span>
+<span class="sd">    &gt;&gt;&gt; from astropy.cosmology import WMAP9</span>
+
+<span class="sd">    &gt;&gt;&gt; z = 1100 * cu.redshift</span>
+<span class="sd">    &gt;&gt;&gt; z.to(u.K, cu.redshift_temperature(WMAP9))</span>
+<span class="sd">    &lt;Quantity 3000.225 K&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">default_cosmology</span><span class="p">,</span> <span class="n">z_at_value</span>
+
+    <span class="c1"># get cosmology: None -&gt; default and process str / class</span>
+    <span class="n">cosmology</span> <span class="o">=</span> <span class="n">cosmology</span> <span class="k">if</span> <span class="n">cosmology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">cosmology</span><span class="p">):</span>  <span class="c1"># if already cosmo, passes through</span>
+        <span class="n">cosmology</span> <span class="o">=</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">z_to_Tcmb</span><span class="p">(</span><span class="n">z</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">Tcmb</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">Tcmb_to_z</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">z_at_value</span><span class="p">(</span><span class="n">cosmology</span><span class="o">.</span><span class="n">Tcmb</span><span class="p">,</span> <span class="n">T</span> <span class="o">&lt;&lt;</span> <span class="n">u</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="o">**</span><span class="n">atzkw</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Equivalency</span><span class="p">([(</span><span class="n">redshift</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="n">z_to_Tcmb</span><span class="p">,</span> <span class="n">Tcmb_to_z</span><span class="p">)],</span>
+                         <span class="s2">&quot;redshift_temperature&quot;</span><span class="p">,</span>
+                         <span class="p">{</span><span class="s1">&#39;cosmology&#39;</span><span class="p">:</span> <span class="n">cosmology</span><span class="p">})</span></div>
+
+
+<div class="viewcode-block" id="with_redshift"><a class="viewcode-back" href="../../../api/astropy.cosmology.units.with_redshift.html#astropy.cosmology.units.with_redshift">[docs]</a><span class="k">def</span> <span class="nf">with_redshift</span><span class="p">(</span><span class="n">cosmology</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                  <span class="n">distance</span><span class="o">=</span><span class="s2">&quot;comoving&quot;</span><span class="p">,</span> <span class="n">hubble</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">Tcmb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                  <span class="n">atzkw</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert quantities between measures of cosmological distance.</span>
+
+<span class="sd">    Note: by default all equivalencies are on and must be explicitly turned off.</span>
+<span class="sd">    Care should be taken to not misinterpret a relativistic, gravitational, etc</span>
+<span class="sd">    redshift as a cosmological one.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cosmology : `~astropy.cosmology.Cosmology`, str, or None, optional</span>
+<span class="sd">        A cosmology realization or built-in cosmology&#39;s name (e.g. &#39;Planck18&#39;).</span>
+<span class="sd">        If `None`, will use the default cosmology</span>
+<span class="sd">        (controlled by :class:`~astropy.cosmology.default_cosmology`).</span>
+
+<span class="sd">    distance : {&#39;comoving&#39;, &#39;lookback&#39;, &#39;luminosity&#39;} or None (optional, keyword-only)</span>
+<span class="sd">        The type of distance equivalency to create or `None`.</span>
+<span class="sd">        Default is &#39;comoving&#39;.</span>
+<span class="sd">    hubble : bool (optional, keyword-only)</span>
+<span class="sd">        Whether to create a Hubble parameter &lt;-&gt; redshift equivalency, using</span>
+<span class="sd">        ``Cosmology.H``. Default is `True`.</span>
+<span class="sd">    Tcmb : bool (optional, keyword-only)</span>
+<span class="sd">        Whether to create a CMB temperature &lt;-&gt; redshift equivalency, using</span>
+<span class="sd">        ``Cosmology.Tcmb``. Default is `True`.</span>
+
+<span class="sd">    atzkw : dict or None (optional, keyword-only)</span>
+<span class="sd">        keyword arguments for :func:`~astropy.cosmology.z_at_value`</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    `~astropy.units.equivalencies.Equivalency`</span>
+<span class="sd">        With equivalencies between redshift and distance / Hubble / temperature.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import astropy.units as u</span>
+<span class="sd">    &gt;&gt;&gt; import astropy.cosmology.units as cu</span>
+<span class="sd">    &gt;&gt;&gt; from astropy.cosmology import WMAP9</span>
+
+<span class="sd">    &gt;&gt;&gt; equivalency = cu.with_redshift(WMAP9)</span>
+<span class="sd">    &gt;&gt;&gt; z = 1100 * cu.redshift</span>
+
+<span class="sd">    Redshift to (comoving) distance:</span>
+
+<span class="sd">    &gt;&gt;&gt; z.to(u.Mpc, equivalency)  # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 14004.03157418 Mpc&gt;</span>
+
+<span class="sd">    Redshift to the Hubble parameter:</span>
+
+<span class="sd">    &gt;&gt;&gt; z.to(u.km / u.s / u.Mpc, equivalency)  # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 1565637.40154275 km / (Mpc s)&gt;</span>
+
+<span class="sd">    &gt;&gt;&gt; z.to(cu.littleh, equivalency)  # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 15656.37401543 littleh&gt;</span>
+
+<span class="sd">    Redshift to CMB temperature:</span>
+
+<span class="sd">    &gt;&gt;&gt; z.to(u.K, equivalency)</span>
+<span class="sd">    &lt;Quantity 3000.225 K&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">default_cosmology</span>
+
+    <span class="c1"># get cosmology: None -&gt; default and process str / class</span>
+    <span class="n">cosmology</span> <span class="o">=</span> <span class="n">cosmology</span> <span class="k">if</span> <span class="n">cosmology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">cosmology</span><span class="p">):</span>  <span class="c1"># if already cosmo, passes through</span>
+        <span class="n">cosmology</span> <span class="o">=</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+    <span class="n">atzkw</span> <span class="o">=</span> <span class="n">atzkw</span> <span class="k">if</span> <span class="n">atzkw</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{}</span>
+    <span class="n">equivs</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># will append as built</span>
+
+    <span class="c1"># Hubble &lt;-&gt; Redshift</span>
+    <span class="k">if</span> <span class="n">hubble</span><span class="p">:</span>
+        <span class="n">equivs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">redshift_hubble</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="o">**</span><span class="n">atzkw</span><span class="p">))</span>
+
+    <span class="c1"># CMB Temperature &lt;-&gt; Redshift</span>
+    <span class="k">if</span> <span class="n">Tcmb</span><span class="p">:</span>
+        <span class="n">equivs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">redshift_temperature</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="o">**</span><span class="n">atzkw</span><span class="p">))</span>
+
+    <span class="c1"># Distance &lt;-&gt; Redshift, but need to choose which distance</span>
+    <span class="k">if</span> <span class="n">distance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">equivs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">redshift_distance</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span> <span class="o">**</span><span class="n">atzkw</span><span class="p">))</span>
+
+    <span class="c1"># -----------</span>
+    <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Equivalency</span><span class="p">(</span><span class="n">equivs</span><span class="p">,</span> <span class="s2">&quot;with_redshift&quot;</span><span class="p">,</span>
+                         <span class="p">{</span><span class="s1">&#39;cosmology&#39;</span><span class="p">:</span> <span class="n">cosmology</span><span class="p">,</span>
+                          <span class="s1">&#39;distance&#39;</span><span class="p">:</span> <span class="n">distance</span><span class="p">,</span> <span class="s1">&#39;hubble&#39;</span><span class="p">:</span> <span class="n">hubble</span><span class="p">,</span> <span class="s1">&#39;Tcmb&#39;</span><span class="p">:</span> <span class="n">Tcmb</span><span class="p">})</span></div>
+
+
+<span class="c1"># ===================================================================</span>
+
+
+<div class="viewcode-block" id="with_H0"><a class="viewcode-back" href="../../../api/astropy.cosmology.units.with_H0.html#astropy.cosmology.units.with_H0">[docs]</a><span class="k">def</span> <span class="nf">with_H0</span><span class="p">(</span><span class="n">H0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert between quantities with little-h and the equivalent physical units.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    H0 : None or `~astropy.units.Quantity` [&#39;frequency&#39;]</span>
+<span class="sd">        The value of the Hubble constant to assume. If a</span>
+<span class="sd">        `~astropy.units.Quantity`, will assume the quantity *is* ``H0``. If</span>
+<span class="sd">        `None` (default), use the ``H0`` attribute from</span>
+<span class="sd">        :mod:`~astropy.cosmology.default_cosmology`.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    For an illuminating discussion on why you may or may not want to use</span>
+<span class="sd">    little-h at all, see https://arxiv.org/pdf/1308.4150.pdf</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">H0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">.realizations</span> <span class="kn">import</span> <span class="n">default_cosmology</span>
+
+        <span class="n">H0</span> <span class="o">=</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">H0</span>
+
+    <span class="n">h100_val_unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="mi">100</span> <span class="o">/</span> <span class="p">(</span><span class="n">H0</span><span class="o">.</span><span class="n">to_value</span><span class="p">((</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">Mpc</span><span class="p">))</span> <span class="o">*</span> <span class="n">littleh</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Equivalency</span><span class="p">([(</span><span class="n">h100_val_unit</span><span class="p">,</span> <span class="kc">None</span><span class="p">)],</span> <span class="s2">&quot;with_H0&quot;</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;H0&quot;</span><span class="p">:</span> <span class="n">H0</span><span class="p">})</span></div>
+
+
+<span class="c1"># ===================================================================</span>
+<span class="c1"># Enable the set of default equivalencies.</span>
+<span class="c1"># If the cosmology package is imported, this is added to the list astropy-wide.</span>
+
+<span class="n">u</span><span class="o">.</span><span class="n">add_enabled_equivalencies</span><span class="p">(</span><span class="n">dimensionless_redshift</span><span class="p">())</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># DOCSTRING</span>
+
+<span class="c1"># This generates a docstring for this module that describes all of the</span>
+<span class="c1"># standard units defined here.</span>
+<span class="k">if</span> <span class="vm">__doc__</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="vm">__doc__</span> <span class="o">+=</span> <span class="n">_generate_unit_summary</span><span class="p">(</span><span class="n">_ns</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

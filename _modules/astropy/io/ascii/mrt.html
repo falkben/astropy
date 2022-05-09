@@ -1,0 +1,719 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.io.ascii.mrt &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.io.ascii.mrt</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;Classes to read AAS MRT table format</span>
+
+<span class="sd">Ref: https://journals.aas.org/mrt-standards</span>
+
+<span class="sd">:Copyright: Smithsonian Astrophysical Observatory (2021)</span>
+<span class="sd">:Author: Tom Aldcroft (aldcroft@head.cfa.harvard.edu), \</span>
+<span class="sd">         Suyog Garg (suyog7130@gmail.com)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="kn">import</span> <span class="n">StringIO</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">core</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">fixedwidth</span><span class="p">,</span> <span class="n">cds</span>
+
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">MaskedColumn</span>
+<span class="kn">from</span> <span class="nn">string</span> <span class="kn">import</span> <span class="n">Template</span>
+<span class="kn">from</span> <span class="nn">textwrap</span> <span class="kn">import</span> <span class="n">wrap</span>
+
+<span class="n">MAX_SIZE_README_LINE</span> <span class="o">=</span> <span class="mi">80</span>
+<span class="n">MAX_COL_INTLIMIT</span> <span class="o">=</span> <span class="mi">100000</span>
+
+
+<span class="n">__doctest_skip__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;*&#39;</span><span class="p">]</span>
+
+
+<span class="n">BYTE_BY_BYTE_TEMPLATE</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;Byte-by-byte Description of file: $file&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;--------------------------------------------------------------------------------&quot;</span><span class="p">,</span>
+    <span class="s2">&quot; Bytes Format Units  Label     Explanations&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;--------------------------------------------------------------------------------&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;$bytebybyte&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;--------------------------------------------------------------------------------&quot;</span><span class="p">]</span>
+
+<span class="n">MRT_TEMPLATE</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;Title:&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Authors:&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Table:&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;================================================================================&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;$bytebybyte&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Notes:&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;--------------------------------------------------------------------------------&quot;</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">MrtSplitter</span><span class="p">(</span><span class="n">fixedwidth</span><span class="o">.</span><span class="n">FixedWidthSplitter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Contains the join function to left align the MRT columns</span>
+<span class="sd">    when writing to a file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vals</span><span class="p">,</span> <span class="n">widths</span><span class="p">):</span>
+        <span class="n">vals</span> <span class="o">=</span> <span class="p">[</span><span class="n">val</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="p">(</span><span class="n">width</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">))</span> <span class="k">for</span> <span class="n">val</span><span class="p">,</span> <span class="n">width</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="n">widths</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">delimiter</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">MrtHeader</span><span class="p">(</span><span class="n">cds</span><span class="o">.</span><span class="n">CdsHeader</span><span class="p">):</span>
+    <span class="n">_subfmt</span> <span class="o">=</span> <span class="s1">&#39;MRT&#39;</span>
+
+    <span class="k">def</span> <span class="nf">_split_float_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Splits a Float string into different parts to find number</span>
+<span class="sd">        of digits after decimal and check if the value is in Scientific</span>
+<span class="sd">        notation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        value : str</span>
+<span class="sd">            String containing the float value to split.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fmt: (int, int, int, bool, bool)</span>
+<span class="sd">            List of values describing the Float sting.</span>
+<span class="sd">            (size, dec, ent, sign, exp)</span>
+<span class="sd">            size, length of the given string.</span>
+<span class="sd">            ent, number of digits before decimal point.</span>
+<span class="sd">            dec, number of digits after decimal point.</span>
+<span class="sd">            sign, whether or not given value signed.</span>
+<span class="sd">            exp, is value in Scientific notation?</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">regfloat</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;(?P&lt;sign&gt; [+-]*)</span>
+<span class="s2">                                  (?P&lt;ent&gt; [^eE.]+)</span>
+<span class="s2">                                  (?P&lt;deciPt&gt; [.]*)</span>
+<span class="s2">                                  (?P&lt;decimals&gt; [0-9]*)</span>
+<span class="s2">                                  (?P&lt;exp&gt; [eE]*-*)[0-9]*&quot;&quot;&quot;</span><span class="p">,</span>
+                              <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+        <span class="n">mo</span> <span class="o">=</span> <span class="n">regfloat</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mo</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1"> is not a float number&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">mo</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;ent&#39;</span><span class="p">)),</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">mo</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;decimals&#39;</span><span class="p">)),</span>
+                <span class="n">mo</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;sign&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="n">mo</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;exp&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_column_val_limits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the ``col.min`` and ``col.max`` column attributes,</span>
+<span class="sd">        taking into account columns with Null values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">col</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+        <span class="n">col</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">max</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">MaskedConstant</span><span class="p">:</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">max</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">min</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">MaskedConstant</span><span class="p">:</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">column_float_formatter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">col</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        String formatter function for a column containing Float values.</span>
+<span class="sd">        Checks if the values in the given column are in Scientific notation,</span>
+<span class="sd">        by spliting the value string. It is assumed that the column either has</span>
+<span class="sd">        float values or Scientific notation.</span>
+
+<span class="sd">        A ``col.formatted_width`` attribute is added to the column. It is not added</span>
+<span class="sd">        if such an attribute is already present, say when the ``formats`` argument</span>
+<span class="sd">        is passed to the writer. A properly formatted format string is also added as</span>
+<span class="sd">        the ``col.format`` attribute.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        col : A ``Table.Column`` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># maxsize: maximum length of string containing the float value.</span>
+        <span class="c1"># maxent: maximum number of digits places before decimal point.</span>
+        <span class="c1"># maxdec: maximum number of digits places after decimal point.</span>
+        <span class="c1"># maxprec: maximum precision of the column values, sum of maxent and maxdec.</span>
+        <span class="n">maxsize</span><span class="p">,</span> <span class="n">maxprec</span><span class="p">,</span> <span class="n">maxent</span><span class="p">,</span> <span class="n">maxdec</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="n">sign</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">fformat</span> <span class="o">=</span> <span class="s1">&#39;F&#39;</span>
+
+        <span class="c1"># Find maximum sized value in the col</span>
+        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">col</span><span class="o">.</span><span class="n">str_vals</span><span class="p">:</span>
+            <span class="c1"># Skip null values</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Find format of the Float string</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_split_float_format</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="c1"># If value is in Scientific notation</span>
+            <span class="k">if</span> <span class="n">fmt</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="c1"># if the previous column value was in normal Float format</span>
+                <span class="c1"># set maxsize, maxprec and maxdec to default.</span>
+                <span class="k">if</span> <span class="n">fformat</span> <span class="o">==</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span>
+                    <span class="n">maxsize</span><span class="p">,</span> <span class="n">maxprec</span><span class="p">,</span> <span class="n">maxdec</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+                <span class="c1"># Designate the column to be in Scientific notation.</span>
+                <span class="n">fformat</span> <span class="o">=</span> <span class="s1">&#39;E&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Move to next column value if</span>
+                <span class="c1"># current value is not in Scientific notation</span>
+                <span class="c1"># but the column is designated as such because</span>
+                <span class="c1"># one of the previous values was.</span>
+                <span class="k">if</span> <span class="n">fformat</span> <span class="o">==</span> <span class="s1">&#39;E&#39;</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">maxsize</span> <span class="o">&lt;</span> <span class="n">fmt</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">maxsize</span> <span class="o">=</span> <span class="n">fmt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">maxent</span> <span class="o">&lt;</span> <span class="n">fmt</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">maxent</span> <span class="o">=</span> <span class="n">fmt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">maxdec</span> <span class="o">&lt;</span> <span class="n">fmt</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+                <span class="n">maxdec</span> <span class="o">=</span> <span class="n">fmt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">fmt</span><span class="p">[</span><span class="mi">3</span><span class="p">]:</span>
+                <span class="n">sign</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">if</span> <span class="n">maxprec</span> <span class="o">&lt;</span> <span class="n">fmt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">fmt</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
+                <span class="n">maxprec</span> <span class="o">=</span> <span class="n">fmt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">fmt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">fformat</span> <span class="o">==</span> <span class="s1">&#39;E&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="s1">&#39;formatted_width&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># If ``formats`` not passed.</span>
+                <span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span> <span class="o">=</span> <span class="n">maxsize</span>
+                <span class="k">if</span> <span class="n">sign</span><span class="p">:</span>
+                    <span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1"># Number of digits after decimal is replaced by the precision</span>
+            <span class="c1"># for values in Scientific notation, when writing that Format.</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">fortran_format</span> <span class="o">=</span> <span class="n">fformat</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">maxprec</span><span class="p">)</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">maxdec</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;e&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lead</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="s1">&#39;formatted_width&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># If ``formats`` not passed.</span>
+                <span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span> <span class="o">=</span> <span class="n">maxent</span> <span class="o">+</span> <span class="n">maxdec</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">sign</span><span class="p">:</span>
+                    <span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">col</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;0&#39;</span><span class="p">):</span>
+                <span class="c1"># Keep leading zero, if already set in format - primarily for `seconds` columns</span>
+                <span class="c1"># in coordinates; may need extra case if this is to be also supported with `sign`.</span>
+                <span class="n">lead</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">fortran_format</span> <span class="o">=</span> <span class="n">fformat</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">maxdec</span><span class="p">)</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="n">lead</span> <span class="o">+</span> <span class="n">col</span><span class="o">.</span><span class="n">fortran_format</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="s2">&quot;f&quot;</span>
+
+    <span class="k">def</span> <span class="nf">write_byte_by_byte</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Writes the Byte-By-Byte description of the table.</span>
+
+<span class="sd">        Columns that are `astropy.coordinates.SkyCoord` or `astropy.time.TimeSeries`</span>
+<span class="sd">        objects or columns with values that are such objects are recognized as such,</span>
+<span class="sd">        and some predefined labels and description is used for them.</span>
+<span class="sd">        See the Vizier MRT Standard documentation in the link below for more details</span>
+<span class="sd">        on these. An example Byte-By-Byte table is shown here.</span>
+
+<span class="sd">        See: http://vizier.u-strasbg.fr/doc/catstd-3.1.htx</span>
+
+<span class="sd">        Example::</span>
+
+<span class="sd">        --------------------------------------------------------------------------------</span>
+<span class="sd">        Byte-by-byte Description of file: table.dat</span>
+<span class="sd">        --------------------------------------------------------------------------------</span>
+<span class="sd">        Bytes Format Units  Label     Explanations</span>
+<span class="sd">        --------------------------------------------------------------------------------</span>
+<span class="sd">         1- 8  A8     ---    names   Description of names</span>
+<span class="sd">        10-14  E5.1   ---    e       [-3160000.0/0.01] Description of e</span>
+<span class="sd">        16-23  F8.5   ---    d       [22.25/27.25] Description of d</span>
+<span class="sd">        25-31  E7.1   ---    s       [-9e+34/2.0] Description of s</span>
+<span class="sd">        33-35  I3     ---    i       [-30/67] Description of i</span>
+<span class="sd">        37-39  F3.1   ---    sameF   [5.0/5.0] Description of sameF</span>
+<span class="sd">        41-42  I2     ---    sameI   [20] Description of sameI</span>
+<span class="sd">        44-45  I2     h      RAh     Right Ascension (hour)</span>
+<span class="sd">        47-48  I2     min    RAm     Right Ascension (minute)</span>
+<span class="sd">        50-67  F18.15 s      RAs     Right Ascension (second)</span>
+<span class="sd">           69  A1     ---    DE-     Sign of Declination</span>
+<span class="sd">        70-71  I2     deg    DEd     Declination (degree)</span>
+<span class="sd">        73-74  I2     arcmin DEm     Declination (arcmin)</span>
+<span class="sd">        76-91  F16.13 arcsec DEs     Declination (arcsec)</span>
+
+<span class="sd">        --------------------------------------------------------------------------------</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get column widths</span>
+        <span class="n">vals_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">col_str_iters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">str_vals</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">vals</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">col_str_iters</span><span class="p">):</span>
+            <span class="n">vals_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">):</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">vals_list</span><span class="p">])</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_line</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">col</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+        <span class="n">widths</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">width</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">]</span>
+
+        <span class="n">startb</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># Byte count starts at 1.</span>
+
+        <span class="c1"># Set default width of the Bytes count column of the Byte-By-Byte table.</span>
+        <span class="c1"># This ``byte_count_width`` value helps align byte counts with respect</span>
+        <span class="c1"># to the hyphen using a format string.</span>
+        <span class="n">byte_count_width</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">widths</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># Format string for Start Byte and End Byte</span>
+        <span class="n">singlebfmt</span> <span class="o">=</span> <span class="s2">&quot;{:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">byte_count_width</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;d}&quot;</span>
+        <span class="n">fmtb</span> <span class="o">=</span> <span class="n">singlebfmt</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">+</span> <span class="n">singlebfmt</span>
+        <span class="c1"># Add trailing single whitespaces to Bytes column for better visibility.</span>
+        <span class="n">singlebfmt</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span>
+        <span class="n">fmtb</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span>
+
+        <span class="c1"># Set default width of Label and Description Byte-By-Byte columns.</span>
+        <span class="n">max_label_width</span><span class="p">,</span> <span class="n">max_descrip_size</span> <span class="o">=</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">16</span>
+
+        <span class="n">bbb</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Bytes&#39;</span><span class="p">,</span> <span class="s1">&#39;Format&#39;</span><span class="p">,</span> <span class="s1">&#39;Units&#39;</span><span class="p">,</span> <span class="s1">&#39;Label&#39;</span><span class="p">,</span> <span class="s1">&#39;Explanations&#39;</span><span class="p">],</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span><span class="p">)</span>
+
+        <span class="c1"># Iterate over the columns to write Byte-By-Byte rows.</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">):</span>
+            <span class="c1"># Check if column is MaskedColumn</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">has_null</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">MaskedColumn</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">sval</span><span class="p">)</span> <span class="k">for</span> <span class="n">sval</span> <span class="ow">in</span> <span class="n">col</span><span class="o">.</span><span class="n">str_vals</span><span class="p">])</span>
+
+            <span class="c1"># Set MRTColumn type, size and format.</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
+                <span class="c1"># Integer formatter</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_column_val_limits</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="s1">&#39;formatted_width&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># If ``formats`` not passed.</span>
+                    <span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">max</span><span class="p">)),</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">min</span><span class="p">)))</span>
+                <span class="n">col</span><span class="o">.</span><span class="n">fortran_format</span> <span class="o">=</span> <span class="s2">&quot;I&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">format</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">col</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s2">&quot;&gt;&quot;</span> <span class="o">+</span> <span class="n">col</span><span class="o">.</span><span class="n">fortran_format</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+            <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">):</span>
+                <span class="c1"># Float formatter</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_set_column_val_limits</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">column_float_formatter</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># String formatter, ``np.issubdtype(col.dtype, str)`` is ``True``.</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">str</span>
+                <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">has_null</span><span class="p">:</span>
+                    <span class="n">mcol</span> <span class="o">=</span> <span class="n">col</span>
+                    <span class="n">mcol</span><span class="o">.</span><span class="n">fill_value</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                    <span class="n">coltmp</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">mcol</span><span class="o">.</span><span class="n">filled</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+                    <span class="n">dtype</span> <span class="o">=</span> <span class="n">coltmp</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">str</span>
+                <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="s1">&#39;formatted_width&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># If ``formats`` not passed.</span>
+                    <span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\d+)$&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+                <span class="n">col</span><span class="o">.</span><span class="n">fortran_format</span> <span class="o">=</span> <span class="s2">&quot;A&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span><span class="p">)</span>
+                <span class="n">col</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;s&quot;</span>
+
+            <span class="n">endb</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">formatted_width</span> <span class="o">+</span> <span class="n">startb</span> <span class="o">-</span> <span class="mi">1</span>
+
+            <span class="c1"># ``mixin`` columns converted to string valued columns will not have a name</span>
+            <span class="c1"># attribute. In those cases, a ``Unknown`` column label is put, indicating that</span>
+            <span class="c1"># such columns can be better formatted with some manipulation before calling</span>
+            <span class="c1"># the MRT writer.</span>
+            <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">col</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Unknown&quot;</span>
+
+            <span class="c1"># Set column description.</span>
+            <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">description</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">description</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">description</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;Description of &quot;</span> <span class="o">+</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span>
+
+            <span class="c1"># Set null flag in column description</span>
+            <span class="n">nullflag</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">has_null</span><span class="p">:</span>
+                <span class="n">nullflag</span> <span class="o">=</span> <span class="s2">&quot;?&quot;</span>
+
+            <span class="c1"># Set column unit</span>
+            <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">col_unit</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s2">&quot;cds&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;magnitude&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># ``col.unit`` can still be ``None``, if the unit of column values</span>
+                <span class="c1"># is ``Magnitude``, because ``astropy.units.Magnitude`` is actually a class.</span>
+                <span class="c1"># Unlike other units which are instances of ``astropy.units.Unit``,</span>
+                <span class="c1"># application of the ``Magnitude`` unit calculates the logarithm</span>
+                <span class="c1"># of the values. Thus, the only way to check for if the column values</span>
+                <span class="c1"># have ``Magnitude`` unit is to check the column name.</span>
+                <span class="n">col_unit</span> <span class="o">=</span> <span class="s2">&quot;mag&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">col_unit</span> <span class="o">=</span> <span class="s2">&quot;---&quot;</span>
+
+            <span class="c1"># Add col limit values to col description</span>
+            <span class="n">lim_vals</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">min</span> <span class="ow">and</span> <span class="n">col</span><span class="o">.</span><span class="n">max</span> <span class="ow">and</span>
+                    <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">x</span> <span class="ow">in</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;RA&#39;</span><span class="p">,</span> <span class="s1">&#39;DE&#39;</span><span class="p">,</span> <span class="s1">&#39;LON&#39;</span><span class="p">,</span> <span class="s1">&#39;LAT&#39;</span><span class="p">,</span> <span class="s1">&#39;PLN&#39;</span><span class="p">,</span> <span class="s1">&#39;PLT&#39;</span><span class="p">])):</span>
+                <span class="c1"># No col limit values for coordinate columns.</span>
+                <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">fortran_format</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;I&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">min</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">MAX_COL_INTLIMIT</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">max</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">MAX_COL_INTLIMIT</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">min</span> <span class="o">==</span> <span class="n">col</span><span class="o">.</span><span class="n">max</span><span class="p">:</span>
+                            <span class="n">lim_vals</span> <span class="o">=</span> <span class="s2">&quot;[</span><span class="si">{0}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">min</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">lim_vals</span> <span class="o">=</span> <span class="s2">&quot;[</span><span class="si">{0}</span><span class="s2">/</span><span class="si">{1}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">col</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">col</span><span class="o">.</span><span class="n">fortran_format</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">):</span>
+                    <span class="n">lim_vals</span> <span class="o">=</span> <span class="s2">&quot;[</span><span class="si">{0}</span><span class="s2">/</span><span class="si">{1}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">min</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span> <span class="o">/</span> <span class="mf">100.</span><span class="p">,</span>
+                                                  <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">max</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span> <span class="o">/</span> <span class="mf">100.</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">lim_vals</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="ow">or</span> <span class="n">nullflag</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{0}{1}</span><span class="s2"> </span><span class="si">{2}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lim_vals</span><span class="p">,</span> <span class="n">nullflag</span><span class="p">,</span> <span class="n">description</span><span class="p">)</span>
+
+            <span class="c1"># Find the maximum label and description column widths.</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_label_width</span><span class="p">:</span>
+                <span class="n">max_label_width</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">description</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_descrip_size</span><span class="p">:</span>
+                <span class="n">max_descrip_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">description</span><span class="p">)</span>
+
+            <span class="c1"># Add a row for the Sign of Declination in the bbb table</span>
+            <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;DEd&#39;</span><span class="p">:</span>
+                <span class="n">bbb</span><span class="o">.</span><span class="n">add_row</span><span class="p">([</span><span class="n">singlebfmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">startb</span><span class="p">),</span>
+                             <span class="s2">&quot;A1&quot;</span><span class="p">,</span> <span class="s2">&quot;---&quot;</span><span class="p">,</span> <span class="s2">&quot;DE-&quot;</span><span class="p">,</span>
+                             <span class="s2">&quot;Sign of Declination&quot;</span><span class="p">])</span>
+                <span class="n">col</span><span class="o">.</span><span class="n">fortran_format</span> <span class="o">=</span> <span class="s1">&#39;I2&#39;</span>
+                <span class="n">startb</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># Add Byte-By-Byte row to bbb table</span>
+            <span class="n">bbb</span><span class="o">.</span><span class="n">add_row</span><span class="p">([</span><span class="n">singlebfmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">startb</span><span class="p">)</span> <span class="k">if</span> <span class="n">startb</span> <span class="o">==</span> <span class="n">endb</span>
+                         <span class="k">else</span> <span class="n">fmtb</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">startb</span><span class="p">,</span> <span class="n">endb</span><span class="p">),</span>
+                         <span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">fortran_format</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">col</span><span class="o">.</span><span class="n">fortran_format</span><span class="p">,</span>
+                         <span class="n">col_unit</span><span class="p">,</span>
+                         <span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                         <span class="n">description</span><span class="p">])</span>
+            <span class="n">startb</span> <span class="o">=</span> <span class="n">endb</span> <span class="o">+</span> <span class="mi">2</span>
+
+        <span class="c1"># Properly format bbb columns</span>
+        <span class="n">bbblines</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+        <span class="n">bbb</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">bbblines</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ascii.fixed_width_no_header&#39;</span><span class="p">,</span>
+                  <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">bookend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">delimiter_pad</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">formats</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;Format&#39;</span><span class="p">:</span> <span class="s1">&#39;&lt;6s&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;Units&#39;</span><span class="p">:</span> <span class="s1">&#39;&lt;6s&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;Label&#39;</span><span class="p">:</span> <span class="s1">&#39;&lt;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">max_label_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;Explanations&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">max_descrip_size</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s&#39;</span><span class="p">})</span>
+
+        <span class="c1"># Get formatted bbb lines</span>
+        <span class="n">bbblines</span> <span class="o">=</span> <span class="n">bbblines</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+
+        <span class="c1"># ``nsplit`` is the number of whitespaces to prefix to long description</span>
+        <span class="c1"># lines in order to wrap them. It is the sum of the widths of the</span>
+        <span class="c1"># previous 4 columns plus the number of single spacing between them.</span>
+        <span class="c1"># The hyphen in the Bytes column is also counted.</span>
+        <span class="n">nsplit</span> <span class="o">=</span> <span class="n">byte_count_width</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">12</span> <span class="o">+</span> <span class="n">max_label_width</span> <span class="o">+</span> <span class="mi">4</span>
+
+        <span class="c1"># Wrap line if it is too long</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">newline</span> <span class="ow">in</span> <span class="n">bbblines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">newline</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">MAX_SIZE_README_LINE</span><span class="p">:</span>
+                <span class="n">buff</span> <span class="o">+=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">wrap</span><span class="p">(</span><span class="n">newline</span><span class="p">,</span>
+                                         <span class="n">subsequent_indent</span><span class="o">=</span><span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="n">nsplit</span><span class="p">,</span>
+                                         <span class="n">width</span><span class="o">=</span><span class="n">MAX_SIZE_README_LINE</span><span class="p">))</span>
+                <span class="n">buff</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">buff</span> <span class="o">+=</span> <span class="n">newline</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+        <span class="c1"># Last value of ``endb`` is the sum of column widths after formatting.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linewidth</span> <span class="o">=</span> <span class="n">endb</span>
+
+        <span class="c1"># Remove the last extra newline character from Byte-By-Byte.</span>
+        <span class="n">buff</span> <span class="o">=</span> <span class="n">buff</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">buff</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Writes the Header of the MRT table, aka ReadMe, which</span>
+<span class="sd">        also contains the Byte-By-Byte description of the table.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+
+        <span class="c1"># Recognised ``SkyCoord.name`` forms with their default column names (helio* require SunPy).</span>
+        <span class="n">coord_systems</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;galactic&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;GLAT&#39;</span><span class="p">,</span> <span class="s1">&#39;GLON&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;l&#39;</span><span class="p">),</span>
+                         <span class="s1">&#39;ecliptic&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;ELAT&#39;</span><span class="p">,</span> <span class="s1">&#39;ELON&#39;</span><span class="p">,</span> <span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;lon&#39;</span><span class="p">),</span>      <span class="c1"># &#39;geocentric*ecliptic&#39;</span>
+                         <span class="s1">&#39;heliographic&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;HLAT&#39;</span><span class="p">,</span> <span class="s1">&#39;HLON&#39;</span><span class="p">,</span> <span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;lon&#39;</span><span class="p">),</span>  <span class="c1"># &#39;_carrington|stonyhurst&#39;</span>
+                         <span class="s1">&#39;helioprojective&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;HPLT&#39;</span><span class="p">,</span> <span class="s1">&#39;HPLN&#39;</span><span class="p">,</span> <span class="s1">&#39;Ty&#39;</span><span class="p">,</span> <span class="s1">&#39;Tx&#39;</span><span class="p">)}</span>
+        <span class="n">eqtnames</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;RAh&#39;</span><span class="p">,</span> <span class="s1">&#39;RAm&#39;</span><span class="p">,</span> <span class="s1">&#39;RAs&#39;</span><span class="p">,</span> <span class="s1">&#39;DEd&#39;</span><span class="p">,</span> <span class="s1">&#39;DEm&#39;</span><span class="p">,</span> <span class="s1">&#39;DEs&#39;</span><span class="p">]</span>
+
+        <span class="c1"># list to store indices of columns that are modified.</span>
+        <span class="n">to_pop</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># For columns that are instances of ``SkyCoord`` and other ``mixin`` columns</span>
+        <span class="c1"># or whose values are objects of these classes.</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">):</span>
+            <span class="c1"># If col is a ``Column`` object but its values are ``SkyCoord`` objects,</span>
+            <span class="c1"># convert the whole column to ``SkyCoord`` object, which helps in applying</span>
+            <span class="c1"># SkyCoord methods directly.</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">SkyCoord</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">SkyCoord</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">col</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                    <span class="c1"># If only the first value of the column is a ``SkyCoord`` object,</span>
+                    <span class="c1"># the column cannot be converted to a ``SkyCoord`` object.</span>
+                    <span class="c1"># These columns are converted to ``Column`` object and then converted</span>
+                    <span class="c1"># to string valued column.</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">Column</span><span class="p">):</span>
+                        <span class="n">col</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+                    <span class="n">col</span> <span class="o">=</span> <span class="n">Column</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">col</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span>
+                    <span class="k">continue</span>
+
+            <span class="c1"># Replace single ``SkyCoord`` column by its coordinate components if no coordinate</span>
+            <span class="c1"># columns of the correspoding type exist yet.</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">SkyCoord</span><span class="p">):</span>
+                <span class="c1"># If coordinates are given in RA/DEC, divide each them into hour/deg,</span>
+                <span class="c1"># minute/arcminute, second/arcsecond columns.</span>
+                <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;ra&#39;</span> <span class="ow">in</span> <span class="n">col</span><span class="o">.</span><span class="n">representation_component_names</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">eqtnames</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">colnames</span><span class="p">))</span> <span class="o">==</span> <span class="mi">6</span><span class="p">):</span>
+                    <span class="n">ra_c</span><span class="p">,</span> <span class="n">dec_c</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">ra</span><span class="o">.</span><span class="n">hms</span><span class="p">,</span> <span class="n">col</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">dms</span>
+                    <span class="n">coords</span> <span class="o">=</span> <span class="p">[</span><span class="n">ra_c</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">round</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;i1&#39;</span><span class="p">),</span> <span class="n">ra_c</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">round</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;i1&#39;</span><span class="p">),</span> <span class="n">ra_c</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+                              <span class="n">dec_c</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">round</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;i1&#39;</span><span class="p">),</span> <span class="n">dec_c</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">round</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;i1&#39;</span><span class="p">),</span> <span class="n">dec_c</span><span class="o">.</span><span class="n">s</span><span class="p">]</span>
+                    <span class="n">coord_units</span> <span class="o">=</span> <span class="p">[</span><span class="n">u</span><span class="o">.</span><span class="n">h</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">second</span><span class="p">,</span>
+                                   <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">arcmin</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">]</span>
+                    <span class="n">coord_descrip</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Right Ascension (hour)&#39;</span><span class="p">,</span> <span class="s1">&#39;Right Ascension (minute)&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;Right Ascension (second)&#39;</span><span class="p">,</span> <span class="s1">&#39;Declination (degree)&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;Declination (arcmin)&#39;</span><span class="p">,</span> <span class="s1">&#39;Declination (arcsec)&#39;</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">coord</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">coord_unit</span><span class="p">,</span> <span class="n">descrip</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                            <span class="n">coords</span><span class="p">,</span> <span class="n">eqtnames</span><span class="p">,</span> <span class="n">coord_units</span><span class="p">,</span> <span class="n">coord_descrip</span><span class="p">):</span>
+                        <span class="c1"># Have Sign of Declination only in the DEd column.</span>
+                        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;DEm&#39;</span><span class="p">,</span> <span class="s1">&#39;DEs&#39;</span><span class="p">]:</span>
+                            <span class="n">coord_col</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">coord</span><span class="p">)),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                                               <span class="n">unit</span><span class="o">=</span><span class="n">coord_unit</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">descrip</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">coord_col</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">coord</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">coord_unit</span><span class="p">,</span>
+                                               <span class="n">description</span><span class="o">=</span><span class="n">descrip</span><span class="p">)</span>
+                        <span class="c1"># Set default number of digits after decimal point for the</span>
+                        <span class="c1"># second values, and deg-min to (signed) 2-digit zero-padded integer.</span>
+                        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;RAs&#39;</span><span class="p">:</span>
+                            <span class="n">coord_col</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s1">&#39;013.10f&#39;</span>
+                        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;DEs&#39;</span><span class="p">:</span>
+                            <span class="n">coord_col</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s1">&#39;012.9f&#39;</span>
+                        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;RAh&#39;</span><span class="p">:</span>
+                            <span class="n">coord_col</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s1">&#39;2d&#39;</span>
+                        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;DEd&#39;</span><span class="p">:</span>
+                            <span class="n">coord_col</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s1">&#39;+03d&#39;</span>
+                        <span class="k">elif</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s1">&#39;RA&#39;</span><span class="p">,</span> <span class="s1">&#39;DE&#39;</span><span class="p">)):</span>
+                            <span class="n">coord_col</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s1">&#39;02d&#39;</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coord_col</span><span class="p">)</span>
+                    <span class="n">to_pop</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>   <span class="c1"># Delete original ``SkyCoord`` column.</span>
+
+                <span class="c1"># For all other coordinate types, simply divide into two columns</span>
+                <span class="c1"># for latitude and longitude resp. with the unit used been as it is.</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">frminfo</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                    <span class="k">for</span> <span class="n">frame</span><span class="p">,</span> <span class="n">latlon</span> <span class="ow">in</span> <span class="n">coord_systems</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">latlon</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">colnames</span><span class="p">))</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">frame</span> <span class="o">!=</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                                <span class="n">frminfo</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39; (</span><span class="si">{</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">)&#39;</span>
+                            <span class="n">lon_col</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">latlon</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="n">name</span><span class="o">=</span><span class="n">latlon</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                             <span class="n">description</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">frame</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s1"> Longitude</span><span class="si">{</span><span class="n">frminfo</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                                             <span class="n">unit</span><span class="o">=</span><span class="n">col</span><span class="o">.</span><span class="n">representation_component_units</span><span class="p">[</span><span class="n">latlon</span><span class="p">[</span><span class="mi">3</span><span class="p">]],</span>
+                                             <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;.12f&#39;</span><span class="p">)</span>
+                            <span class="n">lat_col</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">latlon</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="n">name</span><span class="o">=</span><span class="n">latlon</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                             <span class="n">description</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">frame</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s1"> Latitude</span><span class="si">{</span><span class="n">frminfo</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                                             <span class="n">unit</span><span class="o">=</span><span class="n">col</span><span class="o">.</span><span class="n">representation_component_units</span><span class="p">[</span><span class="n">latlon</span><span class="p">[</span><span class="mi">2</span><span class="p">]],</span>
+                                             <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;+.12f&#39;</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lon_col</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lat_col</span><span class="p">)</span>
+                            <span class="n">to_pop</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>   <span class="c1"># Delete original ``SkyCoord`` column.</span>
+
+                <span class="c1"># Convert all other ``SkyCoord`` columns that are not in the above three</span>
+                <span class="c1"># representations to string valued columns. Those could either be types not</span>
+                <span class="c1"># supported yet (e.g. &#39;helioprojective&#39;), or already present and converted.</span>
+                <span class="c1"># If there were any extra ``SkyCoord`` columns of one kind after the first one,</span>
+                <span class="c1"># then their decomposition into their component columns has been skipped.</span>
+                <span class="c1"># This is done in order to not create duplicate component columns.</span>
+                <span class="c1"># Explicit renaming of the extra coordinate component columns by appending some</span>
+                <span class="c1"># suffix to their name, so as to distinguish them, is not yet implemented.</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_pop</span><span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Coordinate system of type &#39;</span><span class="si">{</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; already stored in table &quot;</span>
+                                  <span class="sa">f</span><span class="s2">&quot;as CDS/MRT-syle columns or of unrecognized type. So column </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> &quot;</span>
+                                  <span class="sa">f</span><span class="s2">&quot;is being skipped with designation of a string valued column &quot;</span>
+                                  <span class="sa">f</span><span class="s2">&quot;`</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">colnames</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">`.&quot;</span><span class="p">,</span> <span class="ne">UserWarning</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Column</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">to_string</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">colnames</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                    <span class="n">to_pop</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>   <span class="c1"># Delete original ``SkyCoord`` column.</span>
+
+            <span class="c1"># Convert all other ``mixin`` columns to ``Column`` objects.</span>
+            <span class="c1"># Parsing these may still lead to errors!</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">Column</span><span class="p">):</span>
+                <span class="n">col</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+                <span class="c1"># If column values are ``object`` types, convert them to string.</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">):</span>
+                    <span class="n">col</span> <span class="o">=</span> <span class="n">Column</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">col</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span>
+
+        <span class="c1"># Delete original ``SkyCoord`` columns, if there were any.</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">to_pop</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="c1"># Check for any left over extra coordinate columns.</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">colnames</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;RAh&#39;</span><span class="p">,</span> <span class="s1">&#39;DEd&#39;</span><span class="p">,</span> <span class="s1">&#39;ELON&#39;</span><span class="p">,</span> <span class="s1">&#39;GLAT&#39;</span><span class="p">]):</span>
+            <span class="c1"># At this point any extra ``SkyCoord`` columns should have been converted to string</span>
+            <span class="c1"># valued columns, together with issuance of a warning, by the coordinate parser above.</span>
+            <span class="c1"># This test is just left here as a safeguard.</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">SkyCoord</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">to_string</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">colnames</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Table already has coordinate system in CDS/MRT-syle columns. &#39;</span>
+                               <span class="sa">f</span><span class="s1">&#39;So column </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> should have been replaced already with &#39;</span>
+                               <span class="sa">f</span><span class="s1">&#39;a string valued column `</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">colnames</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1">`.&#39;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">core</span><span class="o">.</span><span class="n">InconsistentTableError</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+        <span class="c1"># Get Byte-By-Byte description and fill the template</span>
+        <span class="n">bbb_template</span> <span class="o">=</span> <span class="n">Template</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">BYTE_BY_BYTE_TEMPLATE</span><span class="p">))</span>
+        <span class="n">byte_by_byte</span> <span class="o">=</span> <span class="n">bbb_template</span><span class="o">.</span><span class="n">substitute</span><span class="p">({</span><span class="s1">&#39;file&#39;</span><span class="p">:</span> <span class="s1">&#39;table.dat&#39;</span><span class="p">,</span>
+                                                <span class="s1">&#39;bytebybyte&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">write_byte_by_byte</span><span class="p">()})</span>
+
+        <span class="c1"># Fill up the full ReadMe</span>
+        <span class="n">rm_template</span> <span class="o">=</span> <span class="n">Template</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">MRT_TEMPLATE</span><span class="p">))</span>
+        <span class="n">readme_filled</span> <span class="o">=</span> <span class="n">rm_template</span><span class="o">.</span><span class="n">substitute</span><span class="p">({</span><span class="s1">&#39;bytebybyte&#39;</span><span class="p">:</span> <span class="n">byte_by_byte</span><span class="p">})</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">readme_filled</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">MrtData</span><span class="p">(</span><span class="n">cds</span><span class="o">.</span><span class="n">CdsData</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;MRT table data reader</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_subfmt</span> <span class="o">=</span> <span class="s1">&#39;MRT&#39;</span>
+    <span class="n">splitter_class</span> <span class="o">=</span> <span class="n">MrtSplitter</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">splitter</span><span class="o">.</span><span class="n">delimiter</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+        <span class="n">fixedwidth</span><span class="o">.</span><span class="n">FixedWidthData</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lines</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Mrt"><a class="viewcode-back" href="../../../../api/astropy.io.ascii.Mrt.html#astropy.io.ascii.Mrt">[docs]</a><span class="k">class</span> <span class="nc">Mrt</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">BaseReader</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;AAS MRT (Machine-Readable Table) format table.</span>
+
+<span class="sd">    **Reading**</span>
+<span class="sd">    ::</span>
+
+<span class="sd">      &gt;&gt;&gt; from astropy.io import ascii</span>
+<span class="sd">      &gt;&gt;&gt; table = ascii.read(&#39;data.mrt&#39;, format=&#39;mrt&#39;)</span>
+
+<span class="sd">    **Writing**</span>
+
+<span class="sd">    Use ``ascii.write(table, &#39;data.mrt&#39;, format=&#39;mrt&#39;)`` to  write tables to</span>
+<span class="sd">    Machine Readable Table (MRT) format.</span>
+
+<span class="sd">    Note that the metadata of the table, apart from units, column names and</span>
+<span class="sd">    description, will not be written. These have to be filled in by hand later.</span>
+
+<span class="sd">    See also: :ref:`cds_mrt_format`.</span>
+
+<span class="sd">    Caveats:</span>
+
+<span class="sd">    * The Units and Explanations are available in the column ``unit`` and</span>
+<span class="sd">      ``description`` attributes, respectively.</span>
+<span class="sd">    * The other metadata defined by this format is not available in the output table.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_format_name</span> <span class="o">=</span> <span class="s1">&#39;mrt&#39;</span>
+    <span class="n">_io_registry_format_aliases</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mrt&#39;</span><span class="p">]</span>
+    <span class="n">_io_registry_can_write</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">_description</span> <span class="o">=</span> <span class="s1">&#39;MRT format table&#39;</span>
+
+    <span class="n">data_class</span> <span class="o">=</span> <span class="n">MrtData</span>
+    <span class="n">header_class</span> <span class="o">=</span> <span class="n">MrtHeader</span>
+
+<div class="viewcode-block" id="Mrt.write"><a class="viewcode-back" href="../../../../api/astropy.io.ascii.Mrt.html#astropy.io.ascii.Mrt.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Construct for writing empty table is not yet done.</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">header</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">position_line</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">start_line</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Create a copy of the ``table``, so that it the copy gets modified and</span>
+        <span class="c1"># written to the file, while the original table remains as it is.</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">table</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

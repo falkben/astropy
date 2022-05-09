@@ -1,0 +1,145 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Table Implementation Details &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="hstack" href="../api/astropy.table.hstack.html" />
+    <link rel="prev" title="Mixin Columns" href="mixin_columns.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../api/astropy.table.hstack.html" title="hstack">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="mixin_columns.html" title="Mixin Columns">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Data Tables (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table</span></code>)</a> &#187;</li>
+      
+      <li>Table Implementation Details</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="table-implementation-details">
+<span id="id1"></span><h1>Table Implementation Details<a class="headerlink" href="#table-implementation-details" title="Permalink to this headline">¶</a></h1>
+<p>This page provides a brief overview of the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> class implementation, in
+particular highlighting the internal data storage architecture. This is aimed
+at developers and/or users who are interested in optimal use of the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a>
+class.</p>
+<p>The image below illustrates the basic architecture of the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> class.
+The fundamental data container is an ordered dictionary of individual column
+objects maintained as the <code class="docutils literal notranslate"><span class="pre">columns</span></code> attribute. It is via this container
+that columns are managed and accessed.</p>
+<a class="reference internal image-reference" href="../_images/table_architecture.png"><img alt="../_images/table_architecture.png" src="../_images/table_architecture.png" style="width: 45%;" /></a>
+<p>Each <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-class docutils literal notranslate"><span class="pre">Column</span></code></a> (or <a class="reference internal" href="../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-class docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a>) object is an <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a> (or
+<a class="reference external" href="https://numpy.org/doc/stable/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray" title="(in NumPy v1.22)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ma.MaskedArray</span></code></a>) subclass and is the sole owner of its data.
+Maintaining the table as separate columns simplifies table management
+considerably. It also makes operations like adding or removing columns much
+faster in comparison to implementations using a <code class="docutils literal notranslate"><span class="pre">numpy</span></code> structured array
+container.</p>
+<p>As shown below, a <a class="reference internal" href="../api/astropy.table.Row.html#astropy.table.Row" title="astropy.table.Row"><code class="xref py py-class docutils literal notranslate"><span class="pre">Row</span></code></a> object corresponds to a single row in the table. The
+<a class="reference internal" href="../api/astropy.table.Row.html#astropy.table.Row" title="astropy.table.Row"><code class="xref py py-class docutils literal notranslate"><span class="pre">Row</span></code></a> object does not create a view of the full row at any point. Instead it
+manages access (e.g., <code class="docutils literal notranslate"><span class="pre">row['a']</span></code>) dynamically by referencing the appropriate
+elements of the parent table.</p>
+<a class="reference internal image-reference" href="../_images/table_row.png"><img alt="../_images/table_row.png" src="../_images/table_row.png" style="width: 83%;" /></a>
+<p>In some cases it is desirable to have a static copy of the full row. This is
+available via the <a class="reference internal" href="../api/astropy.table.Row.html#astropy.table.Row.as_void" title="astropy.table.Row.as_void"><code class="xref py py-obj docutils literal notranslate"><span class="pre">as_void()</span></code></a> method, which creates and
+returns a <a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.void" title="(in NumPy v1.22)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.void</span></code></a> or <code class="docutils literal notranslate"><span class="pre">numpy.ma.mvoid</span></code> object with a copy of the
+original data.</p>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Table Implementation Details</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/table/implementation_details.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,183 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Polynomial Models &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Powerlaw Models" href="powerlaw_models.html" />
+    <link rel="prev" title="Physical Models" href="physical_models.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="powerlaw_models.html" title="Powerlaw Models">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="physical_models.html" title="Physical Models">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Models and Fitting (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling</span></code>)</a> &#187;</li>
+      
+      <li>Polynomial Models</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="polynomial-models">
+<span id="id1"></span><h1>Polynomial Models<a class="headerlink" href="#polynomial-models" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="notes-regarding-usage-of-domain-and-window">
+<span id="domain-window-note"></span><h2>Notes regarding usage of domain and window<a class="headerlink" href="#notes-regarding-usage-of-domain-and-window" title="Permalink to this headline">¶</a></h2>
+<p>Most of the polynomial models have optional domain and window attributes.
+It is important to understand how they currently are interpreted, which
+can be confusing since the terminology often implies something different.</p>
+<p>Both the domain and window attributes for a polynomial consist of a two
+element list (this will change to tuples in a future release) that
+indicate a range of values for input values. For 2-Dimensional polynomials
+the attributes become x_domain, y_domain, x_window, and y_window.
+Generally speaking, the main purpose of these attributes is to define
+a linear transform between the supplied input variable and the resultant
+input variable that is supplied to the polynomial. For example, if
+domain = [-2, 2] and window = [-1, 1], input values will be divided by
+two so that the domain maps to the window. Correspondingly the pair
+domain = [0, 2], window = [-1, 1] implies that 1 will be subtracted from
+the input variable before using it in the polynomial.</p>
+<p>Neither domain or window are meant to imply that values that fall outside
+of their corresponding ranges will result in an exception, or that
+such values are necessarily invalid (the latter depends on the context
+of how the polynomial is being used).</p>
+<p>It is the case that the orthogonal polynomials are defined on a range of
+[-1, 1], but nothing in the current machinery prevents them from being
+evaluated outside that range.</p>
+<p>Domain is used in fitting polynomials to bound the input variable to map
+to the defined window so that they fall within the expected [-1, 1] range
+for such polynomials. That is, the fitting routine will set the domain to
+map to the window range for the range of input x values supplied (so that
+domain may change if the minimum and maximum x values being fit change).</p>
+<p>The meaning of these terms may conflict with expectations (e.g., domain
+is often meant to mean the range of input values the function is valid
+for). For fit results that is somewhat true, but otherwise, it is not.
+The default values for ordinary polynomials is [-1, 1] for both domain
+and window, which effectively signals no transformation of the input
+variable.</p>
+<p>The terminology was adopted from numpy polynomials, which have the same
+confusion in meaning.</p>
+</div>
+<div class="section" id="d-polynomials">
+<h2>1D Polynomials<a class="headerlink" href="#d-polynomials" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="../api/astropy.modeling.polynomial.Polynomial1D.html#astropy.modeling.polynomial.Polynomial1D" title="astropy.modeling.polynomial.Polynomial1D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Polynomial1D</span></code></a></p></li>
+<li><p><a class="reference internal" href="../api/astropy.modeling.polynomial.Chebyshev1D.html#astropy.modeling.polynomial.Chebyshev1D" title="astropy.modeling.polynomial.Chebyshev1D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Chebyshev1D</span></code></a></p></li>
+<li><p><a class="reference internal" href="../api/astropy.modeling.polynomial.Legendre1D.html#astropy.modeling.polynomial.Legendre1D" title="astropy.modeling.polynomial.Legendre1D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Legendre1D</span></code></a></p></li>
+<li><p><a class="reference internal" href="../api/astropy.modeling.polynomial.Hermite1D.html#astropy.modeling.polynomial.Hermite1D" title="astropy.modeling.polynomial.Hermite1D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hermite1D</span></code></a></p></li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h2>2D Polynomials<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="../api/astropy.modeling.polynomial.Polynomial2D.html#astropy.modeling.polynomial.Polynomial2D" title="astropy.modeling.polynomial.Polynomial2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Polynomial2D</span></code></a></p></li>
+<li><p><a class="reference internal" href="../api/astropy.modeling.polynomial.Chebyshev2D.html#astropy.modeling.polynomial.Chebyshev2D" title="astropy.modeling.polynomial.Chebyshev2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Chebyshev2D</span></code></a></p></li>
+<li><p><a class="reference internal" href="../api/astropy.modeling.polynomial.Legendre2D.html#astropy.modeling.polynomial.Legendre2D" title="astropy.modeling.polynomial.Legendre2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Legendre2D</span></code></a></p></li>
+<li><p><a class="reference internal" href="../api/astropy.modeling.polynomial.Hermite2D.html#astropy.modeling.polynomial.Hermite2D" title="astropy.modeling.polynomial.Hermite2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hermite2D</span></code></a></p></li>
+<li><p><a class="reference internal" href="../api/astropy.modeling.polynomial.SIP.html#astropy.modeling.polynomial.SIP" title="astropy.modeling.polynomial.SIP"><code class="xref py py-class docutils literal notranslate"><span class="pre">SIP</span></code></a> model implements the
+Simple Imaging Polynomial (<a class="reference external" href="https://fits.gsfc.nasa.gov/registry/sip.html">SIP</a>) convention</p></li>
+</ul>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Polynomial Models</a><ul>
+<li><a class="reference internal" href="#notes-regarding-usage-of-domain-and-window">Notes regarding usage of domain and window</a></li>
+<li><a class="reference internal" href="#d-polynomials">1D Polynomials</a></li>
+<li><a class="reference internal" href="#id2">2D Polynomials</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/modeling/polynomial_models.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

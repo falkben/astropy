@@ -1,0 +1,530 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Read, Write, and Convert Cosmology Objects &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="CosmologyRead" href="../api/astropy.cosmology.connect.CosmologyRead.html" />
+    <link rel="prev" title="Cosmological Calculations (astropy.cosmology)" href="index.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../api/astropy.cosmology.connect.CosmologyRead.html" title="CosmologyRead">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="index.html" title="Cosmological Calculations (astropy.cosmology)">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Cosmological Calculations (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.cosmology</span></code>)</a> &#187;</li>
+      
+      <li>Read, Write, and Convert Cosmology Objects</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="read-write-and-convert-cosmology-objects">
+<span id="cosmology-io"></span><h1>Read, Write, and Convert Cosmology Objects<a class="headerlink" href="#read-write-and-convert-cosmology-objects" title="Permalink to this headline">¶</a></h1>
+<p>For <em>temporary</em> storage an easy means to serialize and deserialize a Cosmology
+object is using the <a class="reference external" href="https://docs.python.org/3/library/pickle.html#module-pickle" title="(in Python v3.10)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pickle</span></code></a> module. This is good for e.g. passing a
+<a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a> between threads.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pickle</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">Planck18</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;planck18.pkl&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">Planck18</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># and to read back</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;planck18.pkl&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">cosmo</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span>
+<span class="go">FlatLambdaCDM(name=&quot;Planck18&quot;, ...</span>
+</pre></div>
+</div>
+<p>However this method has all the attendant drawbacks of <a class="reference external" href="https://docs.python.org/3/library/pickle.html#module-pickle" title="(in Python v3.10)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pickle</span></code></a> — security
+vulnerabilities and non-human-readable files. Pickle files just generally don’t
+make for good persistent storage.</p>
+<p>Solving both these issues, <code class="docutils literal notranslate"><span class="pre">astropy</span></code> provides a unified interface for reading
+and writing data in different formats.</p>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a> class includes two methods, <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.read" title="astropy.cosmology.Cosmology.read"><code class="xref py py-meth docutils literal notranslate"><span class="pre">read()</span></code></a> and
+<a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.write" title="astropy.cosmology.Cosmology.write"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code></a>, that make it possible to read from and write to files.</p>
+<p>Currently the only registered <code class="docutils literal notranslate"><span class="pre">read</span></code> / <code class="docutils literal notranslate"><span class="pre">write</span></code> format is “ascii.ecsv”,
+like for Table. Also, custom <code class="docutils literal notranslate"><span class="pre">read</span></code> / <code class="docutils literal notranslate"><span class="pre">write</span></code> formats may be registered
+into the Astropy Cosmology I/O framework.</p>
+<p>Writing a cosmology instance requires only the file location and optionally,
+if the file format cannot be inferred, a keyword argument “format”. Additional
+positional arguments and keyword arguments are passed to the reader methods.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">Planck18</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Planck18</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;example_cosmology.ecsv&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;ascii.ecsv&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Reading back the cosmology is most safely done from <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a>, the base
+class, as it provides no default information and therefore requires the file
+to have all necessary information to describe a cosmology.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">Cosmology</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span> <span class="o">=</span> <span class="n">Cosmology</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;example_cosmology.ecsv&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;ascii.ecsv&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span> <span class="o">==</span> <span class="n">Planck18</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>To see a list of the available read/write file formats:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">Cosmology</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Cosmology</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">list_formats</span><span class="p">()</span>
+<span class="go">  Format   Read Write Auto-identify</span>
+<span class="go">---------- ---- ----- -------------</span>
+<span class="go">ascii.ecsv  Yes   Yes           Yes</span>
+</pre></div>
+</div>
+<p>This list will include both built-in and registered 3rd-party formats.</p>
+<p>When a subclass of <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a> is used to read a file, the subclass will provide
+a keyword argument <code class="docutils literal notranslate"><span class="pre">cosmology=&lt;class&gt;</span></code> to the registered read method. The
+method uses this cosmology class, regardless of the class indicated in the
+file, and sets parameters’ default values from the class’ signature.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">FlatLambdaCDM</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span> <span class="o">=</span> <span class="n">FlatLambdaCDM</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;&lt;file name&gt;&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span> <span class="o">==</span> <span class="n">Planck18</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>Reading and writing <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a> objects go through intermediate
+representations, often a dict or <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a> instance. These intermediate
+representations are accessible through the methods <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.to_format" title="astropy.cosmology.Cosmology.to_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_format()</span></code></a> /
+<a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.from_format" title="astropy.cosmology.Cosmology.from_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_format()</span></code></a>.</p>
+<p>To see the a list of the available conversion formats:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">Cosmology</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Cosmology</span><span class="o">.</span><span class="n">to_format</span><span class="o">.</span><span class="n">list_formats</span><span class="p">()</span>
+<span class="go">      Format      Read Write Auto-identify</span>
+<span class="go">----------------- ---- ----- -------------</span>
+<span class="go">astropy.cosmology  Yes   Yes           Yes</span>
+<span class="go">    astropy.model  Yes   Yes           Yes</span>
+<span class="go">      astropy.row  Yes   Yes           Yes</span>
+<span class="go">    astropy.table  Yes   Yes           Yes</span>
+<span class="go">          mapping  Yes   Yes           Yes</span>
+<span class="go">             yaml  Yes   Yes            No</span>
+</pre></div>
+</div>
+<p>This list will include both built-in and registered 3rd-party formats.</p>
+<p><a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.to_format" title="astropy.cosmology.Cosmology.to_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_format()</span></code></a> / <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.from_format" title="astropy.cosmology.Cosmology.from_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_format()</span></code></a> parse a Cosmology to/from
+another python object. This can be useful for e.g., iterating through an MCMC
+of cosmological parameters or printing out a cosmological model to a journal
+format, like latex or HTML. When 3rd party cosmology packages register with
+Astropy’s Cosmology I/O, <code class="docutils literal notranslate"><span class="pre">to/from_format</span></code> can be used to convert cosmology
+instances between packages!</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">Planck18</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span> <span class="o">=</span> <span class="n">Planck18</span><span class="o">.</span><span class="n">to_format</span><span class="p">(</span><span class="s2">&quot;mapping&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span>
+<span class="go">{&#39;cosmology&#39;: &lt;class &#39;astropy.cosmology.flrw.lambdacdm.FlatLambdaCDM&#39;&gt;,</span>
+<span class="go"> &#39;name&#39;: &#39;Planck18&#39;,</span>
+<span class="go"> &#39;H0&#39;: &lt;Quantity 67.66 km / (Mpc s)&gt;,</span>
+<span class="go"> &#39;Om0&#39;: 0.30966,</span>
+<span class="go"> ...</span>
+</pre></div>
+</div>
+<p>Now this dict can be used to load a new cosmological instance identical
+to the <a class="reference internal" href="index.html#planck18"><span class="std std-ref">Planck18</span></a> cosmology from which it was created.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">Cosmology</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span> <span class="o">=</span> <span class="n">Cosmology</span><span class="o">.</span><span class="n">from_format</span><span class="p">(</span><span class="n">cm</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;mapping&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span> <span class="o">==</span> <span class="n">Planck18</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>Another pre-registered format is “table”, for converting a <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a> to and
+from a <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ct</span> <span class="o">=</span> <span class="n">Planck18</span><span class="o">.</span><span class="n">to_format</span><span class="p">(</span><span class="s2">&quot;astropy.table&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ct</span>
+<span class="go">&lt;QTable length=1&gt;</span>
+<span class="go">  name        H0        Om0    Tcmb0    Neff      m_nu      Ob0</span>
+<span class="go">         km / (Mpc s)            K                 eV</span>
+<span class="go">  str8     float64    float64 float64 float64  float64[3] float64</span>
+<span class="go">-------- ------------ ------- ------- ------- ----------- -------</span>
+<span class="go">Planck18        67.66 0.30966  2.7255   3.046 0.0 .. 0.06 0.04897</span>
+</pre></div>
+</div>
+<p>Cosmology supports the astropy Table-like protocol (see
+<a class="reference internal" href="../table/construct_table.html#table-like-objects"><span class="std std-ref">Table-like Objects</span></a>) to the same effect:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">QTable</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ct</span> <span class="o">=</span> <span class="n">QTable</span><span class="p">(</span><span class="n">Planck18</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ct</span>
+<span class="go">&lt;QTable length=1&gt;</span>
+<span class="go">  name        H0        Om0    Tcmb0    Neff      m_nu      Ob0</span>
+<span class="go">         km / (Mpc s)            K                 eV</span>
+<span class="go">  str8     float64    float64 float64 float64  float64[3] float64</span>
+<span class="go">-------- ------------ ------- ------- ------- ----------- -------</span>
+<span class="go">Planck18        67.66 0.30966  2.7255   3.046 0.0 .. 0.06 0.04897</span>
+</pre></div>
+</div>
+<p>Now this <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a> can be used to load a new cosmological instance identical to
+the <a class="reference internal" href="index.html#planck18"><span class="std std-ref">Planck18</span></a> cosmology from which it was created.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span> <span class="o">=</span> <span class="n">Cosmology</span><span class="o">.</span><span class="n">from_format</span><span class="p">(</span><span class="n">ct</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;astropy.table&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span>
+<span class="go">FlatLambdaCDM(name=&quot;Planck18&quot;, H0=67.66 km / (Mpc s), Om0=0.30966,</span>
+<span class="go">              Tcmb0=2.7255 K, Neff=3.046, m_nu=[0. 0. 0.06] eV, Ob0=0.04897)</span>
+</pre></div>
+</div>
+<p>Perhaps more usefully, <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a> can be saved to <code class="docutils literal notranslate"><span class="pre">latex</span></code> and <code class="docutils literal notranslate"><span class="pre">html</span></code> formats,
+which can be copied into journal articles and websites, respectively.</p>
+<p>Using <code class="docutils literal notranslate"><span class="pre">format=&quot;astropy.model&quot;</span></code> any redshift(s) method of a cosmology may be
+turned into a <a class="reference internal" href="../api/astropy.modeling.Model.html#astropy.modeling.Model" title="astropy.modeling.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.modeling.Model</span></code></a>. Each <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a>
+<a class="reference internal" href="../api/astropy.cosmology.Parameter.html#astropy.cosmology.Parameter" title="astropy.cosmology.Parameter"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parameter</span></code></a> is converted to a
+<a class="reference internal" href="../api/astropy.modeling.Model.html#astropy.modeling.Model" title="astropy.modeling.Model"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.modeling.Model</span></code></a> <a class="reference internal" href="../api/astropy.modeling.Parameter.html#astropy.modeling.Parameter" title="astropy.modeling.Parameter"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parameter</span></code></a>
+and the redshift-method to the model’s <code class="docutils literal notranslate"><span class="pre">__call__</span> <span class="pre">/</span> <span class="pre">evaluate</span></code>.
+Now you can fit cosmologies with data!</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">Planck18</span><span class="o">.</span><span class="n">to_format</span><span class="p">(</span><span class="s2">&quot;astropy.model&quot;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;lookback_time&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span>
+<span class="go">&lt;FlatLambdaCDMCosmologyLookbackTimeModel(H0=67.66 km / (Mpc s), Om0=0.30966,</span>
+<span class="go">    Tcmb0=2.7255 K, Neff=3.046, m_nu=[0.  , 0.  , 0.06] eV, Ob0=0.04897,</span>
+<span class="go">    name=&#39;Planck18&#39;)&gt;</span>
+</pre></div>
+</div>
+<p>Like for the other formats, the <a class="reference internal" href="index.html#planck18"><span class="std std-ref">Planck18</span></a> cosmology can be recovered with
+<a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.from_format" title="astropy.cosmology.Cosmology.from_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_format()</span></code></a>.</p>
+</div>
+<div class="section" id="custom-cosmology-to-from-formats">
+<span id="custom-cosmology-converters"></span><h2>Custom Cosmology To/From Formats<a class="headerlink" href="#custom-cosmology-to-from-formats" title="Permalink to this headline">¶</a></h2>
+<p>Custom representation formats may also be registered into the Astropy Cosmology
+I/O framework for use by these methods. For details of the framework see
+<a class="reference internal" href="../io/registry.html#io-registry"><span class="std std-ref">I/O Registry (astropy.io.registry)</span></a>. Note <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a> <code class="docutils literal notranslate"><span class="pre">to/from_format</span></code> uses a custom registry,
+available at <code class="docutils literal notranslate"><span class="pre">Cosmology.&lt;to/from&gt;_format.registry</span></code>.</p>
+<p>As an example, the following is an implementation of an <a class="reference internal" href="../api/astropy.table.Row.html#astropy.table.Row" title="astropy.table.Row"><code class="xref py py-class docutils literal notranslate"><span class="pre">Row</span></code></a> converter. We can
+and should use inbuilt parsers, like <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a>, but to show a more complete
+example we limit ourselves to only the “mapping” parser.</p>
+<p>We start by defining the function to parse a <a class="reference internal" href="../api/astropy.table.Row.html#astropy.table.Row" title="astropy.table.Row"><code class="xref py py-class docutils literal notranslate"><span class="pre">Row</span></code></a> into a <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a>. This
+function should take 1 positional argument, the row object, and 2 keyword
+arguments, for how to handle extra metadata and which Cosmology class to use.
+Details about metadata treatment are in
+<code class="docutils literal notranslate"><span class="pre">Cosmology.from_format.help(&quot;mapping&quot;)</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">copy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">Cosmology</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">from_table_row</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">move_to_meta</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cosmology</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># get name from column</span>
+<span class="gp">... </span>    <span class="n">name</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;name&#39;</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span>
+<span class="gp">... </span>    <span class="n">meta</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">meta</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="c1"># turn row into mapping (dict of the arguments)</span>
+<span class="gp">... </span>    <span class="n">mapping</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">mapping</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+<span class="gp">... </span>    <span class="n">mapping</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;cosmology&quot;</span><span class="p">,</span> <span class="n">meta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;cosmology&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<span class="gp">... </span>    <span class="n">mapping</span><span class="p">[</span><span class="s2">&quot;meta&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">meta</span>
+<span class="gp">... </span>    <span class="c1"># build cosmology from map</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">Cosmology</span><span class="o">.</span><span class="n">from_format</span><span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="n">move_to_meta</span><span class="o">=</span><span class="n">move_to_meta</span><span class="p">,</span>
+<span class="gp">... </span>                                 <span class="n">cosmology</span><span class="o">=</span><span class="n">cosmology</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The next step is a function to perform the reverse operation: parse a
+<a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a> into a <a class="reference internal" href="../api/astropy.table.Row.html#astropy.table.Row" title="astropy.table.Row"><code class="xref py py-class docutils literal notranslate"><span class="pre">Row</span></code></a>. This function requires only the cosmology object and
+a <code class="docutils literal notranslate"><span class="pre">*args</span></code> to absorb unneeded information passed by
+<a class="reference internal" href="../api/astropy.io.registry.UnifiedReadWrite.html#astropy.io.registry.UnifiedReadWrite" title="astropy.io.registry.UnifiedReadWrite"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.io.registry.UnifiedReadWrite</span></code></a> (which implements
+<a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.to_format" title="astropy.cosmology.Cosmology.to_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_format()</span></code></a>).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">QTable</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">to_table_row</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">p</span> <span class="o">=</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">to_format</span><span class="p">(</span><span class="s2">&quot;mapping&quot;</span><span class="p">,</span> <span class="n">cosmology_as_str</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;meta&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="c1"># package parameters into lists for Table parsing</span>
+<span class="gp">... </span>    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">QTable</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">meta</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># return row</span>
+</pre></div>
+</div>
+<p>Last we write a function to help with format auto-identification and then
+register everything into <a class="reference internal" href="../io/registry.html#module-astropy.io.registry" title="astropy.io.registry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.registry</span></code></a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">Cosmology</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology.connect</span> <span class="kn">import</span> <span class="n">convert_registry</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Row</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">row_identify</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="nb">format</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="sd">&quot;&quot;&quot;Identify if object uses the Table format.&quot;&quot;&quot;</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">origin</span> <span class="o">==</span> <span class="s2">&quot;read&quot;</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">Row</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">format</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;astropy.row&quot;</span><span class="p">))</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="kc">False</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># These exact functions are already registered in astropy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># convert_registry.register_reader(&quot;astropy.row&quot;, Cosmology, from_table_row)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># convert_registry.register_writer(&quot;astropy.row&quot;, Cosmology, to_table_row)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># convert_registry.register_identifier(&quot;astropy.row&quot;, Cosmology, row_identify)</span>
+</pre></div>
+</div>
+<p>Now the registered functions can be used in <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.from_format" title="astropy.cosmology.Cosmology.from_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_format()</span></code></a> and
+<a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.to_format" title="astropy.cosmology.Cosmology.to_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_format()</span></code></a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">Planck18</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">row</span> <span class="o">=</span> <span class="n">Planck18</span><span class="o">.</span><span class="n">to_format</span><span class="p">(</span><span class="s2">&quot;astropy.row&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">row</span>
+<span class="go">&lt;Row index=0&gt;</span>
+<span class="go">  cosmology     name        H0        Om0    Tcmb0    Neff      m_nu      Ob0</span>
+<span class="go">                       km / (Mpc s)            K                 eV</span>
+<span class="go">    str13       str8     float64    float64 float64 float64  float64[3] float64</span>
+<span class="go">------------- -------- ------------ ------- ------- ------- ----------- -------</span>
+<span class="go">FlatLambdaCDM Planck18        67.66 0.30966  2.7255   3.046 0.0 .. 0.06 0.04897</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span> <span class="o">=</span> <span class="n">Cosmology</span><span class="o">.</span><span class="n">from_format</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span> <span class="o">==</span> <span class="n">Planck18</span>  <span class="c1"># test it round-trips</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="custom-cosmology-readers-writers">
+<span id="id1"></span><h2>Custom Cosmology Readers/Writers<a class="headerlink" href="#custom-cosmology-readers-writers" title="Permalink to this headline">¶</a></h2>
+<p>Custom <code class="docutils literal notranslate"><span class="pre">read</span></code> / <code class="docutils literal notranslate"><span class="pre">write</span></code> formats may be registered into the Astropy
+Cosmology I/O framework. For details of the framework see <a class="reference internal" href="../io/registry.html#io-registry"><span class="std std-ref">I/O Registry (astropy.io.registry)</span></a>.
+Note <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a> <code class="docutils literal notranslate"><span class="pre">read/write</span></code> uses a custom registry, available at
+<code class="docutils literal notranslate"><span class="pre">Cosmology.&lt;read/write&gt;.registry</span></code>.</p>
+<p>As an example, in the following we will fully work out a <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a> &lt;-&gt; JSON
+(de)serializer. Note that we can use other registered parsers – here “mapping”
+– to make the implementation much simpler.</p>
+<p>We start by defining the function to parse JSON into a <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a>. This
+function should take 1 positional argument, the file object or file path. We
+will also pass kwargs through to <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.from_format" title="astropy.cosmology.Cosmology.from_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_format()</span></code></a>, which handles
+metadata and which Cosmology class to use. Details of are in
+<code class="docutils literal notranslate"><span class="pre">Cosmology.from_format.help(&quot;mapping&quot;)</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">json</span><span class="o">,</span> <span class="nn">os</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">Cosmology</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">read_json</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c1"># read file, from path-like or file-like</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">)):</span>
+<span class="gp">... </span>        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+<span class="gp">... </span>            <span class="n">data</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="k">else</span><span class="p">:</span>  <span class="c1"># file-like : this also handles errors in dumping</span>
+<span class="gp">... </span>        <span class="n">data</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="n">mapping</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>  <span class="c1"># parse json mappable to dict</span>
+<span class="gp">... </span>    <span class="c1"># deserialize Quantity</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<span class="gp">... </span>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;value&quot;</span> <span class="ow">in</span> <span class="n">v</span> <span class="ow">and</span> <span class="s2">&quot;unit&quot;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+<span class="gp">... </span>            <span class="n">mapping</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;unit&quot;</span><span class="p">])</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;meta&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># also the metadata</span>
+<span class="gp">... </span>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;value&quot;</span> <span class="ow">in</span> <span class="n">v</span> <span class="ow">and</span> <span class="s2">&quot;unit&quot;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+<span class="gp">... </span>            <span class="n">mapping</span><span class="p">[</span><span class="s2">&quot;meta&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;unit&quot;</span><span class="p">])</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">Cosmology</span><span class="o">.</span><span class="n">from_format</span><span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The next step is a function to write a <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cosmology</span></code></a> to JSON. This function
+requires the cosmology object and a file object/path. We also require the
+boolean flag “overwrite” to set behavior for existing files. Note that
+<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> is not natively compatible with JSON. In both the <code class="docutils literal notranslate"><span class="pre">write</span></code> and
+<code class="docutils literal notranslate"><span class="pre">read</span></code> methods we have to create custom parsers.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">write_json</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="gp">... </span>   <span class="n">data</span> <span class="o">=</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">to_format</span><span class="p">(</span><span class="s2">&quot;mapping&quot;</span><span class="p">,</span> <span class="n">cosmology_as_str</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># start by turning into dict</span>
+<span class="gp">... </span>   <span class="c1"># serialize Quantity</span>
+<span class="gp">... </span>   <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<span class="gp">... </span>       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">):</span>
+<span class="gp">... </span>           <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="s2">&quot;unit&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">unit</span><span class="p">)}</span>
+<span class="gp">... </span>   <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;meta&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>  <span class="c1"># also serialize the metadata</span>
+<span class="gp">... </span>       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">):</span>
+<span class="gp">... </span>           <span class="n">data</span><span class="p">[</span><span class="s2">&quot;meta&quot;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="s2">&quot;unit&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">unit</span><span class="p">)}</span>
+<span class="gp">...</span>
+<span class="gp">... </span>   <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">)):</span>
+<span class="gp">... </span>       <span class="c1"># check that file exists and whether to overwrite.</span>
+<span class="gp">... </span>       <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">file</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
+<span class="gp">... </span>           <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2"> exists. Set &#39;overwrite&#39; to write over.&quot;</span><span class="p">)</span>
+<span class="gp">... </span>       <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">write_file</span><span class="p">:</span>
+<span class="gp">... </span>           <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">write_file</span><span class="p">)</span>
+<span class="gp">... </span>   <span class="k">else</span><span class="p">:</span>
+<span class="gp">... </span>       <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Last we write a function to help with format auto-identification and then
+register everything into <a class="reference internal" href="../io/registry.html#module-astropy.io.registry" title="astropy.io.registry"><code class="xref py py-mod docutils literal notranslate"><span class="pre">astropy.io.registry</span></code></a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology.connect</span> <span class="kn">import</span> <span class="n">readwrite_registry</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">json_identify</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="sd">&quot;&quot;&quot;Identify if object uses the JSON format.&quot;&quot;&quot;</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">filepath</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">filepath</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">readwrite_registry</span><span class="o">.</span><span class="n">register_reader</span><span class="p">(</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">Cosmology</span><span class="p">,</span> <span class="n">read_json</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">readwrite_registry</span><span class="o">.</span><span class="n">register_writer</span><span class="p">(</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">Cosmology</span><span class="p">,</span> <span class="n">write_json</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">readwrite_registry</span><span class="o">.</span><span class="n">register_identifier</span><span class="p">(</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">Cosmology</span><span class="p">,</span> <span class="n">json_identify</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now the registered functions can be used in <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.read" title="astropy.cosmology.Cosmology.read"><code class="xref py py-meth docutils literal notranslate"><span class="pre">read()</span></code></a> and
+<a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.write" title="astropy.cosmology.Cosmology.write"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code></a>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">Planck18</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">file</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Planck18</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+<span class="go">[&#39;{&quot;cosmology&quot;: &quot;FlatLambdaCDM&quot;, &quot;name&quot;: &quot;Planck18&quot;,</span>
+<span class="go">   &quot;H0&quot;: {&quot;value&quot;: 67.66, &quot;unit&quot;: &quot;km / (Mpc s)&quot;}, &quot;Om0&quot;: 0.30966,</span>
+<span class="go">   ...</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span> <span class="o">=</span> <span class="n">Cosmology</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cosmo</span> <span class="o">==</span> <span class="n">Planck18</span>  <span class="c1"># test it round-trips</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">:</span><span class="n">hide</span><span class="p">:</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">astropy.io.registry</span> <span class="kn">import</span> <span class="n">IORegistryError</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">readwrite_registry</span><span class="o">.</span><span class="n">unregister_reader</span><span class="p">(</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">Cosmology</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">readwrite_registry</span><span class="o">.</span><span class="n">unregister_writer</span><span class="p">(</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">Cosmology</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">readwrite_registry</span><span class="o">.</span><span class="n">unregister_identifier</span><span class="p">(</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">Cosmology</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">try</span><span class="p">:</span>
+<span class="o">...</span>     <span class="n">readwrite_registry</span><span class="o">.</span><span class="n">get_reader</span><span class="p">(</span><span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">Cosmology</span><span class="p">)</span>
+<span class="o">...</span> <span class="k">except</span> <span class="n">IORegistryError</span><span class="p">:</span>
+<span class="o">...</span>     <span class="k">pass</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="reference-api">
+<h2>Reference/API<a class="headerlink" href="#reference-api" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-astropy.cosmology.connect">
+<span id="astropy-cosmology-connect-module"></span><h3>astropy.cosmology.connect Module<a class="headerlink" href="#module-astropy.cosmology.connect" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="classes">
+<h4>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/astropy.cosmology.connect.CosmologyRead.html#astropy.cosmology.connect.CosmologyRead" title="astropy.cosmology.connect.CosmologyRead"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CosmologyRead</span></code></a>(instance, cosmo_cls)</p></td>
+<td><p>Read and parse data to a <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Cosmology</span></code></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../api/astropy.cosmology.connect.CosmologyWrite.html#astropy.cosmology.connect.CosmologyWrite" title="astropy.cosmology.connect.CosmologyWrite"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CosmologyWrite</span></code></a>(instance, cls)</p></td>
+<td><p>Write this Cosmology object out in the specified format.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/astropy.cosmology.connect.CosmologyFromFormat.html#astropy.cosmology.connect.CosmologyFromFormat" title="astropy.cosmology.connect.CosmologyFromFormat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CosmologyFromFormat</span></code></a>(instance, cosmo_cls)</p></td>
+<td><p>Transform object to a <a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology" title="astropy.cosmology.Cosmology"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Cosmology</span></code></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../api/astropy.cosmology.connect.CosmologyToFormat.html#astropy.cosmology.connect.CosmologyToFormat" title="astropy.cosmology.connect.CosmologyToFormat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CosmologyToFormat</span></code></a>(instance, cls)</p></td>
+<td><p>Transform this Cosmology to another format.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="class-inheritance-diagram">
+<h4>Class Inheritance Diagram<a class="headerlink" href="#class-inheritance-diagram" title="Permalink to this headline">¶</a></h4>
+digraph inheritance3d3d95ebb7 {
+bgcolor=transparent;
+rankdir=LR;
+size=&quot;8.0, 12.0&quot;;
+  &quot;CosmologyFromFormat&quot; [URL=&quot;../../api/astropy.cosmology.connect.CosmologyFromFormat.html#astropy.cosmology.connect.CosmologyFromFormat&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;Transform object to a `~astropy.cosmology.Cosmology`.&quot;];
+  &quot;UnifiedReadWrite&quot; -&gt; &quot;CosmologyFromFormat&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
+  &quot;CosmologyRead&quot; [URL=&quot;../../api/astropy.cosmology.connect.CosmologyRead.html#astropy.cosmology.connect.CosmologyRead&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;Read and parse data to a `~astropy.cosmology.Cosmology`.&quot;];
+  &quot;UnifiedReadWrite&quot; -&gt; &quot;CosmologyRead&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
+  &quot;CosmologyToFormat&quot; [URL=&quot;../../api/astropy.cosmology.connect.CosmologyToFormat.html#astropy.cosmology.connect.CosmologyToFormat&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;Transform this Cosmology to another format.&quot;];
+  &quot;UnifiedReadWrite&quot; -&gt; &quot;CosmologyToFormat&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
+  &quot;CosmologyWrite&quot; [URL=&quot;../../api/astropy.cosmology.connect.CosmologyWrite.html#astropy.cosmology.connect.CosmologyWrite&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;Write this Cosmology object out in the specified format.&quot;];
+  &quot;UnifiedReadWrite&quot; -&gt; &quot;CosmologyWrite&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
+  &quot;UnifiedReadWrite&quot; [URL=&quot;../../api/astropy.io.registry.UnifiedReadWrite.html#astropy.io.registry.UnifiedReadWrite&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;Base class for the worker object used in unified read() or write() methods.&quot;];
+}
+</div>
+</div>
+<div class="section" id="module-astropy.cosmology.io.mapping">
+<span id="astropy-cosmology-io-mapping-module"></span><h3>astropy.cosmology.io.mapping Module<a class="headerlink" href="#module-astropy.cosmology.io.mapping" title="Permalink to this headline">¶</a></h3>
+<p>The following are private functions, included here <strong>FOR REFERENCE ONLY</strong> since
+the io registry cannot be displayed. These functions are registered into
+<a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.to_format" title="astropy.cosmology.Cosmology.to_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_format()</span></code></a> and
+<a class="reference internal" href="../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.from_format" title="astropy.cosmology.Cosmology.from_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_format()</span></code></a> and should only be accessed
+via these methods.</p>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Read, Write, and Convert Cosmology Objects</a><ul>
+<li><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li><a class="reference internal" href="#custom-cosmology-to-from-formats">Custom Cosmology To/From Formats</a></li>
+<li><a class="reference internal" href="#custom-cosmology-readers-writers">Custom Cosmology Readers/Writers</a></li>
+<li><a class="reference internal" href="#reference-api">Reference/API</a><ul>
+<li><a class="reference internal" href="#module-astropy.cosmology.connect">astropy.cosmology.connect Module</a><ul>
+<li><a class="reference internal" href="#classes">Classes</a></li>
+<li><a class="reference internal" href="#class-inheritance-diagram">Class Inheritance Diagram</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-astropy.cosmology.io.mapping">astropy.cosmology.io.mapping Module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/cosmology/io.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

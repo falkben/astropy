@@ -1,0 +1,998 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.io.ascii.ui &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.io.ascii.ui</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;An extensible ASCII table reader and writer.</span>
+
+<span class="sd">ui.py:</span>
+<span class="sd">  Provides the main user functions for reading and writing tables.</span>
+
+<span class="sd">:Copyright: Smithsonian Astrophysical Observatory (2010)</span>
+<span class="sd">:Author: Tom Aldcroft (aldcroft@head.cfa.harvard.edu)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="kn">import</span> <span class="n">StringIO</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">core</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">basic</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">cds</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">mrt</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">daophot</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">ecsv</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">sextractor</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">ipac</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">latex</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">html</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">rst</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">fastbasic</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">cparser</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">fixedwidth</span>
+<span class="kn">from</span> <span class="nn">.docs</span> <span class="kn">import</span> <span class="n">READ_KWARG_TYPES</span><span class="p">,</span> <span class="n">WRITE_KWARG_TYPES</span>
+
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">MaskedColumn</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.data</span> <span class="kn">import</span> <span class="n">get_readable_fileobj</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.exceptions</span> <span class="kn">import</span> <span class="n">AstropyWarning</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.misc</span> <span class="kn">import</span> <span class="n">NOT_OVERWRITING_MSG</span>
+
+<span class="n">_read_trace</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="c1"># Default setting for guess parameter in read()</span>
+<span class="n">_GUESS</span> <span class="o">=</span> <span class="kc">True</span>
+
+
+<span class="k">def</span> <span class="nf">_probably_html</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">maxchars</span><span class="o">=</span><span class="mi">100000</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determine if ``table`` probably contains HTML content.  See PR #3693 and issue</span>
+<span class="sd">    #3691 for context.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># If table is an iterable (list of strings) then take the first</span>
+            <span class="c1"># maxchars of these.  Make sure this is something with random</span>
+            <span class="c1"># access to exclude a file-like object</span>
+            <span class="n">table</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">table</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">table</span><span class="p">):</span>
+                <span class="n">size</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="n">maxchars</span><span class="p">:</span>
+                    <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="p">[:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="k">break</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">linesep</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="c1"># Look for signs of an HTML table in the first maxchars characters</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="p">[:</span><span class="n">maxchars</span><span class="p">]</span>
+
+        <span class="c1"># URL ending in .htm or .html</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;( http[s]? | ftp | file ) :// .+ \.htm[l]?$&#39;</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span>
+                    <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="c1"># Filename ending in .htm or .html which exists</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\.htm[l]?$&#39;</span><span class="p">,</span> <span class="n">table</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:],</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span> <span class="ow">and</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">table</span><span class="p">))):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="c1"># Table starts with HTML document type declaration</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s* &lt;! \s* DOCTYPE \s* HTML&#39;</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="c1"># Look for &lt;TABLE .. &gt;, &lt;TR .. &gt;, &lt;TD .. &gt; tag openers.</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">fr</span><span class="s1">&#39;&lt; \s* </span><span class="si">{</span><span class="n">element</span><span class="si">}</span><span class="s1"> [^&gt;]* &gt;&#39;</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+               <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;table&#39;</span><span class="p">,</span> <span class="s1">&#39;tr&#39;</span><span class="p">,</span> <span class="s1">&#39;td&#39;</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="set_guess"><a class="viewcode-back" href="../../../../api/astropy.io.ascii.set_guess.html#astropy.io.ascii.set_guess">[docs]</a><span class="k">def</span> <span class="nf">set_guess</span><span class="p">(</span><span class="n">guess</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set the default value of the ``guess`` parameter for read()</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    guess : bool</span>
+<span class="sd">        New default ``guess`` value (e.g., True or False)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_GUESS</span>
+    <span class="n">_GUESS</span> <span class="o">=</span> <span class="n">guess</span></div>
+
+
+<div class="viewcode-block" id="get_reader"><a class="viewcode-back" href="../../../../api/astropy.io.ascii.get_reader.html#astropy.io.ascii.get_reader">[docs]</a><span class="k">def</span> <span class="nf">get_reader</span><span class="p">(</span><span class="n">Reader</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Inputter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Outputter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initialize a table reader allowing for common customizations.  Most of the</span>
+<span class="sd">    default behavior for various parameters is determined by the Reader class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Reader : `~astropy.io.ascii.BaseReader`</span>
+<span class="sd">        Reader class (DEPRECATED). Default is :class:`Basic`.</span>
+<span class="sd">    Inputter : `~astropy.io.ascii.BaseInputter`</span>
+<span class="sd">        Inputter class</span>
+<span class="sd">    Outputter : `~astropy.io.ascii.BaseOutputter`</span>
+<span class="sd">        Outputter class</span>
+<span class="sd">    delimiter : str</span>
+<span class="sd">        Column delimiter string</span>
+<span class="sd">    comment : str</span>
+<span class="sd">        Regular expression defining a comment line in table</span>
+<span class="sd">    quotechar : str</span>
+<span class="sd">        One-character string to quote fields containing special characters</span>
+<span class="sd">    header_start : int</span>
+<span class="sd">        Line index for the header line not counting comment or blank lines.</span>
+<span class="sd">        A line with only whitespace is considered blank.</span>
+<span class="sd">    data_start : int</span>
+<span class="sd">        Line index for the start of data not counting comment or blank lines.</span>
+<span class="sd">        A line with only whitespace is considered blank.</span>
+<span class="sd">    data_end : int</span>
+<span class="sd">        Line index for the end of data not counting comment or blank lines.</span>
+<span class="sd">        This value can be negative to count from the end.</span>
+<span class="sd">    converters : dict</span>
+<span class="sd">        Dict of converters.</span>
+<span class="sd">    data_Splitter : `~astropy.io.ascii.BaseSplitter`</span>
+<span class="sd">        Splitter class to split data columns.</span>
+<span class="sd">    header_Splitter : `~astropy.io.ascii.BaseSplitter`</span>
+<span class="sd">        Splitter class to split header columns.</span>
+<span class="sd">    names : list</span>
+<span class="sd">        List of names corresponding to each data column.</span>
+<span class="sd">    include_names : list, optional</span>
+<span class="sd">        List of names to include in output.</span>
+<span class="sd">    exclude_names : list</span>
+<span class="sd">        List of names to exclude from output (applied after ``include_names``).</span>
+<span class="sd">    fill_values : tuple, list of tuple</span>
+<span class="sd">        Specification of fill values for bad or missing table values.</span>
+<span class="sd">    fill_include_names : list</span>
+<span class="sd">        List of names to include in fill_values.</span>
+<span class="sd">    fill_exclude_names : list</span>
+<span class="sd">        List of names to exclude from fill_values (applied after ``fill_include_names``).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    reader : `~astropy.io.ascii.BaseReader` subclass</span>
+<span class="sd">        ASCII format reader instance</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># This function is a light wrapper around core._get_reader to provide a</span>
+    <span class="c1"># public interface with a default Reader.</span>
+    <span class="k">if</span> <span class="n">Reader</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Default reader is Basic unless fast reader is forced</span>
+        <span class="n">fast_reader</span> <span class="o">=</span> <span class="n">_get_fast_reader_dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fast_reader</span><span class="p">[</span><span class="s1">&#39;enable&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;force&#39;</span><span class="p">:</span>
+            <span class="n">Reader</span> <span class="o">=</span> <span class="n">fastbasic</span><span class="o">.</span><span class="n">FastBasic</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Reader</span> <span class="o">=</span> <span class="n">basic</span><span class="o">.</span><span class="n">Basic</span>
+
+    <span class="n">reader</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">_get_reader</span><span class="p">(</span><span class="n">Reader</span><span class="p">,</span> <span class="n">Inputter</span><span class="o">=</span><span class="n">Inputter</span><span class="p">,</span> <span class="n">Outputter</span><span class="o">=</span><span class="n">Outputter</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">reader</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_format_class</span><span class="p">(</span><span class="nb">format</span><span class="p">,</span> <span class="n">ReaderWriter</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">ReaderWriter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Cannot supply both format and </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s1"> keywords&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">FORMAT_CLASSES</span><span class="p">:</span>
+            <span class="n">ReaderWriter</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">FORMAT_CLASSES</span><span class="p">[</span><span class="nb">format</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;ASCII format </span><span class="si">{!r}</span><span class="s1"> not in allowed list </span><span class="si">{}</span><span class="s1">&#39;</span>
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">format</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">FORMAT_CLASSES</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">ReaderWriter</span>
+
+
+<span class="k">def</span> <span class="nf">_get_fast_reader_dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert &#39;fast_reader&#39; key in kwargs into a dict if not already and make sure</span>
+<span class="sd">    &#39;enable&#39; key is available.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fast_reader</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;fast_reader&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fast_reader</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">fast_reader</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;enable&#39;</span><span class="p">,</span> <span class="s1">&#39;force&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fast_reader</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;enable&#39;</span><span class="p">:</span> <span class="n">fast_reader</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">fast_reader</span>
+
+
+<span class="k">def</span> <span class="nf">_validate_read_write_kwargs</span><span class="p">(</span><span class="n">read_write</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Validate types of keyword arg inputs to read() or write().&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">is_ducktype</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check if ``val`` is an instance of ``cls`` or &quot;seems&quot; like one:</span>
+<span class="sd">        ``cls(val) == val`` does not raise and exception and is `True`. In</span>
+<span class="sd">        this way you can pass in ``np.int16(2)`` and have that count as `int`.</span>
+
+<span class="sd">        This has a special-case of ``cls`` being &#39;list-like&#39;, meaning it is</span>
+<span class="sd">        an iterable but not a string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="o">==</span> <span class="s1">&#39;list-like&#39;</span><span class="p">:</span>
+            <span class="n">ok</span> <span class="o">=</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                  <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Iterable</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ok</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span><span class="p">:</span>
+                <span class="c1"># See if ``val`` walks and quacks like a ``cls```.</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">new_val</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                    <span class="k">assert</span> <span class="n">new_val</span> <span class="o">==</span> <span class="n">val</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="n">ok</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ok</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">ok</span>
+
+    <span class="n">kwarg_types</span> <span class="o">=</span> <span class="n">READ_KWARG_TYPES</span> <span class="k">if</span> <span class="n">read_write</span> <span class="o">==</span> <span class="s1">&#39;read&#39;</span> <span class="k">else</span> <span class="n">WRITE_KWARG_TYPES</span>
+
+    <span class="k">for</span> <span class="n">arg</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="c1"># Kwarg type checking is opt-in, so kwargs not in the list are considered OK.</span>
+        <span class="c1"># This reflects that some readers allow additional arguments that may not</span>
+        <span class="c1"># be well-specified, e.g. ```__init__(self, **kwargs)`` is an option.</span>
+        <span class="k">if</span> <span class="n">arg</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwarg_types</span> <span class="ow">or</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Single type or tuple of types for this arg (like isinstance())</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="n">kwarg_types</span><span class="p">[</span><span class="n">arg</span><span class="p">]</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">read_write</span><span class="si">}</span><span class="s2">() argument &#39;</span><span class="si">{</span><span class="n">arg</span><span class="si">}</span><span class="s2">&#39; must be a &quot;</span>
+                   <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">types</span><span class="si">}</span><span class="s2"> object, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="si">}</span><span class="s2"> instead&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Force `types` to be a tuple for the any() check below</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">types</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="p">(</span><span class="n">types</span><span class="p">,)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">is_ducktype</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span> <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">types</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_expand_user_if_path</span><span class="p">(</span><span class="n">argument</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argument</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">)):</span>
+        <span class="c1"># For the `read()` method, a `str` input can be either a file path or</span>
+        <span class="c1"># the table data itself. File names for io.ascii cannot have newlines</span>
+        <span class="c1"># in them and io.ascii does not accept table data as `bytes`, so we can</span>
+        <span class="c1"># attempt to detect data strings like this.</span>
+        <span class="n">is_str_data</span> <span class="o">=</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">argument</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="ow">in</span> <span class="n">argument</span> <span class="ow">or</span> <span class="s1">&#39;</span><span class="se">\r</span><span class="s1">&#39;</span> <span class="ow">in</span> <span class="n">argument</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_str_data</span><span class="p">:</span>
+            <span class="c1"># Remain conservative in expanding the presumed-path</span>
+            <span class="n">ex_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">argument</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">ex_user</span><span class="p">):</span>
+                <span class="n">argument</span> <span class="o">=</span> <span class="n">ex_user</span>
+    <span class="k">return</span> <span class="n">argument</span>
+
+
+<div class="viewcode-block" id="read"><a class="viewcode-back" href="../../../../api/astropy.io.ascii.read.html#astropy.io.ascii.read">[docs]</a><span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">guess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="c1"># This the final output from reading. Static analysis indicates the reading</span>
+    <span class="c1"># logic (which is indeed complex) might not define `dat`, thus do so here.</span>
+    <span class="n">dat</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># Docstring defined below</span>
+    <span class="k">del</span> <span class="n">_read_trace</span><span class="p">[:]</span>
+
+    <span class="c1"># Downstream readers might munge kwargs</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">_validate_read_write_kwargs</span><span class="p">(</span><span class="s1">&#39;read&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># Convert &#39;fast_reader&#39; key in kwargs into a dict if not already and make sure</span>
+    <span class="c1"># &#39;enable&#39; key is available.</span>
+    <span class="n">fast_reader</span> <span class="o">=</span> <span class="n">_get_fast_reader_dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;fast_reader&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fast_reader</span>
+
+    <span class="k">if</span> <span class="n">fast_reader</span><span class="p">[</span><span class="s1">&#39;enable&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">fast_reader</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;chunk_size&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_read_in_chunks</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;fill_values&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;fill_values&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">)]</span>
+
+    <span class="c1"># If an Outputter is supplied in kwargs that will take precedence.</span>
+    <span class="k">if</span> <span class="s1">&#39;Outputter&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>  <span class="c1"># user specified Outputter, not supported for fast reading</span>
+        <span class="n">fast_reader</span><span class="p">[</span><span class="s1">&#39;enable&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="nb">format</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;format&#39;</span><span class="p">)</span>
+    <span class="c1"># Dictionary arguments are passed by reference per default and thus need</span>
+    <span class="c1"># special protection:</span>
+    <span class="n">new_kwargs</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;fast_reader&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">fast_reader</span><span class="p">)</span>
+
+    <span class="c1"># Get the Reader class based on possible format and Reader kwarg inputs.</span>
+    <span class="n">Reader</span> <span class="o">=</span> <span class="n">_get_format_class</span><span class="p">(</span><span class="nb">format</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Reader&#39;</span><span class="p">),</span> <span class="s1">&#39;Reader&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">Reader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">new_kwargs</span><span class="p">[</span><span class="s1">&#39;Reader&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Reader</span>
+        <span class="nb">format</span> <span class="o">=</span> <span class="n">Reader</span><span class="o">.</span><span class="n">_format_name</span>
+
+    <span class="c1"># Remove format keyword if there, this is only allowed in read() not get_reader()</span>
+    <span class="k">if</span> <span class="s1">&#39;format&#39;</span> <span class="ow">in</span> <span class="n">new_kwargs</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">new_kwargs</span><span class="p">[</span><span class="s1">&#39;format&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">guess</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">guess</span> <span class="o">=</span> <span class="n">_GUESS</span>
+
+    <span class="k">if</span> <span class="n">guess</span><span class="p">:</span>
+        <span class="c1"># If ``table`` is probably an HTML file then tell guess function to add</span>
+        <span class="c1"># the HTML reader at the top of the guess list.  This is in response to</span>
+        <span class="c1"># issue #3691 (and others) where libxml can segfault on a long non-HTML</span>
+        <span class="c1"># file, thus prompting removal of the HTML reader from the default</span>
+        <span class="c1"># guess list.</span>
+        <span class="n">new_kwargs</span><span class="p">[</span><span class="s1">&#39;guess_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_probably_html</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="c1"># If `table` is a filename or readable file object then read in the</span>
+        <span class="c1"># file now.  This prevents problems in Python 3 with the file object</span>
+        <span class="c1"># getting closed or left at the file end.  See #3132, #3013, #3109,</span>
+        <span class="c1"># #2001.  If a `readme` arg was passed that implies CDS format, in</span>
+        <span class="c1"># which case the original `table` as the data filename must be left</span>
+        <span class="c1"># intact.</span>
+        <span class="k">if</span> <span class="s1">&#39;readme&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">new_kwargs</span><span class="p">:</span>
+            <span class="n">encoding</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;encoding&#39;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">table</span> <span class="o">=</span> <span class="n">_expand_user_if_path</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+                <span class="k">with</span> <span class="n">get_readable_fileobj</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span> <span class="k">as</span> <span class="n">fileobj</span><span class="p">:</span>
+                    <span class="n">table</span> <span class="o">=</span> <span class="n">fileobj</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># unreadable or invalid binary file</span>
+                <span class="k">raise</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Ensure that `table` has at least one \r or \n in it</span>
+                <span class="c1"># so that the core.BaseInputter test of</span>
+                <span class="c1"># (&#39;\n&#39; not in table and &#39;\r&#39; not in table)</span>
+                <span class="c1"># will fail and so `table` cannot be interpreted there</span>
+                <span class="c1"># as a filename.  See #4160.</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[\r\n]&#39;</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+                    <span class="n">table</span> <span class="o">=</span> <span class="n">table</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">linesep</span>
+
+                <span class="c1"># If the table got successfully read then look at the content</span>
+                <span class="c1"># to see if is probably HTML, but only if it wasn&#39;t already</span>
+                <span class="c1"># identified as HTML based on the filename.</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">new_kwargs</span><span class="p">[</span><span class="s1">&#39;guess_html&#39;</span><span class="p">]:</span>
+                    <span class="n">new_kwargs</span><span class="p">[</span><span class="s1">&#39;guess_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_probably_html</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="c1"># Get the table from guess in ``dat``.  If ``dat`` comes back as None</span>
+        <span class="c1"># then there was just one set of kwargs in the guess list so fall</span>
+        <span class="c1"># through below to the non-guess way so that any problems result in a</span>
+        <span class="c1"># more useful traceback.</span>
+        <span class="n">dat</span> <span class="o">=</span> <span class="n">_guess</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">new_kwargs</span><span class="p">,</span> <span class="nb">format</span><span class="p">,</span> <span class="n">fast_reader</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">guess</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">guess</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">get_reader</span><span class="p">(</span><span class="o">**</span><span class="n">new_kwargs</span><span class="p">)</span>
+            <span class="nb">format</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">_format_name</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="n">_expand_user_if_path</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+        <span class="c1"># Try the fast reader version of `format` first if applicable.  Note that</span>
+        <span class="c1"># if user specified a fast format (e.g. format=&#39;fast_basic&#39;) this test</span>
+        <span class="c1"># will fail and the else-clause below will be used.</span>
+        <span class="k">if</span> <span class="n">fast_reader</span><span class="p">[</span><span class="s1">&#39;enable&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="sa">f</span><span class="s1">&#39;fast_</span><span class="si">{</span><span class="nb">format</span><span class="si">}</span><span class="s1">&#39;</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">FAST_CLASSES</span><span class="p">:</span>
+            <span class="n">fast_kwargs</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">new_kwargs</span><span class="p">)</span>
+            <span class="n">fast_kwargs</span><span class="p">[</span><span class="s1">&#39;Reader&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">FAST_CLASSES</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;fast_</span><span class="si">{</span><span class="nb">format</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span>
+            <span class="n">fast_reader_rdr</span> <span class="o">=</span> <span class="n">get_reader</span><span class="p">(</span><span class="o">**</span><span class="n">fast_kwargs</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">dat</span> <span class="o">=</span> <span class="n">fast_reader_rdr</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+                <span class="n">_read_trace</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;kwargs&#39;</span><span class="p">:</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">fast_kwargs</span><span class="p">),</span>
+                                    <span class="s1">&#39;Reader&#39;</span><span class="p">:</span> <span class="n">fast_reader_rdr</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span>
+                                    <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;Success with fast reader (no guessing)&#39;</span><span class="p">})</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">ParameterError</span><span class="p">,</span> <span class="n">cparser</span><span class="o">.</span><span class="n">CParserError</span><span class="p">,</span> <span class="ne">UnicodeEncodeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="c1"># special testing value to avoid falling back on the slow reader</span>
+                <span class="k">if</span> <span class="n">fast_reader</span><span class="p">[</span><span class="s1">&#39;enable&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;force&#39;</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">core</span><span class="o">.</span><span class="n">InconsistentTableError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s1">&#39;fast reader </span><span class="si">{</span><span class="n">fast_reader_rdr</span><span class="o">.</span><span class="vm">__class__</span><span class="si">}</span><span class="s1"> exception: </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="c1"># If the fast reader doesn&#39;t work, try the slow version</span>
+                <span class="n">reader</span> <span class="o">=</span> <span class="n">get_reader</span><span class="p">(</span><span class="o">**</span><span class="n">new_kwargs</span><span class="p">)</span>
+                <span class="n">dat</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+                <span class="n">_read_trace</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;kwargs&#39;</span><span class="p">:</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">new_kwargs</span><span class="p">),</span>
+                                    <span class="s1">&#39;Reader&#39;</span><span class="p">:</span> <span class="n">reader</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span>
+                                    <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;Success with slow reader after failing&#39;</span>
+                                    <span class="s1">&#39; with fast (no guessing)&#39;</span><span class="p">})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">get_reader</span><span class="p">(</span><span class="o">**</span><span class="n">new_kwargs</span><span class="p">)</span>
+            <span class="n">dat</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+            <span class="n">_read_trace</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;kwargs&#39;</span><span class="p">:</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">new_kwargs</span><span class="p">),</span>
+                                <span class="s1">&#39;Reader&#39;</span><span class="p">:</span> <span class="n">reader</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span>
+                                <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;Success with specified Reader class &#39;</span>
+                                          <span class="s1">&#39;(no guessing)&#39;</span><span class="p">})</span>
+
+    <span class="c1"># Static analysis (pyright) indicates `dat` might be left undefined, so just</span>
+    <span class="c1"># to be sure define it at the beginning and check here.</span>
+    <span class="k">if</span> <span class="n">dat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;read() function failed due to code logic error, &#39;</span>
+                           <span class="s1">&#39;please report this bug on github&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dat</span></div>
+
+
+<span class="n">read</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">READ_DOCSTRING</span>
+
+
+<span class="k">def</span> <span class="nf">_guess</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">read_kwargs</span><span class="p">,</span> <span class="nb">format</span><span class="p">,</span> <span class="n">fast_reader</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Try to read the table using various sets of keyword args.  Start with the</span>
+<span class="sd">    standard guess list and filter to make it unique and consistent with</span>
+<span class="sd">    user-supplied read keyword args.  Finally, if none of those work then</span>
+<span class="sd">    try the original user-supplied keyword args.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    table : str, file-like, list</span>
+<span class="sd">        Input table as a file name, file-like object, list of strings, or</span>
+<span class="sd">        single newline-separated string.</span>
+<span class="sd">    read_kwargs : dict</span>
+<span class="sd">        Keyword arguments from user to be supplied to reader</span>
+<span class="sd">    format : str</span>
+<span class="sd">        Table format</span>
+<span class="sd">    fast_reader : dict</span>
+<span class="sd">        Options for the C engine fast reader.  See read() function for details.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dat : `~astropy.table.Table` or None</span>
+<span class="sd">        Output table or None if only one guess format was available</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Keep a trace of all failed guesses kwarg</span>
+    <span class="n">failed_kwargs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Get an ordered list of read() keyword arg dicts that will be cycled</span>
+    <span class="c1"># through in order to guess the format.</span>
+    <span class="n">full_list_guess</span> <span class="o">=</span> <span class="n">_get_guess_kwargs_list</span><span class="p">(</span><span class="n">read_kwargs</span><span class="p">)</span>
+
+    <span class="c1"># If a fast version of the reader is available, try that before the slow version</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">fast_reader</span><span class="p">[</span><span class="s1">&#39;enable&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="nb">format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="sa">f</span><span class="s1">&#39;fast_</span><span class="si">{</span><span class="nb">format</span><span class="si">}</span><span class="s1">&#39;</span> <span class="ow">in</span>
+            <span class="n">core</span><span class="o">.</span><span class="n">FAST_CLASSES</span><span class="p">):</span>
+        <span class="n">fast_kwargs</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">read_kwargs</span><span class="p">)</span>
+        <span class="n">fast_kwargs</span><span class="p">[</span><span class="s1">&#39;Reader&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">FAST_CLASSES</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;fast_</span><span class="si">{</span><span class="nb">format</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span>
+        <span class="n">full_list_guess</span> <span class="o">=</span> <span class="p">[</span><span class="n">fast_kwargs</span><span class="p">]</span> <span class="o">+</span> <span class="n">full_list_guess</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fast_kwargs</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># Filter the full guess list so that each entry is consistent with user kwarg inputs.</span>
+    <span class="c1"># This also removes any duplicates from the list.</span>
+    <span class="n">filtered_guess_kwargs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">fast_reader</span> <span class="o">=</span> <span class="n">read_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;fast_reader&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">guess_kwargs</span> <span class="ow">in</span> <span class="n">full_list_guess</span><span class="p">:</span>
+        <span class="c1"># If user specified slow reader then skip all fast readers</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">fast_reader</span><span class="p">[</span><span class="s1">&#39;enable&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">False</span>
+                <span class="ow">and</span> <span class="n">guess_kwargs</span><span class="p">[</span><span class="s1">&#39;Reader&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">FAST_CLASSES</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+            <span class="n">_read_trace</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;kwargs&#39;</span><span class="p">:</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">guess_kwargs</span><span class="p">),</span>
+                                <span class="s1">&#39;Reader&#39;</span><span class="p">:</span> <span class="n">guess_kwargs</span><span class="p">[</span><span class="s1">&#39;Reader&#39;</span><span class="p">]</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span>
+                                <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;Disabled: reader only available in fast version&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;dt&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="mf">0.0</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> ms&#39;</span><span class="p">})</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># If user required a fast reader then skip all non-fast readers</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">fast_reader</span><span class="p">[</span><span class="s1">&#39;enable&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;force&#39;</span>
+                <span class="ow">and</span> <span class="n">guess_kwargs</span><span class="p">[</span><span class="s1">&#39;Reader&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">FAST_CLASSES</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+            <span class="n">_read_trace</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;kwargs&#39;</span><span class="p">:</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">guess_kwargs</span><span class="p">),</span>
+                                <span class="s1">&#39;Reader&#39;</span><span class="p">:</span> <span class="n">guess_kwargs</span><span class="p">[</span><span class="s1">&#39;Reader&#39;</span><span class="p">]</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span>
+                                <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;Disabled: no fast version of reader available&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;dt&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="mf">0.0</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> ms&#39;</span><span class="p">})</span>
+            <span class="k">continue</span>
+
+        <span class="n">guess_kwargs_ok</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># guess_kwargs are consistent with user_kwargs?</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">read_kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># Do guess_kwargs.update(read_kwargs) except that if guess_args has</span>
+            <span class="c1"># a conflicting key/val pair then skip this guess entirely.</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">guess_kwargs</span><span class="p">:</span>
+                <span class="n">guess_kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">val</span> <span class="o">!=</span> <span class="n">guess_kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="ow">and</span> <span class="n">guess_kwargs</span> <span class="o">!=</span> <span class="n">fast_kwargs</span><span class="p">:</span>
+                <span class="n">guess_kwargs_ok</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">guess_kwargs_ok</span><span class="p">:</span>
+            <span class="c1"># User-supplied kwarg is inconsistent with the guess-supplied kwarg, e.g.</span>
+            <span class="c1"># user supplies delimiter=&quot;|&quot; but the guess wants to try delimiter=&quot; &quot;,</span>
+            <span class="c1"># so skip the guess entirely.</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Add the guess_kwargs to filtered list only if it is not already there.</span>
+        <span class="k">if</span> <span class="n">guess_kwargs</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">filtered_guess_kwargs</span><span class="p">:</span>
+            <span class="n">filtered_guess_kwargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">guess_kwargs</span><span class="p">)</span>
+
+    <span class="c1"># If there are not at least two formats to guess then return no table</span>
+    <span class="c1"># (None) to indicate that guessing did not occur.  In that case the</span>
+    <span class="c1"># non-guess read() will occur and any problems will result in a more useful</span>
+    <span class="c1"># traceback.</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_guess_kwargs</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># Define whitelist of exceptions that are expected from readers when</span>
+    <span class="c1"># processing invalid inputs.  Note that OSError must fall through here</span>
+    <span class="c1"># so one cannot simply catch any exception.</span>
+    <span class="n">guess_exception_classes</span> <span class="o">=</span> <span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">InconsistentTableError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span>
+                               <span class="ne">AttributeError</span><span class="p">,</span> <span class="n">core</span><span class="o">.</span><span class="n">OptionalTableImportError</span><span class="p">,</span>
+                               <span class="n">core</span><span class="o">.</span><span class="n">ParameterError</span><span class="p">,</span> <span class="n">cparser</span><span class="o">.</span><span class="n">CParserError</span><span class="p">)</span>
+
+    <span class="c1"># Now cycle through each possible reader and associated keyword arguments.</span>
+    <span class="c1"># Try to read the table using those args, and if an exception occurs then</span>
+    <span class="c1"># keep track of the failed guess and move on.</span>
+    <span class="k">for</span> <span class="n">guess_kwargs</span> <span class="ow">in</span> <span class="n">filtered_guess_kwargs</span><span class="p">:</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># If guessing will try all Readers then use strict req&#39;ts on column names</span>
+            <span class="k">if</span> <span class="s1">&#39;Reader&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">read_kwargs</span><span class="p">:</span>
+                <span class="n">guess_kwargs</span><span class="p">[</span><span class="s1">&#39;strict_names&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">get_reader</span><span class="p">(</span><span class="o">**</span><span class="n">guess_kwargs</span><span class="p">)</span>
+
+            <span class="n">reader</span><span class="o">.</span><span class="n">guessing</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">dat</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+            <span class="n">_read_trace</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;kwargs&#39;</span><span class="p">:</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">guess_kwargs</span><span class="p">),</span>
+                                <span class="s1">&#39;Reader&#39;</span><span class="p">:</span> <span class="n">reader</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span>
+                                <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;Success (guessing)&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;dt&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> ms&#39;</span><span class="p">})</span>
+            <span class="k">return</span> <span class="n">dat</span>
+
+        <span class="k">except</span> <span class="n">guess_exception_classes</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">_read_trace</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;kwargs&#39;</span><span class="p">:</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">guess_kwargs</span><span class="p">),</span>
+                                <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">err</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                                <span class="s1">&#39;dt&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> ms&#39;</span><span class="p">})</span>
+            <span class="n">failed_kwargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">guess_kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Failed all guesses, try the original read_kwargs without column requirements</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">get_reader</span><span class="p">(</span><span class="o">**</span><span class="n">read_kwargs</span><span class="p">)</span>
+            <span class="n">dat</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+            <span class="n">_read_trace</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;kwargs&#39;</span><span class="p">:</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">read_kwargs</span><span class="p">),</span>
+                                <span class="s1">&#39;Reader&#39;</span><span class="p">:</span> <span class="n">reader</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span>
+                                <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;Success with original kwargs without strict_names &#39;</span>
+                                          <span class="s1">&#39;(guessing)&#39;</span><span class="p">})</span>
+            <span class="k">return</span> <span class="n">dat</span>
+
+        <span class="k">except</span> <span class="n">guess_exception_classes</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">_read_trace</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;kwargs&#39;</span><span class="p">:</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">read_kwargs</span><span class="p">),</span>
+                                <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">err</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">})</span>
+            <span class="n">failed_kwargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">read_kwargs</span><span class="p">)</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">ERROR: Unable to guess table format with the guesses listed below:&#39;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">kwargs</span> <span class="ow">in</span> <span class="n">failed_kwargs</span><span class="p">:</span>
+                <span class="n">sorted_keys</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+                                      <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;Reader&#39;</span><span class="p">,</span> <span class="s1">&#39;Outputter&#39;</span><span class="p">)])</span>
+                <span class="n">reader_repr</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Reader&#39;</span><span class="p">,</span> <span class="n">basic</span><span class="o">.</span><span class="n">Basic</span><span class="p">))</span>
+                <span class="n">keys_vals</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Reader:&#39;</span> <span class="o">+</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\.(\w+)&#39;&gt;&quot;</span><span class="p">,</span> <span class="n">reader_repr</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)]</span>
+                <span class="n">kwargs_sorted</span> <span class="o">=</span> <span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">sorted_keys</span><span class="p">)</span>
+                <span class="n">keys_vals</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="n">val</span><span class="si">!r}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">kwargs_sorted</span><span class="p">])</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">keys_vals</span><span class="p">))</span>
+
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;************************************************************************&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;** ERROR: Unable to guess table format with the guesses listed above. **&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;**                                                                    **&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;** To figure out why the table did not read, use guess=False and      **&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;** fast_reader=False, along with any appropriate arguments to read(). **&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;** In particular specify the format and any known attributes like the **&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;** delimiter.                                                         **&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;************************************************************************&#39;</span><span class="p">]</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">core</span><span class="o">.</span><span class="n">InconsistentTableError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_get_guess_kwargs_list</span><span class="p">(</span><span class="n">read_kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the full list of reader keyword argument dicts that are the basis</span>
+<span class="sd">    for the format guessing process.  The returned full list will then be:</span>
+
+<span class="sd">    - Filtered to be consistent with user-supplied kwargs</span>
+<span class="sd">    - Cleaned to have only unique entries</span>
+<span class="sd">    - Used one by one to try reading the input table</span>
+
+<span class="sd">    Note that the order of the guess list has been tuned over years of usage.</span>
+<span class="sd">    Maintainers need to be very careful about any adjustments as the</span>
+<span class="sd">    reasoning may not be immediately evident in all cases.</span>
+
+<span class="sd">    This list can (and usually does) include duplicates.  This is a result</span>
+<span class="sd">    of the order tuning, but these duplicates get removed later.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    read_kwargs : dict</span>
+<span class="sd">        User-supplied read keyword args</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    guess_kwargs_list : list</span>
+<span class="sd">        List of read format keyword arg dicts</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">guess_kwargs_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># If the table is probably HTML based on some heuristics then start with the</span>
+    <span class="c1"># HTML reader.</span>
+    <span class="k">if</span> <span class="n">read_kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;guess_html&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">guess_kwargs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">Reader</span><span class="o">=</span><span class="n">html</span><span class="o">.</span><span class="n">HTML</span><span class="p">))</span>
+
+    <span class="c1"># Start with ECSV because an ECSV file will be read by Basic.  This format</span>
+    <span class="c1"># has very specific header requirements and fails out quickly.</span>
+    <span class="n">guess_kwargs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">Reader</span><span class="o">=</span><span class="n">ecsv</span><span class="o">.</span><span class="n">Ecsv</span><span class="p">))</span>
+
+    <span class="c1"># Now try readers that accept the user-supplied keyword arguments</span>
+    <span class="c1"># (actually include all here - check for compatibility of arguments later).</span>
+    <span class="c1"># FixedWidthTwoLine would also be read by Basic, so it needs to come first;</span>
+    <span class="c1"># same for RST.</span>
+    <span class="k">for</span> <span class="n">reader</span> <span class="ow">in</span> <span class="p">(</span><span class="n">fixedwidth</span><span class="o">.</span><span class="n">FixedWidthTwoLine</span><span class="p">,</span> <span class="n">rst</span><span class="o">.</span><span class="n">RST</span><span class="p">,</span>
+                   <span class="n">fastbasic</span><span class="o">.</span><span class="n">FastBasic</span><span class="p">,</span> <span class="n">basic</span><span class="o">.</span><span class="n">Basic</span><span class="p">,</span>
+                   <span class="n">fastbasic</span><span class="o">.</span><span class="n">FastRdb</span><span class="p">,</span> <span class="n">basic</span><span class="o">.</span><span class="n">Rdb</span><span class="p">,</span>
+                   <span class="n">fastbasic</span><span class="o">.</span><span class="n">FastTab</span><span class="p">,</span> <span class="n">basic</span><span class="o">.</span><span class="n">Tab</span><span class="p">,</span>
+                   <span class="n">cds</span><span class="o">.</span><span class="n">Cds</span><span class="p">,</span> <span class="n">mrt</span><span class="o">.</span><span class="n">Mrt</span><span class="p">,</span> <span class="n">daophot</span><span class="o">.</span><span class="n">Daophot</span><span class="p">,</span> <span class="n">sextractor</span><span class="o">.</span><span class="n">SExtractor</span><span class="p">,</span>
+                   <span class="n">ipac</span><span class="o">.</span><span class="n">Ipac</span><span class="p">,</span> <span class="n">latex</span><span class="o">.</span><span class="n">Latex</span><span class="p">,</span> <span class="n">latex</span><span class="o">.</span><span class="n">AASTex</span><span class="p">):</span>
+        <span class="n">guess_kwargs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">Reader</span><span class="o">=</span><span class="n">reader</span><span class="p">))</span>
+
+    <span class="c1"># Cycle through the basic-style readers using all combinations of delimiter</span>
+    <span class="c1"># and quotechar.</span>
+    <span class="k">for</span> <span class="n">Reader</span> <span class="ow">in</span> <span class="p">(</span><span class="n">fastbasic</span><span class="o">.</span><span class="n">FastCommentedHeader</span><span class="p">,</span> <span class="n">basic</span><span class="o">.</span><span class="n">CommentedHeader</span><span class="p">,</span>
+                   <span class="n">fastbasic</span><span class="o">.</span><span class="n">FastBasic</span><span class="p">,</span> <span class="n">basic</span><span class="o">.</span><span class="n">Basic</span><span class="p">,</span>
+                   <span class="n">fastbasic</span><span class="o">.</span><span class="n">FastNoHeader</span><span class="p">,</span> <span class="n">basic</span><span class="o">.</span><span class="n">NoHeader</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">delimiter</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;|&quot;</span><span class="p">,</span> <span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;\s&quot;</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">quotechar</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">):</span>
+                <span class="n">guess_kwargs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
+                    <span class="n">Reader</span><span class="o">=</span><span class="n">Reader</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">,</span> <span class="n">quotechar</span><span class="o">=</span><span class="n">quotechar</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">guess_kwargs_list</span>
+
+
+<span class="k">def</span> <span class="nf">_read_in_chunks</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    For fast_reader read the ``table`` in chunks and vstack to create</span>
+<span class="sd">    a single table, OR return a generator of chunk tables.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fast_reader</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;fast_reader&#39;</span><span class="p">]</span>
+    <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">fast_reader</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;chunk_size&#39;</span><span class="p">)</span>
+    <span class="n">chunk_generator</span> <span class="o">=</span> <span class="n">fast_reader</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;chunk_generator&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">fast_reader</span><span class="p">[</span><span class="s1">&#39;parallel&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># No parallel with chunks</span>
+
+    <span class="n">tbl_chunks</span> <span class="o">=</span> <span class="n">_read_in_chunks_generator</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">chunk_generator</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tbl_chunks</span>
+
+    <span class="n">tbl0</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">tbl_chunks</span><span class="p">)</span>
+    <span class="n">masked</span> <span class="o">=</span> <span class="n">tbl0</span><span class="o">.</span><span class="n">masked</span>
+
+    <span class="c1"># Numpy won&#39;t allow resizing the original so make a copy here.</span>
+    <span class="n">out_cols</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">col</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">tbl0</span><span class="o">.</span><span class="n">itercols</span><span class="p">()}</span>
+
+    <span class="n">str_kinds</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">tbl</span> <span class="ow">in</span> <span class="n">tbl_chunks</span><span class="p">:</span>
+        <span class="n">masked</span> <span class="o">|=</span> <span class="n">tbl</span><span class="o">.</span><span class="n">masked</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">tbl</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># Concatenate current column data and new column data</span>
+
+            <span class="c1"># If one of the inputs is string-like and the other is not, then</span>
+            <span class="c1"># convert the non-string to a string.  In a perfect world this would</span>
+            <span class="c1"># be handled by numpy, but as of numpy 1.13 this results in a string</span>
+            <span class="c1"># dtype that is too long (https://github.com/numpy/numpy/issues/10062).</span>
+
+            <span class="n">col1</span><span class="p">,</span> <span class="n">col2</span> <span class="o">=</span> <span class="n">out_cols</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">col</span><span class="o">.</span><span class="n">data</span>
+            <span class="k">if</span> <span class="n">col1</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="n">str_kinds</span> <span class="ow">and</span> <span class="n">col2</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">str_kinds</span><span class="p">:</span>
+                <span class="n">col2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">col2</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">col1</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">col2</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="n">str_kinds</span> <span class="ow">and</span> <span class="n">col1</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">str_kinds</span><span class="p">:</span>
+                <span class="n">col1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">col1</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">col2</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span><span class="p">)</span>
+
+            <span class="c1"># Choose either masked or normal concatenation</span>
+            <span class="n">concatenate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">concatenate</span> <span class="k">if</span> <span class="n">masked</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span>
+
+            <span class="n">out_cols</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">concatenate</span><span class="p">([</span><span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">])</span>
+
+    <span class="c1"># Make final table from numpy arrays, converting dict to list</span>
+    <span class="n">out_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">out_cols</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">tbl0</span><span class="o">.</span><span class="n">colnames</span><span class="p">]</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">tbl0</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">out_cols</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">tbl0</span><span class="o">.</span><span class="n">colnames</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">tbl0</span><span class="o">.</span><span class="n">meta</span><span class="p">,</span>
+                         <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span> <span class="nf">_read_in_chunks_generator</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    For fast_reader read the ``table`` in chunks and return a generator</span>
+<span class="sd">    of tables for each chunk.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+    <span class="k">def</span> <span class="nf">passthrough_fileobj</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stub for get_readable_fileobj, which does not seem to work in Py3</span>
+<span class="sd">        for input file-like object, see #6460&quot;&quot;&quot;</span>
+        <span class="k">yield</span> <span class="n">fileobj</span>
+
+    <span class="c1"># Set up to coerce `table` input into a readable file object by selecting</span>
+    <span class="c1"># an appropriate function.</span>
+
+    <span class="c1"># Convert table-as-string to a File object.  Finding a newline implies</span>
+    <span class="c1"># that the string is not a filename.</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="ow">in</span> <span class="n">table</span> <span class="ow">or</span> <span class="s1">&#39;</span><span class="se">\r</span><span class="s1">&#39;</span> <span class="ow">in</span> <span class="n">table</span><span class="p">)):</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">fileobj_context</span> <span class="o">=</span> <span class="n">passthrough_fileobj</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="s1">&#39;seek&#39;</span><span class="p">):</span>
+        <span class="n">fileobj_context</span> <span class="o">=</span> <span class="n">passthrough_fileobj</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># string filename or pathlib</span>
+        <span class="n">fileobj_context</span> <span class="o">=</span> <span class="n">get_readable_fileobj</span>
+
+    <span class="c1"># Set up for iterating over chunks</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;fast_reader&#39;</span><span class="p">][</span><span class="s1">&#39;return_header_chars&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>  <span class="c1"># Table header (up to start of data)</span>
+    <span class="n">prev_chunk_chars</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>  <span class="c1"># Chars from previous chunk after last newline</span>
+    <span class="n">first_chunk</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># True for the first chunk, False afterward</span>
+
+    <span class="k">with</span> <span class="n">fileobj_context</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;encoding&#39;</span><span class="p">))</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">chunk_size</span><span class="p">)</span>
+            <span class="c1"># Got fewer chars than requested, must be end of file</span>
+            <span class="n">final_chunk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">chunk_size</span>
+
+            <span class="c1"># If this is the last chunk and there is only whitespace then break</span>
+            <span class="k">if</span> <span class="n">final_chunk</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\S&#39;</span><span class="p">,</span> <span class="n">chunk</span><span class="p">):</span>
+                <span class="k">break</span>
+
+            <span class="c1"># Step backwards from last character in chunk and find first newline</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">final_chunk</span> <span class="ow">or</span> <span class="n">chunk</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;no newline found in chunk (chunk_size too small?)&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Stick on the header to the chunk part up to (and including) the</span>
+            <span class="c1"># last newline.  Make sure the small strings are concatenated first.</span>
+            <span class="n">complete_chunk</span> <span class="o">=</span> <span class="p">(</span><span class="n">header</span> <span class="o">+</span> <span class="n">prev_chunk_chars</span><span class="p">)</span> <span class="o">+</span> <span class="n">chunk</span><span class="p">[:</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">prev_chunk_chars</span> <span class="o">=</span> <span class="n">chunk</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+
+            <span class="c1"># Now read the chunk as a complete table</span>
+            <span class="n">tbl</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">complete_chunk</span><span class="p">,</span> <span class="n">guess</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+            <span class="c1"># For the first chunk pop the meta key which contains the header</span>
+            <span class="c1"># characters (everything up to the start of data) then fix kwargs</span>
+            <span class="c1"># so it doesn&#39;t return that in meta any more.</span>
+            <span class="k">if</span> <span class="n">first_chunk</span><span class="p">:</span>
+                <span class="n">header</span> <span class="o">=</span> <span class="n">tbl</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;__ascii_fast_reader_header_chars__&#39;</span><span class="p">)</span>
+                <span class="n">first_chunk</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="k">yield</span> <span class="n">tbl</span>
+
+            <span class="k">if</span> <span class="n">final_chunk</span><span class="p">:</span>
+                <span class="k">break</span>
+
+
+<span class="n">extra_writer_pars</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;delimiter&#39;</span><span class="p">,</span> <span class="s1">&#39;comment&#39;</span><span class="p">,</span> <span class="s1">&#39;quotechar&#39;</span><span class="p">,</span> <span class="s1">&#39;formats&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;names&#39;</span><span class="p">,</span> <span class="s1">&#39;include_names&#39;</span><span class="p">,</span> <span class="s1">&#39;exclude_names&#39;</span><span class="p">,</span> <span class="s1">&#39;strip_whitespace&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_writer"><a class="viewcode-back" href="../../../../api/astropy.io.ascii.get_writer.html#astropy.io.ascii.get_writer">[docs]</a><span class="k">def</span> <span class="nf">get_writer</span><span class="p">(</span><span class="n">Writer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fast_writer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initialize a table writer allowing for common customizations.  Most of the</span>
+<span class="sd">    default behavior for various parameters is determined by the Writer class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Writer : ``Writer``</span>
+<span class="sd">        Writer class (DEPRECATED). Defaults to :class:`Basic`.</span>
+<span class="sd">    delimiter : str</span>
+<span class="sd">        Column delimiter string</span>
+<span class="sd">    comment : str</span>
+<span class="sd">        String defining a comment line in table</span>
+<span class="sd">    quotechar : str</span>
+<span class="sd">        One-character string to quote fields containing special characters</span>
+<span class="sd">    formats : dict</span>
+<span class="sd">        Dictionary of format specifiers or formatting functions</span>
+<span class="sd">    strip_whitespace : bool</span>
+<span class="sd">        Strip surrounding whitespace from column values.</span>
+<span class="sd">    names : list</span>
+<span class="sd">        List of names corresponding to each data column</span>
+<span class="sd">    include_names : list</span>
+<span class="sd">        List of names to include in output.</span>
+<span class="sd">    exclude_names : list</span>
+<span class="sd">        List of names to exclude from output (applied after ``include_names``)</span>
+<span class="sd">    fast_writer : bool</span>
+<span class="sd">        Whether to use the fast Cython writer.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    writer : `~astropy.io.ascii.BaseReader` subclass</span>
+<span class="sd">        ASCII format writer instance</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">Writer</span> <span class="o">=</span> <span class="n">basic</span><span class="o">.</span><span class="n">Basic</span>
+    <span class="k">if</span> <span class="s1">&#39;strip_whitespace&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;strip_whitespace&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">writer</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">_get_writer</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">fast_writer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># Handle the corner case of wanting to disable writing table comments for the</span>
+    <span class="c1"># commented_header format.  This format *requires* a string for `write_comment`</span>
+    <span class="c1"># because that is used for the header column row, so it is not possible to</span>
+    <span class="c1"># set the input `comment` to None.  Without adding a new keyword or assuming</span>
+    <span class="c1"># a default comment character, there is no other option but to tell user to</span>
+    <span class="c1"># simply remove the meta[&#39;comments&#39;].</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="p">(</span><span class="n">basic</span><span class="o">.</span><span class="n">CommentedHeader</span><span class="p">,</span> <span class="n">fastbasic</span><span class="o">.</span><span class="n">FastCommentedHeader</span><span class="p">))</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;comment&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="nb">str</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;for the commented_header writer you must supply a string</span><span class="se">\n</span><span class="s2">&quot;</span>
+                         <span class="s2">&quot;value for the `comment` keyword.  In order to disable writing</span><span class="se">\n</span><span class="s2">&quot;</span>
+                         <span class="s2">&quot;table comments use `del t.meta[&#39;comments&#39;]` prior to writing.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">writer</span></div>
+
+
+<div class="viewcode-block" id="write"><a class="viewcode-back" href="../../../../api/astropy.io.ascii.write.html#astropy.io.ascii.write">[docs]</a><span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Writer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fast_writer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+          <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="c1"># Docstring inserted below</span>
+
+    <span class="n">_validate_read_write_kwargs</span><span class="p">(</span><span class="s1">&#39;write&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span> <span class="n">fast_writer</span><span class="o">=</span><span class="n">fast_writer</span><span class="p">,</span>
+                                <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">)):</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">lexists</span><span class="p">(</span><span class="n">output</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="n">NOT_OVERWRITING_MSG</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">output</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span>
+
+    <span class="c1"># Ensure that `table` is a Table subclass.</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;names&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">Table</span><span class="p">):</span>
+        <span class="c1"># While we are only going to read data from columns, we may need to</span>
+        <span class="c1"># to adjust info attributes such as format, so we make a shallow copy.</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Otherwise, create a table from the input.</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">table0</span> <span class="o">=</span> <span class="n">table</span><span class="p">[:</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">core</span><span class="o">.</span><span class="n">_apply_include_exclude_names</span><span class="p">(</span><span class="n">table0</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;names&#39;</span><span class="p">),</span>
+                                      <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;include_names&#39;</span><span class="p">),</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;exclude_names&#39;</span><span class="p">))</span>
+    <span class="n">diff_format_with_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;formats&#39;</span><span class="p">,</span> <span class="p">[]))</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">table0</span><span class="o">.</span><span class="n">colnames</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">diff_format_with_names</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s1">&#39;The key(s) </span><span class="si">{}</span><span class="s1"> specified in the formats argument do not match a column name.&#39;</span>
+            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">diff_format_with_names</span><span class="p">),</span> <span class="n">AstropyWarning</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">table</span><span class="o">.</span><span class="n">has_mixin_columns</span><span class="p">:</span>
+        <span class="n">fast_writer</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">Writer</span> <span class="o">=</span> <span class="n">_get_format_class</span><span class="p">(</span><span class="nb">format</span><span class="p">,</span> <span class="n">Writer</span><span class="p">,</span> <span class="s1">&#39;Writer&#39;</span><span class="p">)</span>
+    <span class="n">writer</span> <span class="o">=</span> <span class="n">get_writer</span><span class="p">(</span><span class="n">Writer</span><span class="o">=</span><span class="n">Writer</span><span class="p">,</span> <span class="n">fast_writer</span><span class="o">=</span><span class="n">fast_writer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">writer</span><span class="o">.</span><span class="n">_format_name</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">FAST_CLASSES</span><span class="p">:</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+    <span class="c1"># Write the lines to output</span>
+    <span class="n">outstr</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">linesep</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s1">&#39;write&#39;</span><span class="p">):</span>
+        <span class="c1"># NOTE: we need to specify newline=&#39;&#39;, otherwise the default</span>
+        <span class="c1"># behavior is for Python to translate \r\n (which we write because</span>
+        <span class="c1"># of os.linesep) into \r\r\n. Specifying newline=&#39;&#39; disables any</span>
+        <span class="c1"># auto-translation.</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">outstr</span><span class="p">)</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">linesep</span><span class="p">)</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">outstr</span><span class="p">)</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">linesep</span><span class="p">)</span></div>
+
+
+<span class="n">write</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">WRITE_DOCSTRING</span>
+
+
+<div class="viewcode-block" id="get_read_trace"><a class="viewcode-back" href="../../../../api/astropy.io.ascii.get_read_trace.html#astropy.io.ascii.get_read_trace">[docs]</a><span class="k">def</span> <span class="nf">get_read_trace</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a traceback of the attempted read formats for the last call to</span>
+<span class="sd">    `~astropy.io.ascii.read` where guessing was enabled.  This is primarily for</span>
+<span class="sd">    debugging.</span>
+
+<span class="sd">    The return value is a list of dicts, where each dict includes the keyword</span>
+<span class="sd">    args ``kwargs`` used in the read call and the returned ``status``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    trace : list of dict</span>
+<span class="sd">        Ordered list of format guesses and status</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">_read_trace</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

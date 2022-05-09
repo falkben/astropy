@@ -1,0 +1,202 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>C or Cython Extensions &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Release procedure for the astropy core package" href="releasing.html" />
+    <link rel="prev" title="Building Astropy and its Subpackages" href="building.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="releasing.html" title="Release procedure for the astropy core package">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="building.html" title="Building Astropy and its Subpackages">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      
+      <li>C or Cython Extensions</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="c-or-cython-extensions">
+<span id="building-c-or-cython-extensions"></span><h1>C or Cython Extensions<a class="headerlink" href="#c-or-cython-extensions" title="Permalink to this headline">¶</a></h1>
+<p>Astropy supports using C extensions for wrapping C libraries and Cython for
+speeding up computationally-intensive calculations. Both Cython and C extension
+building can be customized using the <code class="docutils literal notranslate"><span class="pre">get_extensions</span></code> function of the
+<code class="docutils literal notranslate"><span class="pre">setup_package.py</span></code> file. If defined, this function must return a list of
+<code class="docutils literal notranslate"><span class="pre">setuptools.Extension</span></code> objects. The creation process is left to the
+subpackage designer, and can be customized however is relevant for the
+extensions in the subpackage.</p>
+<p>While C extensions must always be defined through the <code class="docutils literal notranslate"><span class="pre">get_extensions</span></code>
+mechanism, Cython files (ending in <code class="docutils literal notranslate"><span class="pre">.pyx</span></code>) are automatically located
+by <a class="reference external" href="https://extension-helpers.readthedocs.io/">extension-helpers</a> and
+loaded in separate extensions if they are not in <code class="docutils literal notranslate"><span class="pre">get_extensions</span></code>. For
+Cython extensions located in this way, headers for numpy C functions are
+included in the build, but no other external headers are included. <code class="docutils literal notranslate"><span class="pre">.pyx</span></code>
+files present in the extensions returned by <code class="docutils literal notranslate"><span class="pre">get_extensions</span></code> are not
+included in the list of automatically generated extensions.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If a <code class="docutils literal notranslate"><span class="pre">setuptools.Extension</span></code> object is provided for Cython
+source files using the <code class="docutils literal notranslate"><span class="pre">get_extensions</span></code> mechanism, it is very
+important that the <code class="docutils literal notranslate"><span class="pre">.pyx</span></code> files be given as the <code class="docutils literal notranslate"><span class="pre">source</span></code>, rather than the
+<code class="docutils literal notranslate"><span class="pre">.c</span></code> files generated by Cython.</p>
+</div>
+<div class="section" id="using-numpy-c-headers">
+<h2>Using Numpy C headers<a class="headerlink" href="#using-numpy-c-headers" title="Permalink to this headline">¶</a></h2>
+<p>If your C or Cython extensions uses <a class="reference external" href="https://numpy.org/doc/stable/reference/index.html#module-numpy" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy</span></code></a> at the C level, you probably
+need access to the numpy C headers.  When doing this, you should use
+<code class="docutils literal notranslate"><span class="pre">numpy.get_include()</span></code> to specify the include directory to use, for example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">setuptools</span> <span class="kn">import</span> <span class="n">Extension</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="k">def</span> <span class="nf">get_extensions</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">Extension</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;myextension&#39;</span><span class="p">,</span> <span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;myext.c&#39;</span><span class="p">],</span>
+                     <span class="n">include_dirs</span><span class="o">=</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">get_include</span><span class="p">()])</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="installing-c-header-files">
+<h2>Installing C header files<a class="headerlink" href="#installing-c-header-files" title="Permalink to this headline">¶</a></h2>
+<p>If your C extension needs to be linked from other third-party C code,
+you probably want to install its header files along side the Python module.</p>
+<blockquote>
+<div><ol class="arabic">
+<li><p>Create an <code class="docutils literal notranslate"><span class="pre">include</span></code> directory inside of your package for
+all of the header files.</p></li>
+<li><p>Use the <code class="docutils literal notranslate"><span class="pre">[options.package_data]</span></code> section in your <code class="docutils literal notranslate"><span class="pre">setup.cfg</span></code>
+file to include those header files in the package. For example, the
+<a class="reference internal" href="../wcs/reference_api.html#module-astropy.wcs" title="astropy.wcs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.wcs</span></code></a> package has the following entries in the
+<code class="docutils literal notranslate"><span class="pre">[options.package_data]</span></code> section:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">options</span><span class="o">.</span><span class="n">package_data</span><span class="p">]</span>
+<span class="o">...</span>
+<span class="n">astropy</span><span class="o">.</span><span class="n">wcs</span> <span class="o">=</span> <span class="n">include</span><span class="o">/*/*.</span><span class="n">h</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div></blockquote>
+</div>
+<div class="section" id="preventing-importing-at-build-time">
+<h2>Preventing importing at build time<a class="headerlink" href="#preventing-importing-at-build-time" title="Permalink to this headline">¶</a></h2>
+<p>It is important to make sure that <code class="docutils literal notranslate"><span class="pre">setup_package.py</span></code> files do not trigger an
+import of the package they are in - so they should be able to be executed without
+relying on imports to other parts of the package.</p>
+</div>
+<div class="section" id="speed-up-your-builds-with-ccache">
+<h2>Speed up your builds with ccache<a class="headerlink" href="#speed-up-your-builds-with-ccache" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="https://en.wikipedia.org/wiki/Ccache">ccache</a> is a tool that caches
+compiled sources so that they don’t have to be recompiled (so long as they are
+unchanged) even if the outputs have been deleted.  This means that if you
+switch branches or clean your source checkout you can save a lot of time by
+avoiding the majority of re-compiles from scratch.</p>
+<p>Because installation and configuration of ccache varies from platform to
+platform, please consult the ccache documentation and/or Google to set up
+ccache on your system–this is strongly encouraged for anyone doing significant
+development of Astropy or scientific programming in general.</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">C or Cython Extensions</a><ul>
+<li><a class="reference internal" href="#using-numpy-c-headers">Using Numpy C headers</a></li>
+<li><a class="reference internal" href="#installing-c-header-files">Installing C header files</a></li>
+<li><a class="reference internal" href="#preventing-importing-at-build-time">Preventing importing at build time</a></li>
+<li><a class="reference internal" href="#speed-up-your-builds-with-ccache">Speed up your builds with ccache</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/development/ccython.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

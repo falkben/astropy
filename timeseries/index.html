@@ -1,0 +1,565 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Time Series (astropy.timeseries) &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Creating Time Series" href="initializing.html" />
+    <link rel="prev" title="TimezoneInfo" href="../api/astropy.time.TimezoneInfo.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="initializing.html" title="Creating Time Series">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../api/astropy.time.TimezoneInfo.html" title="TimezoneInfo">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      
+      <li>Time Series (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.timeseries</span></code>)</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="time-series-astropy-timeseries">
+<span id="astropy-timeseries"></span><h1>Time Series (<a class="reference internal" href="#module-astropy.timeseries" title="astropy.timeseries"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.timeseries</span></code></a>)<a class="headerlink" href="#time-series-astropy-timeseries" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>From sampling a continuous variable at fixed times to counting events binned
+into time windows, many different areas of astrophysics require the manipulation
+of 1D time series data. To address this need, the <a class="reference internal" href="#module-astropy.timeseries" title="astropy.timeseries"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.timeseries</span></code></a>
+subpackage provides classes to represent and manipulate time series.</p>
+<p>The time series classes presented below are <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a> subclasses that have
+special columns to represent times using the <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-class docutils literal notranslate"><span class="pre">Time</span></code></a> class. Therefore, much of
+the functionality described in <a class="reference internal" href="../table/index.html#astropy-table"><span class="std std-ref">Data Tables (astropy.table)</span></a> applies here. But the main
+purpose of the new classes are to provide time series-specific functionality
+above and beyond <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a>.</p>
+</div>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>In this section, we take a quick look at how to read in a time series, access
+the data, and carry out some basic analysis. For more details about creating and
+using time series, see the full documentation in <a class="reference internal" href="#using-timeseries"><span class="std std-ref">Using timeseries</span></a>.</p>
+<p>The most basic time series class is <a class="reference internal" href="../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries" title="astropy.timeseries.TimeSeries"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeries</span></code></a> — it represents a time series
+as a collection of values at specific points in time. If you are interested in
+representing time series as measurements in discrete time bins, you will likely
+be interested in the <a class="reference internal" href="../api/astropy.timeseries.BinnedTimeSeries.html#astropy.timeseries.BinnedTimeSeries" title="astropy.timeseries.BinnedTimeSeries"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinnedTimeSeries</span></code></a> subclass which we show in
+<a class="reference internal" href="#using-timeseries"><span class="std std-ref">Using timeseries</span></a>).</p>
+<p>To start off, we retrieve a FITS file containing a Kepler light curve for a
+source:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.utils.data</span> <span class="kn">import</span> <span class="n">get_pkg_data_filename</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">filename</span> <span class="o">=</span> <span class="n">get_pkg_data_filename</span><span class="p">(</span><span class="s1">&#39;timeseries/kplr010666592-2009131110544_slc.fits&#39;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The light curve provided here is handpicked for example purposes. For
+more information about the Kepler FITS format, see
+<a class="reference external" href="https://archive.stsci.edu/files/live/sites/mast/files/home/missions-and-data/k2/_documents/MAST_Kepler_Archive_Manual_2020.pdf">Section 2.3.1 of the Kepler Archive Manual</a>.
+To get other light curves for science purposes using Python, see the
+<a class="reference external" href="https://astroquery.readthedocs.io">astroquery</a> affiliated package.</p>
+</div>
+<p>We can then use the <a class="reference internal" href="../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries" title="astropy.timeseries.TimeSeries"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeries</span></code></a> class to read in this file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.timeseries</span> <span class="kn">import</span> <span class="n">TimeSeries</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span> <span class="o">=</span> <span class="n">TimeSeries</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;kepler.fits&#39;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>Time series are specialized kinds of <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> objects:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span>  
+<span class="go">&lt;TimeSeries length=14280&gt;</span>
+<span class="go">          time             timecorr   ...   pos_corr1      pos_corr2</span>
+<span class="go">                              d       ...      pix            pix</span>
+<span class="go">          Time             float32    ...    float32        float32</span>
+<span class="go">----------------------- ------------- ... -------------- --------------</span>
+<span class="go">2009-05-02T00:41:40.338  6.630610e-04 ...  1.5822421e-03 -1.4463664e-03</span>
+<span class="go">2009-05-02T00:42:39.188  6.630857e-04 ...  1.5743829e-03 -1.4540013e-03</span>
+<span class="go">2009-05-02T00:43:38.045  6.631103e-04 ...  1.5665225e-03 -1.4616371e-03</span>
+<span class="go">2009-05-02T00:44:36.894  6.631350e-04 ...  1.5586632e-03 -1.4692718e-03</span>
+<span class="go">2009-05-02T00:45:35.752  6.631597e-04 ...  1.5508028e-03 -1.4769078e-03</span>
+<span class="go">2009-05-02T00:46:34.601  6.631844e-04 ...  1.5429436e-03 -1.4845425e-03</span>
+<span class="go">2009-05-02T00:47:33.451  6.632091e-04 ...  1.5350844e-03 -1.4921773e-03</span>
+<span class="go">2009-05-02T00:48:32.291  6.632337e-04 ...  1.5272264e-03 -1.4998110e-03</span>
+<span class="go">2009-05-02T00:49:31.149  6.632584e-04 ...  1.5193661e-03 -1.5074468e-03</span>
+<span class="go">                    ...           ... ...            ...            ...</span>
+<span class="go">2009-05-11T17:58:22.526  1.014493e-03 ...  3.6121816e-03  3.1950327e-03</span>
+<span class="go">2009-05-11T17:59:21.376  1.014518e-03 ...  3.6102540e-03  3.1872767e-03</span>
+<span class="go">2009-05-11T18:00:20.225  1.014542e-03 ...  3.6083264e-03  3.1795206e-03</span>
+<span class="go">2009-05-11T18:01:19.065  1.014567e-03 ...  3.6063993e-03  3.1717657e-03</span>
+<span class="go">2009-05-11T18:02:17.923  1.014591e-03 ...  3.6044715e-03  3.1640085e-03</span>
+<span class="go">2009-05-11T18:03:16.772  1.014615e-03 ...  3.6025438e-03  3.1562524e-03</span>
+<span class="go">2009-05-11T18:04:15.630  1.014640e-03 ...  3.6006160e-03  3.1484952e-03</span>
+<span class="go">2009-05-11T18:05:14.479  1.014664e-03 ...  3.5986886e-03  3.1407392e-03</span>
+<span class="go">2009-05-11T18:06:13.328  1.014689e-03 ...  3.5967610e-03  3.1329831e-03</span>
+<span class="go">2009-05-11T18:07:12.186  1.014713e-03 ...  3.5948332e-03  3.1252259e-03</span>
+</pre></div>
+</div>
+<p>In the same way as for <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> objects, the various columns and rows of
+<a class="reference internal" href="../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries" title="astropy.timeseries.TimeSeries"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeries</span></code></a> objects can be accessed and sliced using index notation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span><span class="p">[</span><span class="s1">&#39;sap_flux&#39;</span><span class="p">]</span>  
+<span class="go">&lt;Quantity [1027045.06, 1027184.44, 1027076.25, ..., 1025451.56, 1025468.5 ,</span>
+<span class="go">           1025930.9 ] electron / s&gt;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;sap_flux&#39;</span><span class="p">]</span>  
+<span class="go">&lt;TimeSeries length=14280&gt;</span>
+<span class="go">          time             sap_flux</span>
+<span class="go">                         electron / s</span>
+<span class="go">          Time             float32</span>
+<span class="go">----------------------- --------------</span>
+<span class="go">2009-05-02T00:41:40.338  1.0270451e+06</span>
+<span class="go">2009-05-02T00:42:39.188  1.0271844e+06</span>
+<span class="go">2009-05-02T00:43:38.045  1.0270762e+06</span>
+<span class="go">2009-05-02T00:44:36.894  1.0271414e+06</span>
+<span class="go">2009-05-02T00:45:35.752  1.0271569e+06</span>
+<span class="go">2009-05-02T00:46:34.601  1.0272296e+06</span>
+<span class="go">2009-05-02T00:47:33.451  1.0273199e+06</span>
+<span class="go">2009-05-02T00:48:32.291  1.0271497e+06</span>
+<span class="go">2009-05-02T00:49:31.149  1.0271755e+06</span>
+<span class="go">                    ...            ...</span>
+<span class="go">2009-05-11T17:58:22.526  1.0234769e+06</span>
+<span class="go">2009-05-11T17:59:21.376  1.0234574e+06</span>
+<span class="go">2009-05-11T18:00:20.225  1.0238128e+06</span>
+<span class="go">2009-05-11T18:01:19.065  1.0243234e+06</span>
+<span class="go">2009-05-11T18:02:17.923  1.0244257e+06</span>
+<span class="go">2009-05-11T18:03:16.772  1.0248654e+06</span>
+<span class="go">2009-05-11T18:04:15.630  1.0250156e+06</span>
+<span class="go">2009-05-11T18:05:14.479  1.0254516e+06</span>
+<span class="go">2009-05-11T18:06:13.328  1.0254685e+06</span>
+<span class="go">2009-05-11T18:07:12.186  1.0259309e+06</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>  
+<span class="go">&lt;TimeSeries length=4&gt;</span>
+<span class="go">          time             timecorr   ...   pos_corr1      pos_corr2</span>
+<span class="go">                              d       ...      pix            pix</span>
+<span class="go">          Time             float32    ...    float32        float32</span>
+<span class="go">----------------------- ------------- ... -------------- --------------</span>
+<span class="go">2009-05-02T00:41:40.338  6.630610e-04 ...  1.5822421e-03 -1.4463664e-03</span>
+<span class="go">2009-05-02T00:42:39.188  6.630857e-04 ...  1.5743829e-03 -1.4540013e-03</span>
+<span class="go">2009-05-02T00:43:38.045  6.631103e-04 ...  1.5665225e-03 -1.4616371e-03</span>
+<span class="go">2009-05-02T00:44:36.894  6.631350e-04 ...  1.5586632e-03 -1.4692718e-03</span>
+</pre></div>
+</div>
+<p>As seen in the previous examples, <a class="reference internal" href="../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries" title="astropy.timeseries.TimeSeries"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeries</span></code></a> objects have a <code class="docutils literal notranslate"><span class="pre">time</span></code>
+column, which is always the first column. This column can also be accessed using
+the <code class="docutils literal notranslate"><span class="pre">.time</span></code> attribute:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span><span class="o">.</span><span class="n">time</span>  
+<span class="go">&lt;Time object: scale=&#39;tdb&#39; format=&#39;isot&#39; value=[&#39;2009-05-02T00:41:40.338&#39; &#39;2009-05-02T00:42:39.188&#39;</span>
+<span class="go">  &#39;2009-05-02T00:43:38.045&#39; ... &#39;2009-05-11T18:05:14.479&#39;</span>
+<span class="go">  &#39;2009-05-11T18:06:13.328&#39; &#39;2009-05-11T18:07:12.186&#39;]&gt;</span>
+</pre></div>
+</div>
+<p>The first column is always a <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-class docutils literal notranslate"><span class="pre">Time</span></code></a> object (see <a class="reference internal" href="../time/index.html#astropy-time"><span class="std std-ref">Times and Dates</span></a>), which therefore supports the ability to convert to different
+time scales and formats:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">mjd</span>  
+<span class="go">array([54953.0289391 , 54953.02962023, 54953.03030145, ...,</span>
+<span class="go">       54962.7536398 , 54962.75432093, 54962.75500215])</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">unix</span>  
+<span class="go">array([1.24122483e+09, 1.24122489e+09, 1.24122495e+09, ...,</span>
+<span class="go">       1.24206505e+09, 1.24206511e+09, 1.24206517e+09])</span>
+</pre></div>
+</div>
+<p>We can also check what time scale the time is defined on:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">scale</span>  
+<span class="go">&#39;tdb&#39;</span>
+</pre></div>
+</div>
+<p>This is the Barycentric Dynamical Time scale (see <a class="reference internal" href="../time/index.html#astropy-time"><span class="std std-ref">Time and Dates (astropy.time)</span></a> for more
+details). We can use what we have seen so far to make a plot:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">jd</span><span class="p">,</span> <span class="n">ts</span><span class="p">[</span><span class="s1">&#39;sap_flux&#39;</span><span class="p">],</span> <span class="s1">&#39;k.&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Julian Date&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;SAP Flux (e-/s)&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../timeseries/index-2.png">png</a>, <a class="reference external" href="../timeseries/index-2.svg">svg</a>, <a class="reference external" href="../timeseries/index-2.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/index-22.png" class="plot-directive" src="../_images/index-22.png" />
+</div>
+<p>It looks like there are a few transits! We can use the
+<a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares" title="astropy.timeseries.BoxLeastSquares"><code class="xref py py-class docutils literal notranslate"><span class="pre">BoxLeastSquares</span></code></a> class to estimate the
+period, using the “box least squares” (BLS) algorithm:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.timeseries</span> <span class="kn">import</span> <span class="n">BoxLeastSquares</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">periodogram</span> <span class="o">=</span> <span class="n">BoxLeastSquares</span><span class="o">.</span><span class="n">from_timeseries</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="s1">&#39;sap_flux&#39;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>To run the periodogram analysis, we use a box with a duration of 0.2 days:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">periodogram</span><span class="o">.</span><span class="n">autopower</span><span class="p">(</span><span class="mf">0.2</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">day</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">power</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">period</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">period</span><span class="p">[</span><span class="n">best</span><span class="p">]</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">period</span>  
+<span class="go">&lt;Quantity 2.20551724 d&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transit_time</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">transit_time</span><span class="p">[</span><span class="n">best</span><span class="p">]</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transit_time</span>  
+<span class="go">&lt;Time object: scale=&#39;tdb&#39; format=&#39;isot&#39; value=2009-05-02T20:51:16.338&gt;</span>
+</pre></div>
+</div>
+<p>For more information on available periodogram algorithms, see
+<a class="reference internal" href="#periodogram-algorithms"><span class="std std-ref">Periodogram Algorithms</span></a>.</p>
+<p>We can now fold the time series using the period we found above using the
+<a class="reference internal" href="../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries.fold" title="astropy.timeseries.TimeSeries.fold"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fold()</span></code></a> method:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ts_folded</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">fold</span><span class="p">(</span><span class="n">period</span><span class="o">=</span><span class="n">period</span><span class="p">,</span> <span class="n">epoch_time</span><span class="o">=</span><span class="n">transit_time</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>Now we can take a look at the folded time series:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ts_folded</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">jd</span><span class="p">,</span> <span class="n">ts_folded</span><span class="p">[</span><span class="s1">&#39;sap_flux&#39;</span><span class="p">],</span> <span class="s1">&#39;k.&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time (days)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;SAP Flux (e-/s)&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../timeseries/index-6.png">png</a>, <a class="reference external" href="../timeseries/index-6.svg">svg</a>, <a class="reference external" href="../timeseries/index-6.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/index-6.png" class="plot-directive" src="../_images/index-6.png" />
+</div>
+<p>Using the <a class="reference internal" href="../stats/index.html#stats"><span class="std std-ref">Astrostatistics Tools (astropy.stats)</span></a> module, we can normalize the flux by sigma-clipping
+the data to determine the baseline flux:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.stats</span> <span class="kn">import</span> <span class="n">sigma_clipped_stats</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mean</span><span class="p">,</span> <span class="n">median</span><span class="p">,</span> <span class="n">stddev</span> <span class="o">=</span> <span class="n">sigma_clipped_stats</span><span class="p">(</span><span class="n">ts_folded</span><span class="p">[</span><span class="s1">&#39;sap_flux&#39;</span><span class="p">])</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts_folded</span><span class="p">[</span><span class="s1">&#39;sap_flux_norm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ts_folded</span><span class="p">[</span><span class="s1">&#39;sap_flux&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">median</span>  
+</pre></div>
+</div>
+<p>And we can downsample the time series by binning the points into bins of equal
+time — this returns a <a class="reference internal" href="../api/astropy.timeseries.BinnedTimeSeries.html#astropy.timeseries.BinnedTimeSeries" title="astropy.timeseries.BinnedTimeSeries"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinnedTimeSeries</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.timeseries</span> <span class="kn">import</span> <span class="n">aggregate_downsample</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts_binned</span> <span class="o">=</span> <span class="n">aggregate_downsample</span><span class="p">(</span><span class="n">ts_folded</span><span class="p">,</span> <span class="n">time_bin_size</span><span class="o">=</span><span class="mf">0.03</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">day</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts_binned</span>  
+<span class="go">&lt;BinnedTimeSeries length=74&gt;</span>
+<span class="go">   time_bin_start   time_bin_size ...        pos_corr2          sap_flux_norm</span>
+<span class="go">                          d       ...           pix</span>
+<span class="go">     TimeDelta         float64    ...         float64              float64</span>
+<span class="go">------------------- ------------- ... ----------------------- ------------------</span>
+<span class="go">-1.1022116370482966          0.03 ...  0.00031207725987769663 0.9998741745948792</span>
+<span class="go">-1.0722116370482966          0.03 ...  0.00041217938996851444 0.9999074339866638</span>
+<span class="go">-1.0422116370482966          0.03 ...  0.00039273229776881635  0.999972939491272</span>
+<span class="go">-1.0122116370482965          0.03 ...   0.0002928022004198283 1.0000077486038208</span>
+<span class="go">-0.9822116370482965          0.03 ...   0.0003891147789545357 0.9999921917915344</span>
+<span class="go">-0.9522116370482965          0.03 ...   0.0003491091774776578 1.0000101327896118</span>
+<span class="go">-0.9222116370482966          0.03 ...   0.0002824827388394624 1.0000121593475342</span>
+<span class="go">-0.8922116370482965          0.03 ...  0.00016335179680027068 0.9999905228614807</span>
+<span class="go">-0.8622116370482965          0.03 ...   0.0001397567830281332 1.0000263452529907</span>
+<span class="go">                ...           ... ...                     ...                ...</span>
+<span class="go">  0.817788362951705          0.03 ... -2.2798192730988376e-05 1.0000624656677246</span>
+<span class="go">  0.847788362951705          0.03 ...  0.00022221534163691103 1.0000633001327515</span>
+<span class="go">  0.877788362951705          0.03 ...  0.00019213277846574783 1.0000433921813965</span>
+<span class="go"> 0.9077883629517051          0.03 ...   0.0002187517675338313  1.000024676322937</span>
+<span class="go"> 0.9377883629517049          0.03 ...  0.00016979355132207274 1.0000224113464355</span>
+<span class="go"> 0.9677883629517047          0.03 ...  0.00014231358363758773 1.0000698566436768</span>
+<span class="go"> 0.9977883629517045          0.03 ...   0.0001224415173055604 0.9999606013298035</span>
+<span class="go"> 1.0277883629517042          0.03 ...  0.00027701034559868276 0.9999635815620422</span>
+<span class="go">  1.057788362951704          0.03 ...   0.0003093520936090499 0.9999105930328369</span>
+<span class="go"> 1.0877883629517038          0.03 ...  0.00022884277859702706 0.9998687505722046</span>
+</pre></div>
+</div>
+<p>Now we can take a look at the final result:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ts_folded</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">jd</span><span class="p">,</span> <span class="n">ts_folded</span><span class="p">[</span><span class="s1">&#39;sap_flux_norm&#39;</span><span class="p">],</span> <span class="s1">&#39;k.&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ts_binned</span><span class="o">.</span><span class="n">time_bin_start</span><span class="o">.</span><span class="n">jd</span><span class="p">,</span> <span class="n">ts_binned</span><span class="p">[</span><span class="s1">&#39;sap_flux_norm&#39;</span><span class="p">],</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="n">drawstyle</span><span class="o">=</span><span class="s1">&#39;steps-post&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time (days)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Normalized flux&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../timeseries/index-10.png">png</a>, <a class="reference external" href="../timeseries/index-10.svg">svg</a>, <a class="reference external" href="../timeseries/index-10.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/index-10.png" class="plot-directive" src="../_images/index-10.png" />
+</div>
+<p>To learn more about the capabilities in the <a class="reference internal" href="#module-astropy.timeseries" title="astropy.timeseries"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.timeseries</span></code></a> module, you can
+find links to the full documentation in the next section.</p>
+</div>
+<div class="section" id="using-timeseries">
+<span id="id1"></span><h2>Using <code class="docutils literal notranslate"><span class="pre">timeseries</span></code><a class="headerlink" href="#using-timeseries" title="Permalink to this headline">¶</a></h2>
+<p>The details of using <a class="reference internal" href="#module-astropy.timeseries" title="astropy.timeseries"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.timeseries</span></code></a> are provided in the following
+sections:</p>
+<div class="section" id="initializing-and-reading-in-time-series">
+<h3>Initializing and Reading in Time Series<a class="headerlink" href="#initializing-and-reading-in-time-series" title="Permalink to this headline">¶</a></h3>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="initializing.html">Creating Time Series</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="initializing.html#initializing-a-time-series">Initializing a Time Series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initializing.html#initializing-a-binned-time-series">Initializing a Binned Time Series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initializing.html#adding-data-to-the-time-series">Adding Data to the Time Series</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="io.html">Reading and Writing Time Series</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="io.html#built-in-readers">Built-in Readers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="io.html#reading-common-light-curve-formats">Reading Common Light Curve Formats</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="accessing-data-and-manipulating-time-series">
+<h3>Accessing Data and Manipulating Time Series<a class="headerlink" href="#accessing-data-and-manipulating-time-series" title="Permalink to this headline">¶</a></h3>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="data_access.html">Accessing Data in Time Series</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#accessing-data">Accessing Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#accessing-times">Accessing Times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#extracting-a-subset-of-columns">Extracting a Subset of Columns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#extracting-a-subset-of-rows">Extracting a Subset of Rows</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="times.html">Converting between Different Time Representations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="times.html#converting-times">Converting Times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="times.html#formatting-times">Formatting Times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="times.html#times-relative-to-other-times">Times Relative to Other Times</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">Manipulation and Analysis of Time Series</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#combining-time-series">Combining Time Series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#sorting-time-series">Sorting Time Series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#resampling">Resampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#folding">Folding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="analysis.html#arithmetic">Arithmetic</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="masking.html">Masking Values in Time Series</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="masking.html#example">Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pandas.html">Interfacing with the Pandas Package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pandas.html#example">Example</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="periodogram-algorithms">
+<span id="id2"></span><h3>Periodogram Algorithms<a class="headerlink" href="#periodogram-algorithms" title="Permalink to this headline">¶</a></h3>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="lombscargle.html">Lomb-Scargle Periodograms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lombscargle.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lombscargle.html#periodogram-normalizations">Periodogram Normalizations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lombscargle.html#peak-significance-and-false-alarm-probabilities">Peak Significance and False Alarm Probabilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lombscargle.html#periodogram-algorithms">Periodogram Algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lombscargle.html#rr-lyrae-example">RR Lyrae Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lombscargle.html#literature-references">Literature References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bls.html">Box Least Squares (BLS) Periodogram</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bls.html#mathematical-background">Mathematical Background</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bls.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bls.html#objectives">Objectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bls.html#period-grid">Period Grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bls.html#peak-statistics">Peak Statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bls.html#literature-references">Literature References</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="section" id="reference-api">
+<h2>Reference/API<a class="headerlink" href="#reference-api" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-astropy.timeseries">
+<span id="astropy-timeseries-package"></span><h3>astropy.timeseries Package<a class="headerlink" href="#module-astropy.timeseries" title="Permalink to this headline">¶</a></h3>
+<p>This subpackage contains classes and functions for work with time series.</p>
+<div class="section" id="functions">
+<h4>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/astropy.timeseries.aggregate_downsample.html#astropy.timeseries.aggregate_downsample" title="astropy.timeseries.aggregate_downsample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">aggregate_downsample</span></code></a>(time_series, *[, …])</p></td>
+<td><p>Downsample a time series by binning values into bins with a fixed size or custom sizes, using a single function to combine the values in the bin.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../api/astropy.timeseries.autocheck_required_columns.html#astropy.timeseries.autocheck_required_columns" title="astropy.timeseries.autocheck_required_columns"><code class="xref py py-obj docutils literal notranslate"><span class="pre">autocheck_required_columns</span></code></a>(cls)</p></td>
+<td><p>This is a decorator that ensures that the table contains specific methods indicated by the _required_columns attribute.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="classes">
+<h4>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/astropy.timeseries.BasePeriodogram.html#astropy.timeseries.BasePeriodogram" title="astropy.timeseries.BasePeriodogram"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BasePeriodogram</span></code></a>(t, y[, dy])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../api/astropy.timeseries.BaseTimeSeries.html#astropy.timeseries.BaseTimeSeries" title="astropy.timeseries.BaseTimeSeries"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseTimeSeries</span></code></a>([data, masked, names, dtype, …])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/astropy.timeseries.BinnedTimeSeries.html#astropy.timeseries.BinnedTimeSeries" title="astropy.timeseries.BinnedTimeSeries"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BinnedTimeSeries</span></code></a>([data, time_bin_start, …])</p></td>
+<td><p>A class to represent binned time series data in tabular form.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares" title="astropy.timeseries.BoxLeastSquares"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BoxLeastSquares</span></code></a>(t, y[, dy])</p></td>
+<td><p>Compute the box least squares periodogram</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/astropy.timeseries.BoxLeastSquaresResults.html#astropy.timeseries.BoxLeastSquaresResults" title="astropy.timeseries.BoxLeastSquaresResults"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BoxLeastSquaresResults</span></code></a>(*args)</p></td>
+<td><p>The results of a BoxLeastSquares search</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../api/astropy.timeseries.LombScargle.html#astropy.timeseries.LombScargle" title="astropy.timeseries.LombScargle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LombScargle</span></code></a>(t, y[, dy, fit_mean, …])</p></td>
+<td><p>Compute the Lomb-Scargle Periodogram.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries" title="astropy.timeseries.TimeSeries"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TimeSeries</span></code></a>([data, time, time_start, …])</p></td>
+<td><p>A class to represent time series data in tabular form.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="class-inheritance-diagram">
+<h4>Class Inheritance Diagram<a class="headerlink" href="#class-inheritance-diagram" title="Permalink to this headline">¶</a></h4>
+digraph inheritance7202027359 {
+bgcolor=transparent;
+rankdir=LR;
+size=&quot;8.0, 12.0&quot;;
+  &quot;BasePeriodogram&quot; [URL=&quot;../../api/astropy.timeseries.BasePeriodogram.html#astropy.timeseries.BasePeriodogram&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;];
+  &quot;BaseTimeSeries&quot; [URL=&quot;../../api/astropy.timeseries.BaseTimeSeries.html#astropy.timeseries.BaseTimeSeries&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;];
+  &quot;QTable&quot; -&gt; &quot;BaseTimeSeries&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
+  &quot;BinnedTimeSeries&quot; [URL=&quot;../../api/astropy.timeseries.BinnedTimeSeries.html#astropy.timeseries.BinnedTimeSeries&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;A class to represent binned time series data in tabular form.&quot;];
+  &quot;BaseTimeSeries&quot; -&gt; &quot;BinnedTimeSeries&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
+  &quot;BoxLeastSquares&quot; [URL=&quot;../../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;Compute the box least squares periodogram&quot;];
+  &quot;BasePeriodogram&quot; -&gt; &quot;BoxLeastSquares&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
+  &quot;BoxLeastSquaresResults&quot; [URL=&quot;../../api/astropy.timeseries.BoxLeastSquaresResults.html#astropy.timeseries.BoxLeastSquaresResults&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;The results of a BoxLeastSquares search&quot;];
+  &quot;LombScargle&quot; [URL=&quot;../../api/astropy.timeseries.LombScargle.html#astropy.timeseries.LombScargle&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;Compute the Lomb-Scargle Periodogram.&quot;];
+  &quot;BasePeriodogram&quot; -&gt; &quot;LombScargle&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
+  &quot;QTable&quot; [URL=&quot;../../api/astropy.table.QTable.html#astropy.table.QTable&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;A class to represent tables of heterogeneous data.&quot;];
+  &quot;Table&quot; -&gt; &quot;QTable&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
+  &quot;Table&quot; [URL=&quot;../../api/astropy.table.Table.html#astropy.table.Table&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;A class to represent tables of heterogeneous data.&quot;];
+  &quot;TimeSeries&quot; [URL=&quot;../../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;A class to represent time series data in tabular form.&quot;];
+  &quot;BaseTimeSeries&quot; -&gt; &quot;TimeSeries&quot; [arrowsize=0.5,style=&quot;setlinewidth(0.5)&quot;];
+}
+</div>
+</div>
+<div class="section" id="module-astropy.timeseries.io">
+<span id="astropy-timeseries-io-package"></span><h3>astropy.timeseries.io Package<a class="headerlink" href="#module-astropy.timeseries.io" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id3">
+<h4>Functions<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/astropy.timeseries.io.kepler_fits_reader.html#astropy.timeseries.io.kepler_fits_reader" title="astropy.timeseries.io.kepler_fits_reader"><code class="xref py py-obj docutils literal notranslate"><span class="pre">kepler_fits_reader</span></code></a>(filename)</p></td>
+<td><p>This serves as the FITS reader for KEPLER or TESS files within astropy-timeseries.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Time Series (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.timeseries</span></code>)</a><ul>
+<li><a class="reference internal" href="#introduction">Introduction</a></li>
+<li><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li><a class="reference internal" href="#using-timeseries">Using <code class="docutils literal notranslate"><span class="pre">timeseries</span></code></a><ul>
+<li><a class="reference internal" href="#initializing-and-reading-in-time-series">Initializing and Reading in Time Series</a></li>
+<li><a class="reference internal" href="#accessing-data-and-manipulating-time-series">Accessing Data and Manipulating Time Series</a></li>
+<li><a class="reference internal" href="#periodogram-algorithms">Periodogram Algorithms</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reference-api">Reference/API</a><ul>
+<li><a class="reference internal" href="#module-astropy.timeseries">astropy.timeseries Package</a><ul>
+<li><a class="reference internal" href="#functions">Functions</a></li>
+<li><a class="reference internal" href="#classes">Classes</a></li>
+<li><a class="reference internal" href="#class-inheritance-diagram">Class Inheritance Diagram</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-astropy.timeseries.io">astropy.timeseries.io Package</a><ul>
+<li><a class="reference internal" href="#id3">Functions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/timeseries/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

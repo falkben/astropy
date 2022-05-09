@@ -1,0 +1,497 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Uncertainties and Distributions (astropy.uncertainty) &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="normal" href="../api/astropy.uncertainty.normal.html" />
+    <link rel="prev" title="Tabular2D" href="../api/astropy.modeling.tabular.Tabular2D.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../api/astropy.uncertainty.normal.html" title="normal">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../api/astropy.modeling.tabular.Tabular2D.html" title="Tabular2D">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      
+      <li>Uncertainties and Distributions (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.uncertainty</span></code>)</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="uncertainties-and-distributions-astropy-uncertainty">
+<span id="astropy-uncertainty"></span><h1>Uncertainties and Distributions (<a class="reference internal" href="#module-astropy.uncertainty" title="astropy.uncertainty"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.uncertainty</span></code></a>)<a class="headerlink" href="#uncertainties-and-distributions-astropy-uncertainty" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This subpackage is still in development.</p>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">astropy</span></code> provides a <a class="reference internal" href="../api/astropy.uncertainty.Distribution.html#astropy.uncertainty.Distribution" title="astropy.uncertainty.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a> object to represent statistical
+distributions in a form that acts as a drop-in replacement for a <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>
+object or a regular <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>. Used in this manner, <a class="reference internal" href="../api/astropy.uncertainty.Distribution.html#astropy.uncertainty.Distribution" title="astropy.uncertainty.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a> provides
+uncertainty propagation at the cost of additional computation. It can also more
+generally represent sampled distributions for Monte Carlo calculation
+techniques, for instance.</p>
+<p>The core object for this feature is the <a class="reference internal" href="../api/astropy.uncertainty.Distribution.html#astropy.uncertainty.Distribution" title="astropy.uncertainty.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a>. Currently, all
+such distributions are Monte Carlo sampled. While this means each distribution
+may take more memory, it allows arbitrarily complex operations to be performed
+on distributions while maintaining their correlation structure. Some specific
+well-behaved distributions (e.g., the normal distribution) have
+analytic forms which may eventually enable a more compact and efficient
+representation. In the future, these may provide a coherent uncertainty
+propagation mechanism to work with <a class="reference internal" href="../api/astropy.nddata.NDData.html#astropy.nddata.NDData" title="astropy.nddata.NDData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NDData</span></code></a>. However, this is
+not currently implemented. Hence, details of storing uncertainties for
+<a class="reference internal" href="../api/astropy.nddata.NDData.html#astropy.nddata.NDData" title="astropy.nddata.NDData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NDData</span></code></a> objects can be found in the <a class="reference internal" href="../nddata/index.html#astropy-nddata"><span class="std std-ref">N-Dimensional Datasets (astropy.nddata)</span></a>
+section.</p>
+</div>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>To demonstrate a basic use case for distributions, consider the problem of
+uncertainty propagation of normal distributions. Assume there are two
+measurements you wish to add, each with normal uncertainties. We start
+with some initial imports and setup:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">uncertainty</span> <span class="k">as</span> <span class="n">unc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">12345</span><span class="p">)</span>  <span class="c1"># ensures reproducible example numbers</span>
+</pre></div>
+</div>
+<p>Now we create two <a class="reference internal" href="../api/astropy.uncertainty.Distribution.html#astropy.uncertainty.Distribution" title="astropy.uncertainty.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a> objects to represent our distributions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mi">30</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mi">40</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For normal distributions, the centers should add as expected, and the standard
+deviations add in quadrature. We can check these results (to the limits of our
+Monte Carlo sampling) trivially with <a class="reference internal" href="../api/astropy.uncertainty.Distribution.html#astropy.uncertainty.Distribution" title="astropy.uncertainty.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a> arithmetic and attributes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> 
+<span class="go">&lt;QuantityDistribution [...] kpc with n_samples=10000&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">pdf_mean</span><span class="p">()</span> 
+<span class="go">&lt;Quantity 2.99970555 kpc&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">pdf_std</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">)</span> 
+<span class="go">&lt;Quantity 50.07120457 pc&gt;</span>
+</pre></div>
+</div>
+<p>Indeed these are close to the expectations. While this may seem unnecessary for
+the basic Gaussian case, for more complex distributions or arithmetic
+operations where error analysis becomes untenable, <a class="reference internal" href="../api/astropy.uncertainty.Distribution.html#astropy.uncertainty.Distribution" title="astropy.uncertainty.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a> still powers
+through:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="mi">3</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">800</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">Distribution</span><span class="p">(((</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">beta</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="mi">7</span><span class="p">))</span><span class="o">/</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="p">(</span><span class="n">c</span> <span class="o">*</span> <span class="n">d</span> <span class="o">*</span> <span class="n">e</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">pdf_mean</span><span class="p">()</span> 
+<span class="go">&lt;Quantity 2.99786227 kpc&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">pdf_std</span><span class="p">()</span> 
+<span class="go">&lt;Quantity 0.08330476 kpc&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.visualization</span> <span class="kn">import</span> <span class="n">quantity_support</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">quantity_support</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span> 
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../uncertainty/index-1.png">png</a>, <a class="reference external" href="../uncertainty/index-1.svg">svg</a>, <a class="reference external" href="../uncertainty/index-1.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/index-13.png" class="plot-directive" src="../_images/index-13.png" />
+</div>
+</div>
+<div class="section" id="using-astropy-uncertainty">
+<h2>Using <a class="reference internal" href="#module-astropy.uncertainty" title="astropy.uncertainty"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.uncertainty</span></code></a><a class="headerlink" href="#using-astropy-uncertainty" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="creating-distributions">
+<h3>Creating Distributions<a class="headerlink" href="#creating-distributions" title="Permalink to this headline">¶</a></h3>
+<p>The most direct way to create a distribution is to use an array or <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>
+that carries the samples in the <em>last</em> dimension:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">uncertainty</span> <span class="k">as</span> <span class="n">unc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">123456</span><span class="p">)</span>  <span class="c1"># ensures &quot;random&quot; numbers match examples below</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">unc</span><span class="o">.</span><span class="n">Distribution</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="p">(</span><span class="mi">1000</span><span class="p">)))</span>  
+<span class="go">NdarrayDistribution([..., 12,...]) with n_samples=1000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">poisson</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">400</span><span class="p">],</span> <span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">ct</span> <span class="c1"># note the transpose, required to get the sampling on the *last* axis</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">Distribution</span><span class="p">(</span><span class="n">pq</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span> 
+<span class="go">&lt;QuantityDistribution [[...],</span>
+<span class="go">           [...],</span>
+<span class="go">           [...],</span>
+<span class="go">           [...]] ct with n_samples=1000&gt;</span>
+</pre></div>
+</div>
+<p>Note the distinction for these two distributions: the first is built from an
+array and therefore does not have <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> attributes like <code class="docutils literal notranslate"><span class="pre">unit</span></code>, while the
+latter does have these attributes. This is reflected in how they interact with
+other objects, for example, the <code class="docutils literal notranslate"><span class="pre">NdarrayDistribution</span></code> will not combine with
+<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> objects containing units.</p>
+<p>For commonly used distributions, helper functions exist to make creating them
+more convenient. The examples below demonstrate several equivalent ways to
+create a normal/Gaussian distribution:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">center</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">400</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n_distr</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">center</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n_distr</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">center</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="p">[</span><span class="mf">0.04</span><span class="p">,</span> <span class="mf">2.25</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n_distr</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">center</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">ivar</span><span class="o">=</span><span class="p">[</span><span class="mi">25</span><span class="p">,</span> <span class="mf">0.44444444</span><span class="p">,</span> <span class="mf">0.625</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="o">**-</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n_distr</span><span class="o">.</span><span class="n">distribution</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(4, 1000)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">unc</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">center</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">distribution</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(4, 100)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">unc</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">center</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">20000</span><span class="p">)</span><span class="o">.</span><span class="n">distribution</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(4, 20000)</span>
+</pre></div>
+</div>
+<p>Additionally, Poisson and uniform <a class="reference internal" href="../api/astropy.uncertainty.Distribution.html#astropy.uncertainty.Distribution" title="astropy.uncertainty.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a> creation functions exist:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">unc</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">center</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">count</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span> 
+<span class="go">&lt;QuantityDistribution [[...],</span>
+<span class="go">             [...],</span>
+<span class="go">             [...],</span>
+<span class="go">             [...]] ct with n_samples=1000&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">uwidth</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">55</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">unc</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="n">center</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">uwidth</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span> 
+<span class="go">&lt;QuantityDistribution [[...],</span>
+<span class="go">             [...],</span>
+<span class="go">             [...],</span>
+<span class="go">             [...]] kpc with n_samples=1000&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">unc</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">lower</span><span class="o">=</span><span class="n">center</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span> <span class="o">-</span> <span class="n">uwidth</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span>  <span class="n">upper</span><span class="o">=</span><span class="n">center</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span> <span class="o">+</span> <span class="n">uwidth</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>  
+<span class="go">&lt;QuantityDistribution [[...],</span>
+<span class="go">             [...],</span>
+<span class="go">             [...],</span>
+<span class="go">             [...]] kpc with n_samples=1000&gt;</span>
+</pre></div>
+</div>
+<p>Users are free to create their own distribution classes following similar
+patterns.</p>
+</div>
+<div class="section" id="using-distributions">
+<h3>Using Distributions<a class="headerlink" href="#using-distributions" title="Permalink to this headline">¶</a></h3>
+<p>This object now acts much like a <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> or <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a> for all but the
+non-sampled dimension, but with additional statistical operations that work on
+the sampled distributions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(4,)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">size</span>
+<span class="go">4</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">unit</span>
+<span class="go">Unit(&quot;ct&quot;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">n_samples</span>
+<span class="go">1000</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">pdf_mean</span><span class="p">()</span> 
+<span class="go">&lt;Quantity [  0.998,   5.017,  30.085, 400.345] ct&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">pdf_std</span><span class="p">()</span> 
+<span class="go">&lt;Quantity [ 0.97262326,  2.32222114,  5.47629208, 20.6328373 ] ct&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">pdf_var</span><span class="p">()</span> 
+<span class="go">&lt;Quantity [  0.945996,   5.392711,  29.989775, 425.713975] ct2&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">pdf_median</span><span class="p">()</span>
+<span class="go">&lt;Quantity [   1.,   5.,  30., 400.] ct&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">pdf_mad</span><span class="p">()</span>  <span class="c1"># Median absolute deviation </span>
+<span class="go">&lt;Quantity [ 1.,  2.,  4., 14.] ct&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">pdf_smad</span><span class="p">()</span>  <span class="c1"># Median absolute deviation, rescaled to match std for normal </span>
+<span class="go">&lt;Quantity [ 1.48260222,  2.96520444,  5.93040887, 20.75643106] ct&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">pdf_percentiles</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">90</span><span class="p">])</span>
+<span class="go">&lt;Quantity [[  0. ,   2. ,  23. , 374. ],</span>
+<span class="go">           [  1. ,   5. ,  30. , 400. ],</span>
+<span class="go">           [  2. ,   8. ,  37.1, 427. ]] ct&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">pdf_percentiles</span><span class="p">([</span><span class="mf">.1</span><span class="p">,</span> <span class="mf">.5</span><span class="p">,</span> <span class="mf">.9</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">dimensionless_unscaled</span><span class="p">)</span>
+<span class="go">&lt;Quantity [[  0. ,   2. ,  23. , 374. ],</span>
+<span class="go">          [  1. ,   5. ,  30. , 400. ],</span>
+<span class="go">          [  2. ,   8. ,  37.1, 427. ]] ct&gt;</span>
+</pre></div>
+</div>
+<p>If need be, the underlying array can then be accessed from the <code class="docutils literal notranslate"><span class="pre">distribution</span></code>
+attribute:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">distribution</span>  
+<span class="go">&lt;Quantity [[...1...],</span>
+<span class="go">           [...5...],</span>
+<span class="go">           [...27...],</span>
+<span class="go">           [...405...]] ct&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distr</span><span class="o">.</span><span class="n">distribution</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(4, 1000)</span>
+</pre></div>
+</div>
+<p>A <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> distribution interacts naturally with non-<a class="reference internal" href="../api/astropy.uncertainty.Distribution.html#astropy.uncertainty.Distribution" title="astropy.uncertainty.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a>
+<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> objects, assuming the <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> is a Dirac delta distribution:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">distr_in_kpc</span> <span class="o">=</span> <span class="n">distr</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">count</span>  <span class="c1"># for the sake of round numbers in examples</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distrplus</span> <span class="o">=</span> <span class="n">distr_in_kpc</span> <span class="o">+</span> <span class="p">[</span><span class="mi">2000</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">500</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distrplus</span><span class="o">.</span><span class="n">pdf_median</span><span class="p">()</span>
+<span class="go">&lt;Quantity [   3. ,   5. ,  30. , 400.5] kpc&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">distrplus</span><span class="o">.</span><span class="n">pdf_var</span><span class="p">()</span> 
+<span class="go">&lt;Quantity [  0.945996,   5.392711,  29.989775, 425.713975] kpc2&gt;</span>
+</pre></div>
+</div>
+<p>It also operates as expected with other distributions (but see below for a
+discussion of covariances):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">another_distr</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">Distribution</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span><span class="o">*</span><span class="p">[</span><span class="mi">1000</span><span class="p">,</span><span class="mf">.01</span> <span class="p">,</span> <span class="mi">3000</span><span class="p">,</span> <span class="mi">10</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">500</span><span class="p">])</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">combined_distr</span> <span class="o">=</span> <span class="n">distr_in_kpc</span> <span class="o">+</span> <span class="n">another_distr</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">combined_distr</span><span class="o">.</span><span class="n">pdf_median</span><span class="p">()</span>  
+<span class="go">&lt;Quantity [  3.01847755,   4.99999576,  29.60559788, 400.49176321] kpc&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">combined_distr</span><span class="o">.</span><span class="n">pdf_var</span><span class="p">()</span>  
+<span class="go">&lt;Quantity [  1.8427705 ,   5.39271147,  39.5343726 , 425.71324244] kpc2&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="covariance-in-distributions-and-discrete-sampling-effects">
+<h3>Covariance in Distributions and Discrete Sampling Effects<a class="headerlink" href="#covariance-in-distributions-and-discrete-sampling-effects" title="Permalink to this headline">¶</a></h3>
+<p>One of the main applications for distributions is uncertainty propagation, which
+critically requires proper treatment of covariance. This comes naturally in the
+Monte Carlo sampling approach used by the <a class="reference internal" href="../api/astropy.uncertainty.Distribution.html#astropy.uncertainty.Distribution" title="astropy.uncertainty.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a> class, as long as
+proper care is taken with sampling error.</p>
+<p>To start with a basic example, two un-correlated distributions should produce
+an un-correlated joint distribution plot:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">12345</span><span class="p">)</span>  <span class="c1"># produce repeatable plots</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">uncertainty</span> <span class="k">as</span> <span class="n">unc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n1</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n2</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">center</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">n1</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="n">n2</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">.5</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> 
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../uncertainty/index-2.png">png</a>, <a class="reference external" href="../uncertainty/index-2.svg">svg</a>, <a class="reference external" href="../uncertainty/index-2.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/index-23.png" class="plot-directive" src="../_images/index-23.png" />
+</div>
+<p>Indeed, the distributions are independent. If we instead construct a covariant
+pair of Gaussians, it is immediately apparent:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ncov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span> <span class="n">size</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n1</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">Distribution</span><span class="p">(</span><span class="n">ncov</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n2</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">Distribution</span><span class="p">(</span><span class="n">ncov</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">n1</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="n">n2</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">.5</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> 
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../uncertainty/index-3.png">png</a>, <a class="reference external" href="../uncertainty/index-3.svg">svg</a>, <a class="reference external" href="../uncertainty/index-3.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/index-32.png" class="plot-directive" src="../_images/index-32.png" />
+</div>
+<p>Most importantly, the proper correlated structure is preserved or generated as
+expected by appropriate arithmetic operations. For example, ratios of
+uncorrelated normal distribution gain covariances if the axes are not
+independent, as in this simulation of iron, hydrogen, and oxygen abundances in
+a hypothetical collection of stars:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fe_abund</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">center</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">.25</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">o_abund</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">center</span><span class="o">=-</span><span class="mf">6.</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">h_abund</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">center</span><span class="o">=-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">.1</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">feh</span> <span class="o">=</span> <span class="n">fe_abund</span> <span class="o">-</span> <span class="n">h_abund</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ofe</span> <span class="o">=</span> <span class="n">o_abund</span> <span class="o">-</span> <span class="n">fe_abund</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">ofe</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="n">feh</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">.5</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;[Fe/H]&#39;</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;[O/Fe]&#39;</span><span class="p">)</span> 
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../uncertainty/index-4.png">png</a>, <a class="reference external" href="../uncertainty/index-4.svg">svg</a>, <a class="reference external" href="../uncertainty/index-4.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/index-42.png" class="plot-directive" src="../_images/index-42.png" />
+</div>
+<p>This demonstrates that the correlations naturally arise from the variables, but
+there is no need to explicitly account for it: the sampling process naturally
+recovers correlations that are present.</p>
+<p>An important note of warning, however, is that the covariance is only preserved
+if the sampling axes are exactly matched sample by sample. If they are not, all
+covariance information is (silently) lost:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">n2_wrong</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">Distribution</span><span class="p">(</span><span class="n">ncov</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>  <span class="c1">#reverse the sampling axis order</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">n1</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="n">n2_wrong</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">.5</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> 
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../uncertainty/index-5.png">png</a>, <a class="reference external" href="../uncertainty/index-5.svg">svg</a>, <a class="reference external" href="../uncertainty/index-5.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/index-5.png" class="plot-directive" src="../_images/index-5.png" />
+</div>
+<p>Moreover, an insufficiently sampled distribution may give poor estimates or
+hide correlations. The example below is the same as the covariant Gaussian
+example above, but with 200x fewer samples:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ncov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">.5</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span> <span class="n">size</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n1</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">Distribution</span><span class="p">(</span><span class="n">ncov</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n2</span> <span class="o">=</span> <span class="n">unc</span><span class="o">.</span><span class="n">Distribution</span><span class="p">(</span><span class="n">ncov</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">n1</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="n">n2</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">n1</span><span class="o">.</span><span class="n">distribution</span><span class="p">,</span> <span class="n">n2</span><span class="o">.</span><span class="n">distribution</span><span class="p">)</span> 
+<span class="go">array([[1.04667972, 0.19391617],</span>
+<span class="go">       [0.19391617, 1.50899902]])</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../uncertainty/index-6.png">png</a>, <a class="reference external" href="../uncertainty/index-6.svg">svg</a>, <a class="reference external" href="../uncertainty/index-6.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/index-61.png" class="plot-directive" src="../_images/index-61.png" />
+</div>
+<p>The covariance structure is much less apparent by eye, and this is reflected
+in significant discrepancies between the input and output covariance matrix.
+In general this is an intrinsic trade-off using sampled distributions: a smaller
+number of samples is computationally more efficient, but leads to larger
+uncertainties in any of the relevant quantities. These tend to be of order
+<span class="math notranslate nohighlight">\(\sqrt{n_{\rm samples}}\)</span> in any derived quantity, but that depends on the
+complexity of the distribution in question.</p>
+<span class="target" id="astropy-time-performance"></span></div>
+</div>
+<div class="section" id="reference-api">
+<h2>Reference/API<a class="headerlink" href="#reference-api" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-astropy.uncertainty">
+<span id="astropy-uncertainty-package"></span><h3>astropy.uncertainty Package<a class="headerlink" href="#module-astropy.uncertainty" title="Permalink to this headline">¶</a></h3>
+<p>This sub-package contains classes and functions for creating distributions that
+work similar to <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Quantity</span></code></a> or array objects, but can propagate
+uncertainties.</p>
+<div class="section" id="functions">
+<h4>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/astropy.uncertainty.normal.html#astropy.uncertainty.normal" title="astropy.uncertainty.normal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">normal</span></code></a>(center, *[, std, var, ivar, cls])</p></td>
+<td><p>Create a Gaussian/normal distribution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../api/astropy.uncertainty.poisson.html#astropy.uncertainty.poisson" title="astropy.uncertainty.poisson"><code class="xref py py-obj docutils literal notranslate"><span class="pre">poisson</span></code></a>(center, n_samples[, cls])</p></td>
+<td><p>Create a Poisson distribution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/astropy.uncertainty.uniform.html#astropy.uncertainty.uniform" title="astropy.uncertainty.uniform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">uniform</span></code></a>(*[, lower, upper, center, width, cls])</p></td>
+<td><p>Create a Uniform distriution from the lower and upper bounds.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="classes">
+<h4>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h4>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api/astropy.uncertainty.Distribution.html#astropy.uncertainty.Distribution" title="astropy.uncertainty.Distribution"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Distribution</span></code></a>(samples)</p></td>
+<td><p>A scalar value or array values with associated uncertainty distribution.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="class-inheritance-diagram">
+<h4>Class Inheritance Diagram<a class="headerlink" href="#class-inheritance-diagram" title="Permalink to this headline">¶</a></h4>
+digraph inheritanced12f0c34c6 {
+bgcolor=transparent;
+rankdir=LR;
+size=&quot;8.0, 12.0&quot;;
+  &quot;Distribution&quot; [URL=&quot;../../api/astropy.uncertainty.Distribution.html#astropy.uncertainty.Distribution&quot;,fillcolor=white,fontname=&quot;Vera Sans, DejaVu Sans, Liberation Sans, Arial, Helvetica, sans&quot;,fontsize=10,height=0.25,shape=box,style=&quot;setlinewidth(0.5),filled&quot;,target=&quot;_top&quot;,tooltip=&quot;A scalar value or array values with associated uncertainty distribution.&quot;];
+}
+</div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Uncertainties and Distributions (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.uncertainty</span></code>)</a><ul>
+<li><a class="reference internal" href="#introduction">Introduction</a></li>
+<li><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li><a class="reference internal" href="#using-astropy-uncertainty">Using <code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.uncertainty</span></code></a><ul>
+<li><a class="reference internal" href="#creating-distributions">Creating Distributions</a></li>
+<li><a class="reference internal" href="#using-distributions">Using Distributions</a></li>
+<li><a class="reference internal" href="#covariance-in-distributions-and-discrete-sampling-effects">Covariance in Distributions and Discrete Sampling Effects</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reference-api">Reference/API</a><ul>
+<li><a class="reference internal" href="#module-astropy.uncertainty">astropy.uncertainty Package</a><ul>
+<li><a class="reference internal" href="#functions">Functions</a></li>
+<li><a class="reference internal" href="#classes">Classes</a></li>
+<li><a class="reference internal" href="#class-inheritance-diagram">Class Inheritance Diagram</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/uncertainty/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,619 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.units.structured &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.units.structured</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module defines structured units and quantities.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Standard library</span>
+<span class="kn">import</span> <span class="nn">operator</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.core</span> <span class="kn">import</span> <span class="n">UNITY</span><span class="p">,</span> <span class="n">Unit</span><span class="p">,</span> <span class="n">UnitBase</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;StructuredUnit&#39;</span><span class="p">]</span>
+
+
+<span class="n">DTYPE_OBJECT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;O&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_names_from_dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Recursively extract field names from a dtype.&quot;&quot;&quot;</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+        <span class="n">subdtype</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">subdtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">name</span><span class="p">,</span> <span class="n">_names_from_dtype</span><span class="p">(</span><span class="n">subdtype</span><span class="p">)])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_normalize_names</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Recursively normalize, inferring upper level names for unadorned tuples.</span>
+
+<span class="sd">    Generally, we want the field names to be organized like dtypes, as in</span>
+<span class="sd">    ``([&#39;pv&#39;, (&#39;p&#39;, &#39;v&#39;)], &#39;t&#39;)``.  But we automatically infer upper</span>
+<span class="sd">    field names if the list is absent from items like ``((&#39;p&#39;, &#39;v&#39;), &#39;t&#39;)``,</span>
+<span class="sd">    by concatenating the names inside the tuple.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+              <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+              <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span>
+              <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">_normalize_names</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">])])</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">new_tuple</span> <span class="o">=</span> <span class="n">_normalize_names</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([(</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">i</span><span class="p">)</span>
+                                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">new_tuple</span><span class="p">]),</span> <span class="n">new_tuple</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;invalid entry </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s1">. Should be a name, &#39;</span>
+                             <span class="s1">&#39;tuple of names, or 2-element list of the &#39;</span>
+                             <span class="s1">&#39;form [name, tuple of names].&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="StructuredUnit"><a class="viewcode-back" href="../../../api/astropy.units.StructuredUnit.html#astropy.units.StructuredUnit">[docs]</a><span class="k">class</span> <span class="nc">StructuredUnit</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Container for units for a structured Quantity.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    units : unit-like, tuple of unit-like, or `~astropy.units.StructuredUnit`</span>
+<span class="sd">        Tuples can be nested.  If a `~astropy.units.StructuredUnit` is passed</span>
+<span class="sd">        in, it will be returned unchanged unless different names are requested.</span>
+<span class="sd">    names : tuple of str, tuple or list; `~numpy.dtype`; or `~astropy.units.StructuredUnit`, optional</span>
+<span class="sd">        Field names for the units, possibly nested. Can be inferred from a</span>
+<span class="sd">        structured `~numpy.dtype` or another `~astropy.units.StructuredUnit`.</span>
+<span class="sd">        For nested tuples, by default the name of the upper entry will be the</span>
+<span class="sd">        concatenation of the names of the lower levels.  One can pass in a</span>
+<span class="sd">        list with the upper-level name and a tuple of lower-level names to</span>
+<span class="sd">        avoid this.  For tuples, not all levels have to be given; for any level</span>
+<span class="sd">        not passed in, default field names of &#39;f0&#39;, &#39;f1&#39;, etc., will be used.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    It is recommended to initialze the class indirectly, using</span>
+<span class="sd">    `~astropy.units.Unit`.  E.g., ``u.Unit(&#39;AU,AU/day&#39;)``.</span>
+
+<span class="sd">    When combined with a structured array to produce a structured</span>
+<span class="sd">    `~astropy.units.Quantity`, array field names will take precedence.</span>
+<span class="sd">    Generally, passing in ``names`` is needed only if the unit is used</span>
+<span class="sd">    unattached to a `~astropy.units.Quantity` and one needs to access its</span>
+<span class="sd">    fields.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    Various ways to initialize a `~astropy.units.StructuredUnit`::</span>
+
+<span class="sd">        &gt;&gt;&gt; import astropy.units as u</span>
+<span class="sd">        &gt;&gt;&gt; su = u.Unit(&#39;(AU,AU/day),yr&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; su</span>
+<span class="sd">        Unit(&quot;((AU, AU / d), yr)&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; su.field_names</span>
+<span class="sd">        ([&#39;f0&#39;, (&#39;f0&#39;, &#39;f1&#39;)], &#39;f1&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; su[&#39;f1&#39;]</span>
+<span class="sd">        Unit(&quot;yr&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; su2 = u.StructuredUnit(((u.AU, u.AU/u.day), u.yr), names=((&#39;p&#39;, &#39;v&#39;), &#39;t&#39;))</span>
+<span class="sd">        &gt;&gt;&gt; su2 == su</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; su2.field_names</span>
+<span class="sd">        ([&#39;pv&#39;, (&#39;p&#39;, &#39;v&#39;)], &#39;t&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; su3 = u.StructuredUnit((su2[&#39;pv&#39;], u.day), names=([&#39;p_v&#39;, (&#39;p&#39;, &#39;v&#39;)], &#39;t&#39;))</span>
+<span class="sd">        &gt;&gt;&gt; su3.field_names</span>
+<span class="sd">        ([&#39;p_v&#39;, (&#39;p&#39;, &#39;v&#39;)], &#39;t&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; su3.keys()</span>
+<span class="sd">        (&#39;p_v&#39;, &#39;t&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; su3.values()</span>
+<span class="sd">        (Unit(&quot;(AU, AU / d)&quot;), Unit(&quot;d&quot;))</span>
+
+<span class="sd">    Structured units share most methods with regular units::</span>
+
+<span class="sd">        &gt;&gt;&gt; su.physical_type</span>
+<span class="sd">        ((PhysicalType(&#39;length&#39;), PhysicalType({&#39;speed&#39;, &#39;velocity&#39;})), PhysicalType(&#39;time&#39;))</span>
+<span class="sd">        &gt;&gt;&gt; su.si</span>
+<span class="sd">        Unit(&quot;((1.49598e+11 m, 1.73146e+06 m / s), 3.15576e+07 s)&quot;)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">units</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">StructuredUnit</span><span class="p">):</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">_units</span><span class="o">.</span><span class="n">dtype</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">field_names</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">names</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;dtype should be structured, with fields.&#39;</span><span class="p">)</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="n">name</span><span class="p">,</span> <span class="n">DTYPE_OBJECT</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="o">.</span><span class="n">names</span><span class="p">])</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="n">_names_from_dtype</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                    <span class="n">names</span> <span class="o">=</span> <span class="p">(</span><span class="n">names</span><span class="p">,)</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="n">_normalize_names</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">units</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="n">StructuredUnit</span><span class="p">):</span>
+                <span class="c1"># Avoid constructing a new StructuredUnit if no field names</span>
+                <span class="c1"># are given, or if all field names are the same already anyway.</span>
+                <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">units</span><span class="o">.</span><span class="n">field_names</span> <span class="o">==</span> <span class="n">names</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">units</span>
+
+                <span class="c1"># Otherwise, turn (the upper level) into a tuple, for renaming.</span>
+                <span class="n">units</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Single regular unit: make a tuple for iteration below.</span>
+                <span class="n">units</span> <span class="o">=</span> <span class="p">(</span><span class="n">units</span><span class="p">,)</span>
+
+        <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;f</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">units</span><span class="p">)))</span>
+
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">units</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;lengths of units and field names must match.&quot;</span><span class="p">)</span>
+
+        <span class="n">converted</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">unit</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="c1"># For list, the first item is the name of our level,</span>
+                <span class="c1"># and the second another tuple of names, i.e., we recurse.</span>
+                <span class="n">unit</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># We are at the lowest level.  Check unit.</span>
+                <span class="n">unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">StructuredUnit</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;units do not match in depth with field &quot;</span>
+                                     <span class="s2">&quot;names from dtype or structured unit.&quot;</span><span class="p">)</span>
+
+            <span class="n">converted</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+
+        <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([((</span><span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">name</span><span class="p">),</span>
+                               <span class="n">DTYPE_OBJECT</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">])</span>
+        <span class="c1"># Decay array to void so we can access by field name and number.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_units</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">converted</span><span class="p">),</span> <span class="n">dtype</span><span class="p">)[()]</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__getnewargs__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;When de-serializing, e.g. pickle, start with a blank structure.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(),</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">field_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Possibly nested tuple of the field names of the parts.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(([</span><span class="n">name</span><span class="p">,</span> <span class="n">unit</span><span class="o">.</span><span class="n">field_names</span><span class="p">]</span>
+                      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">StructuredUnit</span><span class="p">)</span> <span class="k">else</span> <span class="n">name</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">unit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+    <span class="c1"># Allow StructuredUnit to be treated as an (ordered) mapping.</span>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_units</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="c1"># Since we are based on np.void, indexing by field number works too.</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+
+<div class="viewcode-block" id="StructuredUnit.values"><a class="viewcode-back" href="../../../api/astropy.units.StructuredUnit.html#astropy.units.StructuredUnit.values">[docs]</a>    <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units</span><span class="o">.</span><span class="n">item</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="StructuredUnit.keys"><a class="viewcode-back" href="../../../api/astropy.units.StructuredUnit.html#astropy.units.StructuredUnit.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span></div>
+
+<div class="viewcode-block" id="StructuredUnit.items"><a class="viewcode-back" href="../../../api/astropy.units.StructuredUnit.html#astropy.units.StructuredUnit.items">[docs]</a>    <span class="k">def</span> <span class="nf">items</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_units</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units</span><span class="o">.</span><span class="n">item</span><span class="p">()))</span></div>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_units</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+
+    <span class="c1"># Helpers for methods below.</span>
+    <span class="k">def</span> <span class="nf">_recursively_apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply func recursively.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        func : callable</span>
+<span class="sd">            Function to apply to all parts of the structured unit,</span>
+<span class="sd">            recursing as needed.</span>
+<span class="sd">        cls : type, optional</span>
+<span class="sd">            If given, should be a subclass of `~numpy.void`. By default,</span>
+<span class="sd">            will return a new `~astropy.units.StructuredUnit` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="n">func</span><span class="p">(</span><span class="n">part</span><span class="p">)</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()]),</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">_units</span><span class="o">.</span><span class="n">dtype</span><span class="p">)[()]</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">results</span><span class="o">.</span><span class="n">view</span><span class="p">((</span><span class="bp">cls</span><span class="p">,</span> <span class="n">results</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+
+        <span class="c1"># Short-cut; no need to interpret field names, etc.</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">_units</span> <span class="o">=</span> <span class="n">results</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_recursively_get_dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">enter_lists</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get structured dtype according to value, using our field names.</span>
+
+<span class="sd">        This is useful since ``np.array(value)`` would treat tuples as lower</span>
+<span class="sd">        levels of the array, rather than as elements of a structured array.</span>
+<span class="sd">        The routine does presume that the type of the first tuple is</span>
+<span class="sd">        representative of the rest.  Used in ``_get_converter``.</span>
+
+<span class="sd">        For the special value of ``UNITY``, all fields are assumed to be 1.0,</span>
+<span class="sd">        and hence this will return an all-float dtype.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">enter_lists</span><span class="p">:</span>
+            <span class="k">while</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="n">UNITY</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="n">UNITY</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cannot interpret value </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2"> for unit </span><span class="si">{</span><span class="bp">self</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="n">descr</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">unit</span><span class="p">),</span> <span class="n">part</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">value</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">StructuredUnit</span><span class="p">):</span>
+                <span class="n">descr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">unit</span><span class="o">.</span><span class="n">_recursively_get_dtype</span><span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="n">enter_lists</span><span class="o">=</span><span class="kc">False</span><span class="p">)))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Got a part associated with a regular unit. Gets its dtype.</span>
+                <span class="c1"># Like for Quantity, we cast integers to float.</span>
+                <span class="n">part</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+                <span class="n">part_dtype</span> <span class="o">=</span> <span class="n">part</span><span class="o">.</span><span class="n">dtype</span>
+                <span class="k">if</span> <span class="n">part_dtype</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="s1">&#39;iu&#39;</span><span class="p">:</span>
+                    <span class="n">part_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+                <span class="n">descr</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">part_dtype</span><span class="p">,</span> <span class="n">part</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">descr</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">si</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The `StructuredUnit` instance in SI units.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recursively_apply</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">attrgetter</span><span class="p">(</span><span class="s1">&#39;si&#39;</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The `StructuredUnit` instance in cgs units.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recursively_apply</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">attrgetter</span><span class="p">(</span><span class="s1">&#39;cgs&#39;</span><span class="p">))</span>
+
+    <span class="c1"># Needed to pass through Unit initializer, so might as well use it.</span>
+    <span class="k">def</span> <span class="nf">_get_physical_type_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recursively_apply</span><span class="p">(</span>
+            <span class="n">operator</span><span class="o">.</span><span class="n">methodcaller</span><span class="p">(</span><span class="s1">&#39;_get_physical_type_id&#39;</span><span class="p">),</span> <span class="bp">cls</span><span class="o">=</span><span class="n">Structure</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">physical_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Physical types of all the fields.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recursively_apply</span><span class="p">(</span>
+            <span class="n">operator</span><span class="o">.</span><span class="n">attrgetter</span><span class="p">(</span><span class="s1">&#39;physical_type&#39;</span><span class="p">),</span> <span class="bp">cls</span><span class="o">=</span><span class="n">Structure</span><span class="p">)</span>
+
+<div class="viewcode-block" id="StructuredUnit.decompose"><a class="viewcode-back" href="../../../api/astropy.units.StructuredUnit.html#astropy.units.StructuredUnit.decompose">[docs]</a>    <span class="k">def</span> <span class="nf">decompose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bases</span><span class="o">=</span><span class="nb">set</span><span class="p">()):</span>
+        <span class="sd">&quot;&quot;&quot;The `StructuredUnit` composed of only irreducible units.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        bases : sequence of `~astropy.units.UnitBase`, optional</span>
+<span class="sd">            The bases to decompose into.  When not provided,</span>
+<span class="sd">            decomposes down to any irreducible units.  When provided,</span>
+<span class="sd">            the decomposed result will only contain the given units.</span>
+<span class="sd">            This will raises a `UnitsError` if it&#39;s not possible</span>
+<span class="sd">            to do so.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        `~astropy.units.StructuredUnit`</span>
+<span class="sd">            With the unit for each field containing only irreducible units.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recursively_apply</span><span class="p">(</span>
+            <span class="n">operator</span><span class="o">.</span><span class="n">methodcaller</span><span class="p">(</span><span class="s1">&#39;decompose&#39;</span><span class="p">,</span> <span class="n">bases</span><span class="o">=</span><span class="n">bases</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="StructuredUnit.is_equivalent"><a class="viewcode-back" href="../../../api/astropy.units.StructuredUnit.html#astropy.units.StructuredUnit.is_equivalent">[docs]</a>    <span class="k">def</span> <span class="nf">is_equivalent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;`True` if all fields are equivalent to the other&#39;s fields.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : `~astropy.units.StructuredUnit`</span>
+<span class="sd">            The structured unit to compare with, or what can initialize one.</span>
+<span class="sd">        equivalencies : list of tuple, optional</span>
+<span class="sd">            A list of equivalence pairs to try if the units are not</span>
+<span class="sd">            directly convertible.  See :ref:`unit_equivalencies`.</span>
+<span class="sd">            The list will be applied to all fields.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">StructuredUnit</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">self_part</span><span class="p">,</span> <span class="n">other_part</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">self_part</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">other_part</span><span class="p">,</span>
+                                           <span class="n">equivalencies</span><span class="o">=</span><span class="n">equivalencies</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_converter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">converters</span> <span class="o">=</span> <span class="p">[</span><span class="n">self_part</span><span class="o">.</span><span class="n">_get_converter</span><span class="p">(</span><span class="n">other_part</span><span class="p">,</span>
+                                               <span class="n">equivalencies</span><span class="o">=</span><span class="n">equivalencies</span><span class="p">)</span>
+                      <span class="k">for</span> <span class="p">(</span><span class="n">self_part</span><span class="p">,</span> <span class="n">other_part</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span>
+                                                         <span class="n">other</span><span class="o">.</span><span class="n">values</span><span class="p">())]</span>
+
+        <span class="k">def</span> <span class="nf">converter</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;dtype&#39;</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recursively_get_dtype</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">converter_</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">,</span> <span class="n">converters</span><span class="p">):</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">converter_</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+            <span class="c1"># Index with empty tuple to decay array scalars to numpy void.</span>
+            <span class="k">return</span> <span class="n">result</span> <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">shape</span> <span class="k">else</span> <span class="n">result</span><span class="p">[()]</span>
+
+        <span class="k">return</span> <span class="n">converter</span>
+
+<div class="viewcode-block" id="StructuredUnit.to"><a class="viewcode-back" href="../../../api/astropy.units.StructuredUnit.html#astropy.units.StructuredUnit.to">[docs]</a>    <span class="k">def</span> <span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">_NoValue</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;Return values converted to the specified unit.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : `~astropy.units.StructuredUnit`</span>
+<span class="sd">            The unit to convert to.  If necessary, will be converted to</span>
+<span class="sd">            a `~astropy.units.StructuredUnit` using the dtype of ``value``.</span>
+<span class="sd">        value : array-like, optional</span>
+<span class="sd">            Value(s) in the current unit to be converted to the</span>
+<span class="sd">            specified unit.  If a sequence, the first element must have</span>
+<span class="sd">            entries of the correct type to represent all elements (i.e.,</span>
+<span class="sd">            not have, e.g., a ``float`` where other elements have ``complex``).</span>
+<span class="sd">            If not given, assumed to have 1. in all fields.</span>
+<span class="sd">        equivalencies : list of tuple, optional</span>
+<span class="sd">            A list of equivalence pairs to try if the units are not</span>
+<span class="sd">            directly convertible.  See :ref:`unit_equivalencies`.</span>
+<span class="sd">            This list is in addition to possible global defaults set by, e.g.,</span>
+<span class="sd">            `set_enabled_equivalencies`.</span>
+<span class="sd">            Use `None` to turn off all equivalencies.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        values : scalar or array</span>
+<span class="sd">            Converted value(s).</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        UnitsError</span>
+<span class="sd">            If units are inconsistent</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">_NoValue</span><span class="p">:</span>
+            <span class="c1"># We do not have UNITY as a default, since then the docstring</span>
+            <span class="c1"># would list 1.0 as default, yet one could not pass that in.</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">UNITY</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_converter</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">equivalencies</span><span class="p">)(</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StructuredUnit.to_string"><a class="viewcode-back" href="../../../api/astropy.units.StructuredUnit.html#astropy.units.StructuredUnit.to_string">[docs]</a>    <span class="k">def</span> <span class="nf">to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;generic&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Output the unit in the given format as a string.</span>
+
+<span class="sd">        Units are separated by commas.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        format : `astropy.units.format.Base` instance or str</span>
+<span class="sd">            The name of a format or a formatter object.  If not</span>
+<span class="sd">            provided, defaults to the generic format.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Structured units can be written to all formats, but can be</span>
+<span class="sd">        re-read only with &#39;generic&#39;.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="n">part</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="nb">format</span><span class="p">)</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+        <span class="n">out_fmt</span> <span class="o">=</span> <span class="s1">&#39;(</span><span class="si">{}</span><span class="s1">)&#39;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;(</span><span class="si">{}</span><span class="s1">,)&#39;</span>
+        <span class="k">if</span> <span class="nb">format</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">):</span>
+            <span class="c1"># Strip $ from parts and add them on the outside.</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="n">part</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">parts</span><span class="p">]</span>
+            <span class="n">out_fmt</span> <span class="o">=</span> <span class="s1">&#39;$&#39;</span> <span class="o">+</span> <span class="n">out_fmt</span> <span class="o">+</span> <span class="s1">&#39;$&#39;</span>
+        <span class="k">return</span> <span class="n">out_fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_repr_latex_</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">)</span>
+
+    <span class="n">__array_ufunc__</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">other</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">parse_strict</span><span class="o">=</span><span class="s1">&#39;silent&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">UnitBase</span><span class="p">):</span>
+            <span class="n">new_units</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">part</span> <span class="o">*</span> <span class="n">other</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">new_units</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">StructuredUnit</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+        <span class="c1"># Anything not like a unit, try initialising as a structured quantity.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">.quantity</span> <span class="kn">import</span> <span class="n">Quantity</span>
+            <span class="k">return</span> <span class="n">Quantity</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="fm">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">other</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">parse_strict</span><span class="o">=</span><span class="s1">&#39;silent&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">UnitBase</span><span class="p">):</span>
+            <span class="n">new_units</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">part</span> <span class="o">/</span> <span class="n">other</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">new_units</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="fm">__rlshift__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">.quantity</span> <span class="kn">import</span> <span class="n">Quantity</span>
+            <span class="k">return</span> <span class="n">Quantity</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">subok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;Unit(&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span><span class="si">}</span><span class="s1">&quot;)&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">StructuredUnit</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">other</span> <span class="o">=</span> <span class="n">StructuredUnit</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">values</span><span class="p">()</span></div>
+
+
+<span class="k">class</span> <span class="nc">Structure</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Single element structure for physical type IDs, etc.</span>
+
+<span class="sd">    Behaves like a `~numpy.void` and thus mostly like a tuple which can also</span>
+<span class="sd">    be indexed with field names, but overrides ``__eq__`` and ``__ne__`` to</span>
+<span class="sd">    compare only the contents, not the field names.  Furthermore, this way no</span>
+<span class="sd">    `FutureWarning` about comparisons is given.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Note that it is important for physical type IDs to not be stored in a</span>
+    <span class="c1"># tuple, since then the physical types would be treated as alternatives in</span>
+    <span class="c1"># :meth:`~astropy.units.UnitBase.is_equivalent`.  (Of course, in that</span>
+    <span class="c1"># case, they could also not be indexed by name.)</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">==</span> <span class="n">other</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">void</span><span class="p">):</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">!=</span> <span class="n">other</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

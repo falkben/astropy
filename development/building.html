@@ -1,0 +1,164 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Building Astropy and its Subpackages &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="C or Cython Extensions" href="ccython.html" />
+    <link rel="prev" title="Writing Command-Line Scripts" href="scripts.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="ccython.html" title="C or Cython Extensions">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="scripts.html" title="Writing Command-Line Scripts">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      
+      <li>Building Astropy and its Subpackages</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="building-astropy-and-its-subpackages">
+<span id="dev-build-astropy-subpkg"></span><h1>Building Astropy and its Subpackages<a class="headerlink" href="#building-astropy-and-its-subpackages" title="Permalink to this headline">¶</a></h1>
+<p>The build process currently uses the <a class="reference external" href="https://setuptools.readthedocs.io">setuptools</a> package to build and install the astropy
+core (and any affiliated packages that use the template). As is typical, there
+is a single <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> file that is used for the whole <code class="docutils literal notranslate"><span class="pre">astropy</span></code> package. To
+make it easier to set up C extensions for individual sub-packages, we use
+<a class="reference external" href="https://extension-helpers.readthedocs.io/">extension-helpers</a>, which allows
+extensions to be defined inside each sub-package.</p>
+<p>The way extension-helpers works is that it looks for <code class="docutils literal notranslate"><span class="pre">setup_package.py</span></code> files
+anywhere in the package, and then looks for a function called <code class="docutils literal notranslate"><span class="pre">get_extensions</span></code>
+inside each of these files. This function should return a list of
+<code class="docutils literal notranslate"><span class="pre">setuptools.Extension</span></code> objects, and these are combined into an
+overall list of extensions to build.</p>
+<p>For certain string-parsing tasks, Astropy uses the
+<a class="reference external" href="http://www.dabeaz.com/ply/">PLY</a> tool.  PLY generates tables that speed up
+the parsing process, which are checked into source code so they don’t have to
+be regenerated.  These tables can be recognized by having either <code class="docutils literal notranslate"><span class="pre">lextab</span></code> or
+<code class="docutils literal notranslate"><span class="pre">parsetab</span></code> in their names.  To regenerate these files (e.g. if a new version
+of PLY is bundled with Astropy or some of the parsing code changes), the tables
+need to be deleted and the appropriate parts of astropy re-imported and run. For
+exact details, see the comments in the headers of the <code class="docutils literal notranslate"><span class="pre">parsetab</span></code> and
+<code class="docutils literal notranslate"><span class="pre">lextab</span></code> files.</p>
+<div class="section" id="building-on-windows">
+<span id="dev-build-astropy-subpkg-win"></span><h2>Building on Windows<a class="headerlink" href="#building-on-windows" title="Permalink to this headline">¶</a></h2>
+<p>The most convenient option is to use Python installation from Miniconda. If you like
+Unix-like commands, Git Bash, which comes installed with Git, complements
+Miniconda pretty well, as long as Miniconda is installed with the option for
+it to be available system-wide (the option that is not recommended by the
+installer).</p>
+<p>Since <code class="docutils literal notranslate"><span class="pre">astropy</span></code> contains C extensions, you also need to install Microsoft
+Visual Studio (the latest available should work) so Python can access the
+system C compiler.</p>
+<p>Once everything is set up as above, you can proceed to build <code class="docutils literal notranslate"><span class="pre">astropy</span></code>
+from source in the <code class="docutils literal notranslate"><span class="pre">conda</span></code> environment in an OS-agnostic way. For example:</p>
+<ul class="simple">
+<li><p>Create a new <code class="docutils literal notranslate"><span class="pre">conda</span></code> environment.</p></li>
+<li><p>Go to the <code class="docutils literal notranslate"><span class="pre">astropy</span></code> code checkout directory.</p></li>
+<li><p>If you have not already, fetch all of the tags from the main repository.
+If you do not have the latest tag, your developer version number will be
+wrong.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span></code> to build <code class="docutils literal notranslate"><span class="pre">astropy</span></code>.</p></li>
+</ul>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Building Astropy and its Subpackages</a><ul>
+<li><a class="reference internal" href="#building-on-windows">Building on Windows</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/development/building.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

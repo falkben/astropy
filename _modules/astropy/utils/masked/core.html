@@ -1,0 +1,1253 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.utils.masked.core &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.utils.masked.core</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Built-in mask mixin class.</span>
+
+<span class="sd">The design uses `Masked` as a factory class which automatically</span>
+<span class="sd">generates new subclasses for any data class that is itself a</span>
+<span class="sd">subclass of a predefined masked class, with `MaskedNDArray`</span>
+<span class="sd">providing such a predefined class for `~numpy.ndarray`.</span>
+
+<span class="sd">Generally, any new predefined class should override the</span>
+<span class="sd">``from_unmasked(data, mask, copy=False)`` class method that</span>
+<span class="sd">creates an instance from unmasked data and a mask, as well as</span>
+<span class="sd">the ``unmasked`` property that returns just the data.</span>
+<span class="sd">The `Masked` class itself provides a base ``mask`` property,</span>
+<span class="sd">which can also be overridden if needed.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">builtins</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy.utils.shapes</span> <span class="kn">import</span> <span class="n">NDArrayShapeMethods</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.data_info</span> <span class="kn">import</span> <span class="n">ParentDtypeInfo</span>
+
+<span class="kn">from</span> <span class="nn">.function_helpers</span> <span class="kn">import</span> <span class="p">(</span><span class="n">MASKED_SAFE_FUNCTIONS</span><span class="p">,</span>
+                               <span class="n">APPLY_TO_BOTH_FUNCTIONS</span><span class="p">,</span>
+                               <span class="n">DISPATCHED_FUNCTIONS</span><span class="p">,</span>
+                               <span class="n">UNSUPPORTED_FUNCTIONS</span><span class="p">)</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Masked&#39;</span><span class="p">,</span> <span class="s1">&#39;MaskedNDArray&#39;</span><span class="p">]</span>
+
+
+<span class="n">get__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;Masked version of </span><span class="si">{0.__name__}</span><span class="s2">.</span>
+
+<span class="s2">Except for the ability to pass in a ``mask``, parameters are</span>
+<span class="s2">as for `</span><span class="si">{0.__module__}</span><span class="s2">.</span><span class="si">{0.__name__}</span><span class="s2">`.</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span>
+
+
+<div class="viewcode-block" id="Masked"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.Masked.html#astropy.utils.masked.Masked">[docs]</a><span class="k">class</span> <span class="nc">Masked</span><span class="p">(</span><span class="n">NDArrayShapeMethods</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A scalar value or array of values with associated mask.</span>
+
+<span class="sd">    The resulting instance will take its exact type from whatever the</span>
+<span class="sd">    contents are, with the type generated on the fly as needed.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : array-like</span>
+<span class="sd">        The data for which a mask is to be added.  The result will be a</span>
+<span class="sd">        a subclass of the type of ``data``.</span>
+<span class="sd">    mask : array-like of bool, optional</span>
+<span class="sd">        The initial mask to assign.  If not given, taken from the data.</span>
+<span class="sd">    copy : bool</span>
+<span class="sd">        Whether the data and mask should be copied. Default: `False`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_base_classes</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="sd">&quot;&quot;&quot;Explicitly defined masked classes keyed by their unmasked counterparts.</span>
+
+<span class="sd">    For subclasses of these unmasked classes, masked counterparts can be generated.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_masked_classes</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="sd">&quot;&quot;&quot;Masked classes keyed by their unmasked data counterparts.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="ow">is</span> <span class="n">Masked</span><span class="p">:</span>
+            <span class="c1"># Initializing with Masked itself means we&#39;re in &quot;factory mode&quot;.</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">type</span><span class="p">):</span>
+                <span class="c1"># Create a new masked class.</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_masked_cls</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_masked_instance</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Otherwise we&#39;re a subclass and should just pass information on.</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init_subclass__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">base_cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data_cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Register a Masked subclass.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        base_cls : type, optional</span>
+<span class="sd">            If given, it is taken to mean that ``cls`` can be used as</span>
+<span class="sd">            a base for masked versions of all subclasses of ``base_cls``,</span>
+<span class="sd">            so it is registered as such in ``_base_classes``.</span>
+<span class="sd">        data_cls : type, optional</span>
+<span class="sd">            If given, ``cls`` should will be registered as the masked version of</span>
+<span class="sd">            ``data_cls``.  Will set the private ``cls._data_cls`` attribute,</span>
+<span class="sd">            and auto-generate a docstring if not present already.</span>
+<span class="sd">        **kwargs</span>
+<span class="sd">            Passed on for possible further initialization by superclasses.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">base_cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">Masked</span><span class="o">.</span><span class="n">_base_classes</span><span class="p">[</span><span class="n">base_cls</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
+
+        <span class="k">if</span> <span class="n">data_cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_data_cls</span> <span class="o">=</span> <span class="n">data_cls</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_masked_classes</span><span class="p">[</span><span class="n">data_cls</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
+            <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__doc__</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">get__doc__</span><span class="p">(</span><span class="n">data_cls</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init_subclass__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># This base implementation just uses the class initializer.</span>
+    <span class="c1"># Subclasses can override this in case the class does not work</span>
+    <span class="c1"># with this signature, or to provide a faster implementation.</span>
+<div class="viewcode-block" id="Masked.from_unmasked"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.Masked.html#astropy.utils.masked.Masked.from_unmasked">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_unmasked</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create an instance from unmasked data and a mask.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">)</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_masked_instance</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">data_mask</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_data_and_mask</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="kc">False</span> <span class="k">if</span> <span class="n">data_mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">data_mask</span>
+
+        <span class="n">masked_cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_masked_cls</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">masked_cls</span><span class="o">.</span><span class="n">from_unmasked</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">copy</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_masked_cls</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data_cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the masked wrapper for a given data class.</span>
+
+<span class="sd">        If the data class does not exist yet but is a subclass of any of the</span>
+<span class="sd">        registered base data classes, it is automatically generated</span>
+<span class="sd">        (except we skip `~numpy.ma.MaskedArray` subclasses, since then the</span>
+<span class="sd">        masking mechanisms would interfere).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">data_cls</span><span class="p">,</span> <span class="p">(</span><span class="n">Masked</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">data_cls</span>
+
+        <span class="n">masked_cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_masked_classes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data_cls</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">masked_cls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Walk through MRO and find closest base data class.</span>
+            <span class="c1"># Note: right now, will basically always be ndarray, but</span>
+            <span class="c1"># one could imagine needing some special care for one subclass,</span>
+            <span class="c1"># which would then get its own entry.  E.g., if MaskedAngle</span>
+            <span class="c1"># defined something special, then MaskedLongitude should depend</span>
+            <span class="c1"># on it.</span>
+            <span class="k">for</span> <span class="n">mro_item</span> <span class="ow">in</span> <span class="n">data_cls</span><span class="o">.</span><span class="vm">__mro__</span><span class="p">:</span>
+                <span class="n">base_cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_base_classes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">mro_item</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">base_cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Just hope that MaskedNDArray can handle it.</span>
+                <span class="c1"># TODO: this covers the case where a user puts in a list or so,</span>
+                <span class="c1"># but for those one could just explicitly do something like</span>
+                <span class="c1"># _masked_classes[list] = MaskedNDArray.</span>
+                <span class="k">return</span> <span class="n">MaskedNDArray</span>
+
+            <span class="c1"># Create (and therefore register) new Masked subclass for the</span>
+            <span class="c1"># given data_cls.</span>
+            <span class="n">masked_cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="s1">&#39;Masked&#39;</span> <span class="o">+</span> <span class="n">data_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                              <span class="p">(</span><span class="n">data_cls</span><span class="p">,</span> <span class="n">base_cls</span><span class="p">),</span> <span class="p">{},</span> <span class="n">data_cls</span><span class="o">=</span><span class="n">data_cls</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">masked_cls</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_data_and_mask</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">allow_ma_masked</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Split data into unmasked and mask, if present.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : array-like</span>
+<span class="sd">            Possibly masked item, judged by whether it has a ``mask`` attribute.</span>
+<span class="sd">            If so, checks for being an instance of `~astropy.utils.masked.Masked`</span>
+<span class="sd">            or `~numpy.ma.MaskedArray`, and gets unmasked data appropriately.</span>
+<span class="sd">        allow_ma_masked : bool, optional</span>
+<span class="sd">            Whether or not to process `~numpy.ma.masked`, i.e., an item that</span>
+<span class="sd">            implies no data but the presence of a mask.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        unmasked, mask : array-like</span>
+<span class="sd">            Unmasked will be `None` for `~numpy.ma.masked`.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If `~numpy.ma.masked` is passed in and ``allow_ma_masked`` is not set.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;mask&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">unmasked</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span><span class="p">):</span>
+                    <span class="k">raise</span>
+                <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">allow_ma_masked</span><span class="p">:</span>
+                        <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cannot handle np.ma.masked here.&#39;</span><span class="p">)</span> <span class="kn">from</span> <span class="bp">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">data</span>
+
+        <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">mask</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_data_and_masks</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">data_masks</span> <span class="o">=</span> <span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">_get_data_and_mask</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">data</span> <span class="k">for</span> <span class="n">data</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">data_masks</span><span class="p">),</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="n">mask</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="n">data_masks</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_get_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The mask.</span>
+
+<span class="sd">        If set, replace the original mask, with whatever it is set with,</span>
+<span class="sd">        using a view if no broadcasting or type conversion is required.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span>
+
+    <span class="k">def</span> <span class="nf">_set_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">self_dtype</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;dtype&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">mask_dtype</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">make_mask_descr</span><span class="p">(</span><span class="n">self_dtype</span><span class="p">)</span>
+                      <span class="k">if</span> <span class="n">self_dtype</span> <span class="ow">and</span> <span class="n">self_dtype</span><span class="o">.</span><span class="n">names</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;?&#39;</span><span class="p">))</span>
+        <span class="n">ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">mask_dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ma</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="c1"># This will fail (correctly) if not broadcastable.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">mask_dtype</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">ma</span>
+        <span class="k">elif</span> <span class="n">ma</span> <span class="ow">is</span> <span class="n">mask</span><span class="p">:</span>
+            <span class="c1"># Even if not copying use a view so that shape setting</span>
+            <span class="c1"># does not propagate.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">if</span> <span class="n">copy</span> <span class="k">else</span> <span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="n">ma</span>
+
+    <span class="n">mask</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_get_mask</span><span class="p">,</span> <span class="n">_set_mask</span><span class="p">)</span>
+
+    <span class="c1"># Note: subclass should generally override the unmasked property.</span>
+    <span class="c1"># This one assumes the unmasked data is stored in a private attribute.</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">unmasked</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The unmasked values.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        astropy.utils.masked.Masked.filled</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unmasked</span>
+
+<div class="viewcode-block" id="Masked.filled"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.Masked.html#astropy.utils.masked.Masked.filled">[docs]</a>    <span class="k">def</span> <span class="nf">filled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get a copy of the underlying data, with masked values filled in.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fill_value : object</span>
+<span class="sd">            Value to replace masked values with.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        astropy.utils.masked.Masked.unmasked</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">unmasked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unmasked</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">_recursive_filled</span><span class="p">(</span><span class="n">unmasked</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">unmasked</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">fill_value</span>
+
+        <span class="k">return</span> <span class="n">unmasked</span></div>
+
+    <span class="k">def</span> <span class="nf">_apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># Required method for NDArrayShapeMethods, to help provide __getitem__</span>
+        <span class="c1"># and shape-changing methods.</span>
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">method</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unmasked</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">method</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unmasked</span><span class="p">,</span> <span class="n">method</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="n">method</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_unmasked</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;info&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">value</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data_and_mask</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">allow_ma_masked</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unmasked</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span></div>
+
+
+<span class="k">class</span> <span class="nc">MaskedInfoBase</span><span class="p">:</span>
+    <span class="n">mask_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">bound</span><span class="p">)</span>
+
+        <span class="c1"># If bound to a data object instance then create the dict of attributes</span>
+        <span class="c1"># which stores the info attribute values.</span>
+        <span class="k">if</span> <span class="n">bound</span><span class="p">:</span>
+            <span class="c1"># Specify how to serialize this object depending on context.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">serialize_method</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;fits&#39;</span><span class="p">:</span> <span class="s1">&#39;null_value&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;ecsv&#39;</span><span class="p">:</span> <span class="s1">&#39;null_value&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;hdf5&#39;</span><span class="p">:</span> <span class="s1">&#39;data_mask&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;parquet&#39;</span><span class="p">:</span> <span class="s1">&#39;data_mask&#39;</span><span class="p">,</span>
+                                     <span class="kc">None</span><span class="p">:</span> <span class="s1">&#39;null_value&#39;</span><span class="p">}</span>
+
+
+<span class="k">class</span> <span class="nc">MaskedNDArrayInfo</span><span class="p">(</span><span class="n">MaskedInfoBase</span><span class="p">,</span> <span class="n">ParentDtypeInfo</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for meta information like name, description, format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Add `serialize_method` attribute to the attrs that MaskedNDArrayInfo knows</span>
+    <span class="c1"># about.  This allows customization of the way that MaskedColumn objects</span>
+    <span class="c1"># get written to file depending on format.  The default is to use whatever</span>
+    <span class="c1"># the writer would normally do, which in the case of FITS or ECSV is to use</span>
+    <span class="c1"># a NULL value within the data itself.  If serialize_method is &#39;data_mask&#39;</span>
+    <span class="c1"># then the mask is explicitly written out as a separate column if there</span>
+    <span class="c1"># are any masked values.  This is the same as for MaskedColumn.</span>
+    <span class="n">attr_names</span> <span class="o">=</span> <span class="n">ParentDtypeInfo</span><span class="o">.</span><span class="n">attr_names</span> <span class="o">|</span> <span class="p">{</span><span class="s1">&#39;serialize_method&#39;</span><span class="p">}</span>
+
+    <span class="c1"># When `serialize_method` is &#39;data_mask&#39;, and data and mask are being written</span>
+    <span class="c1"># as separate columns, use column names &lt;name&gt; and &lt;name&gt;.mask (instead</span>
+    <span class="c1"># of default encoding as &lt;name&gt;.data and &lt;name&gt;.mask).</span>
+    <span class="n">_represent_as_dict_primary_data</span> <span class="o">=</span> <span class="s1">&#39;data&#39;</span>
+
+    <span class="k">def</span> <span class="nf">_represent_as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_represent_as_dict</span><span class="p">()</span>
+
+        <span class="n">masked_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span>
+
+        <span class="c1"># If the serialize method for this context (e.g. &#39;fits&#39; or &#39;ecsv&#39;) is</span>
+        <span class="c1"># &#39;data_mask&#39;, that means to serialize using an explicit mask column.</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialize_method</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_serialize_context</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;data_mask&#39;</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">masked_array</span><span class="o">.</span><span class="n">unmasked</span>
+
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">masked_array</span><span class="o">.</span><span class="n">mask</span><span class="p">):</span>
+                <span class="c1"># Only if there are actually masked elements do we add the ``mask`` column</span>
+                <span class="n">out</span><span class="p">[</span><span class="s1">&#39;mask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">masked_array</span><span class="o">.</span><span class="n">mask</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;null_value&#39;</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">MaskedArray</span><span class="p">(</span><span class="n">masked_array</span><span class="o">.</span><span class="n">unmasked</span><span class="p">,</span>
+                                            <span class="n">mask</span><span class="o">=</span><span class="n">masked_array</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;serialize method must be either &quot;data_mask&quot; or &quot;null_value&quot;&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">def</span> <span class="nf">_construct_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">map</span><span class="p">):</span>
+        <span class="c1"># Override usual handling, since MaskedNDArray takes shape and buffer</span>
+        <span class="c1"># as input, which is less useful here.</span>
+        <span class="c1"># The map can contain either a MaskedColumn or a Column and a mask.</span>
+        <span class="c1"># Extract the mask for the former case.</span>
+        <span class="nb">map</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">map</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">],</span> <span class="s1">&#39;mask&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent_cls</span><span class="o">.</span><span class="n">from_unmasked</span><span class="p">(</span><span class="o">**</span><span class="nb">map</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">MaskedArraySubclassInfo</span><span class="p">(</span><span class="n">MaskedInfoBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Mixin class to create a subclasses such as MaskedQuantityInfo.&quot;&quot;&quot;</span>
+    <span class="c1"># This is used below in __init_subclass__, which also inserts a</span>
+    <span class="c1"># &#39;serialize_method&#39; attribute in attr_names.</span>
+
+    <span class="k">def</span> <span class="nf">_represent_as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Use the data_cls as the class name for serialization,</span>
+        <span class="c1"># so that we do not have to store all possible masked classes</span>
+        <span class="c1"># in astropy.table.serialize.__construct_mixin_classes.</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_represent_as_dict</span><span class="p">()</span>
+        <span class="n">data_cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span><span class="o">.</span><span class="n">_data_cls</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;__class__&#39;</span><span class="p">,</span>
+                       <span class="n">data_cls</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">data_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span> <span class="nf">_comparison_method</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a comparison operator for MaskedNDArray.</span>
+
+<span class="sd">    Needed since for string dtypes the base operators bypass __array_ufunc__</span>
+<span class="sd">    and hence return unmasked results.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">other_data</span><span class="p">,</span> <span class="n">other_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data_and_mask</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unmasked</span><span class="p">,</span> <span class="n">op</span><span class="p">)(</span><span class="n">other_data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="bp">NotImplemented</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">|</span> <span class="p">(</span><span class="n">other_mask</span> <span class="k">if</span> <span class="n">other_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_masked_result</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_compare</span>
+
+
+<span class="k">class</span> <span class="nc">MaskedIterator</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Flat iterator object to iterate over Masked Arrays.</span>
+
+<span class="sd">    A `~astropy.utils.masked.MaskedIterator` iterator is returned by ``m.flat``</span>
+<span class="sd">    for any masked array ``m``.  It allows iterating over the array as if it</span>
+<span class="sd">    were a 1-D array, either in a for-loop or by calling its `next` method.</span>
+
+<span class="sd">    Iteration is done in C-contiguous style, with the last index varying the</span>
+<span class="sd">    fastest. The iterator can also be indexed using basic slicing or</span>
+<span class="sd">    advanced indexing.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The design of `~astropy.utils.masked.MaskedIterator` follows that of</span>
+<span class="sd">    `~numpy.ma.core.MaskedIterator`.  It is not exported by the</span>
+<span class="sd">    `~astropy.utils.masked` module.  Instead of instantiating directly,</span>
+<span class="sd">    use the ``flat`` method in the masked array instance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_masked</span> <span class="o">=</span> <span class="n">m</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dataiter</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">unmasked</span><span class="o">.</span><span class="n">flat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_maskiter</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">flat</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indx</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataiter</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">indx</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maskiter</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">indx</span><span class="p">)</span>
+        <span class="c1"># For single elements, ndarray.flat.__getitem__ returns scalars; these</span>
+        <span class="c1"># need a new view as a Masked array.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="o">...</span><span class="p">]</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="p">[</span><span class="o">...</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_masked</span><span class="o">.</span><span class="n">from_unmasked</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_masked</span><span class="o">.</span><span class="n">_get_data_and_mask</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">allow_ma_masked</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dataiter</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_maskiter</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+
+    <span class="k">def</span> <span class="fm">__next__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the next value, or raise StopIteration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dataiter</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_maskiter</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_masked</span><span class="o">.</span><span class="n">from_unmasked</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="nb">next</span> <span class="o">=</span> <span class="fm">__next__</span>
+
+
+<div class="viewcode-block" id="MaskedNDArray"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray">[docs]</a><span class="k">class</span> <span class="nc">MaskedNDArray</span><span class="p">(</span><span class="n">Masked</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">base_cls</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">data_cls</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+    <span class="n">_mask</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">info</span> <span class="o">=</span> <span class="n">MaskedNDArrayInfo</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get data class instance from arguments and then set mask.&quot;&quot;&quot;</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__init_subclass__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init_subclass__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># For all subclasses we should set a default __new__ that passes on</span>
+        <span class="c1"># arguments other than mask to the data class, and then sets the mask.</span>
+        <span class="k">if</span> <span class="s1">&#39;__new__&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="n">newcls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="sd">&quot;&quot;&quot;Get data class instance from arguments and then set mask.&quot;&quot;&quot;</span>
+                <span class="c1"># Need to explicitly mention classes outside of class definition.</span>
+                <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">newcls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">newcls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">return</span> <span class="bp">self</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="fm">__new__</span> <span class="o">=</span> <span class="fm">__new__</span>
+
+        <span class="k">if</span> <span class="s1">&#39;info&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_data_cls</span><span class="p">,</span> <span class="s1">&#39;info&#39;</span><span class="p">):</span>
+            <span class="n">data_info</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_data_cls</span><span class="o">.</span><span class="n">info</span>
+            <span class="n">attr_names</span> <span class="o">=</span> <span class="n">data_info</span><span class="o">.</span><span class="n">attr_names</span> <span class="o">|</span> <span class="p">{</span><span class="s1">&#39;serialize_method&#39;</span><span class="p">}</span>
+            <span class="n">new_info</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="o">+</span><span class="s1">&#39;Info&#39;</span><span class="p">,</span>
+                            <span class="p">(</span><span class="n">MaskedArraySubclassInfo</span><span class="p">,</span> <span class="n">data_info</span><span class="o">.</span><span class="vm">__class__</span><span class="p">),</span>
+                            <span class="nb">dict</span><span class="p">(</span><span class="n">attr_names</span><span class="o">=</span><span class="n">attr_names</span><span class="p">))</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">new_info</span><span class="p">()</span>
+
+    <span class="c1"># The two pieces typically overridden.</span>
+<div class="viewcode-block" id="MaskedNDArray.from_unmasked"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.from_unmasked">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_unmasked</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># Note: have to override since __new__ would use ndarray.__new__</span>
+        <span class="c1"># which expects the shape as its first argument, not an array.</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">subok</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">)</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_mask</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">unmasked</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data_cls</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_masked_cls</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data_cls</span><span class="p">):</span>
+        <span class="c1"># Short-cuts</span>
+        <span class="k">if</span> <span class="n">data_cls</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">MaskedNDArray</span>
+        <span class="k">elif</span> <span class="n">data_cls</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># for .view()</span>
+            <span class="k">return</span> <span class="bp">cls</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_get_masked_cls</span><span class="p">(</span><span class="n">data_cls</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">flat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;A 1-D iterator over the Masked array.</span>
+
+<span class="sd">        This returns a ``MaskedIterator`` instance, which behaves the same</span>
+<span class="sd">        as the `~numpy.flatiter` instance returned by `~numpy.ndarray.flat`,</span>
+<span class="sd">        and is similar to Python&#39;s built-in iterator, except that it also</span>
+<span class="sd">        allows assignment.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">MaskedIterator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_baseclass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Work-around for MaskedArray initialization.</span>
+
+<span class="sd">        Allows the base class to be inferred correctly when a masked instance</span>
+<span class="sd">        is used to initialize (or viewed as) a `~numpy.ma.MaskedArray`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_cls</span>
+
+<div class="viewcode-block" id="MaskedNDArray.view"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.view">[docs]</a>    <span class="k">def</span> <span class="nf">view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;New view of the masked array.</span>
+
+<span class="sd">        Like `numpy.ndarray.view`, but always returning a masked array subclass.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">type</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">builtins</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+                             <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_masked_cls</span><span class="p">(</span><span class="n">dtype</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_masked_cls</span><span class="p">(</span><span class="nb">type</span><span class="p">))</span>
+
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span>
+                <span class="ow">and</span> <span class="p">(</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span> <span class="ow">is</span> <span class="kc">None</span>
+                     <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">))):</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="si">}</span><span class="s2"> cannot be viewed with a dtype with a &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;with a different number of fields or size.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_masked_cls</span><span class="p">(</span><span class="nb">type</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="c1"># If we&#39;re a new object or viewing an ndarray, nothing has to be done.</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Logically, this should come from ndarray and hence be None, but</span>
+        <span class="c1"># just in case someone creates a new mixin, we check.</span>
+        <span class="n">super_array_finalize</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__array_finalize__</span>
+        <span class="k">if</span> <span class="n">super_array_finalize</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="n">super_array_finalize</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Got here after, e.g., a view of another masked class.</span>
+            <span class="c1"># Get its mask, or initialize ours.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_mask</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;_mask&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="s1">&#39;info&#39;</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">info</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">info</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The shape of the data and the mask.</span>
+
+<span class="sd">        Usually used to get the current shape of an array, but may also be</span>
+<span class="sd">        used to reshape the array in-place by assigning a tuple of array</span>
+<span class="sd">        dimensions to it.  As with `numpy.reshape`, one of the new shape</span>
+<span class="sd">        dimensions can be -1, in which case its value is inferred from the</span>
+<span class="sd">        size of the array and the remaining dimensions.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        AttributeError</span>
+<span class="sd">            If a copy is required, of either the data or the mask.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Redefinition to allow defining a setter and add a docstring.</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="nd">@shape</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+        <span class="n">old_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">shape</span>
+        <span class="c1"># Reshape array proper in try/except just in case some broadcasting</span>
+        <span class="c1"># or so causes it to fail.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">MaskedNDArray</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">old_shape</span>
+            <span class="c1"># Given that the mask reshaping succeeded, the only logical</span>
+            <span class="c1"># reason for an exception is something like a broadcast error in</span>
+            <span class="c1"># in __array_finalize__, or a different memory ordering between</span>
+            <span class="c1"># mask and data.  For those, give a more useful error message;</span>
+            <span class="c1"># otherwise just raise the error.</span>
+            <span class="k">if</span> <span class="s1">&#39;could not broadcast&#39;</span> <span class="ow">in</span> <span class="n">exc</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                    <span class="s1">&#39;Incompatible shape for in-place modification. &#39;</span>
+                    <span class="s1">&#39;Use `.reshape()` to make a copy with the desired &#39;</span>
+                    <span class="s1">&#39;shape.&#39;</span><span class="p">)</span> <span class="kn">from</span> <span class="bp">None</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+                <span class="k">raise</span>
+
+    <span class="n">_eq_simple</span> <span class="o">=</span> <span class="n">_comparison_method</span><span class="p">(</span><span class="s1">&#39;__eq__&#39;</span><span class="p">)</span>
+    <span class="n">_ne_simple</span> <span class="o">=</span> <span class="n">_comparison_method</span><span class="p">(</span><span class="s1">&#39;__ne__&#39;</span><span class="p">)</span>
+    <span class="fm">__lt__</span> <span class="o">=</span> <span class="n">_comparison_method</span><span class="p">(</span><span class="s1">&#39;__lt__&#39;</span><span class="p">)</span>
+    <span class="fm">__le__</span> <span class="o">=</span> <span class="n">_comparison_method</span><span class="p">(</span><span class="s1">&#39;__le__&#39;</span><span class="p">)</span>
+    <span class="fm">__gt__</span> <span class="o">=</span> <span class="n">_comparison_method</span><span class="p">(</span><span class="s1">&#39;__gt__&#39;</span><span class="p">)</span>
+    <span class="fm">__ge__</span> <span class="o">=</span> <span class="n">_comparison_method</span><span class="p">(</span><span class="s1">&#39;__ge__&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eq_simple</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+        <span class="c1"># For structured arrays, we treat this as a reduction over the fields,</span>
+        <span class="c1"># where masked fields are skipped and thus do not influence the result.</span>
+        <span class="n">other</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">==</span> <span class="n">other</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+                           <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ne_simple</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+        <span class="c1"># For structured arrays, we treat this as a reduction over the fields,</span>
+        <span class="c1"># where masked fields are skipped and thus do not influence the result.</span>
+        <span class="n">other</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">!=</span> <span class="n">other</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+                           <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_combine_masks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">masks</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">masks</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks</span> <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">masks</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">masks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">masks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">copyto</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">masks</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">return</span> <span class="n">out</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">masks</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">masks</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">[</span><span class="mi">2</span><span class="p">:]:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">def</span> <span class="nf">__array_ufunc__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ufunc</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;out&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">out_unmasked</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">out_mask</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out_unmasked</span><span class="p">,</span> <span class="n">out_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data_and_masks</span><span class="p">(</span><span class="o">*</span><span class="n">out</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">out_unmasked</span><span class="p">,</span> <span class="n">out_masks</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># TODO: allow writing to unmasked output if nothing is masked?</span>
+                    <span class="k">if</span> <span class="n">d</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;cannot write to unmasked output&#39;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">out_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">out_mask</span> <span class="o">=</span> <span class="n">m</span>
+
+        <span class="n">unmasked</span><span class="p">,</span> <span class="n">masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data_and_masks</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ufunc</span><span class="o">.</span><span class="n">signature</span><span class="p">:</span>
+            <span class="c1"># We&#39;re dealing with a gufunc. For now, only deal with</span>
+            <span class="c1"># np.matmul and gufuncs for which the mask of any output always</span>
+            <span class="c1"># depends on all core dimension values of all inputs.</span>
+            <span class="c1"># Also ignore axes keyword for now...</span>
+            <span class="c1"># TODO: in principle, it should be possible to generate the mask</span>
+            <span class="c1"># purely based on the signature.</span>
+            <span class="k">if</span> <span class="s1">&#39;axes&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Masked does not yet support gufunc &quot;</span>
+                                          <span class="s2">&quot;calls with &#39;axes&#39;.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ufunc</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">:</span>
+                <span class="c1"># np.matmul is tricky and its signature cannot be parsed by</span>
+                <span class="c1"># _parse_gufunc_signature.</span>
+                <span class="n">unmasked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="o">*</span><span class="n">unmasked</span><span class="p">)</span>
+                <span class="n">mask0</span><span class="p">,</span> <span class="n">mask1</span> <span class="o">=</span> <span class="n">masks</span>
+                <span class="n">masks</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">is_mat1</span> <span class="o">=</span> <span class="n">unmasked</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+                <span class="k">if</span> <span class="n">mask0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">mask0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="n">is_mat1</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="n">mask1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">mask1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">is_mat1</span> <span class="k">else</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">mask1</span><span class="p">))</span>
+
+                <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_combine_masks</span><span class="p">(</span><span class="n">masks</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out_mask</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Parse signature with private numpy function. Note it</span>
+                <span class="c1"># cannot handle spaces in tuples, so remove those.</span>
+                <span class="n">in_sig</span><span class="p">,</span> <span class="n">out_sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">function_base</span><span class="o">.</span><span class="n">_parse_gufunc_signature</span><span class="p">(</span>
+                    <span class="n">ufunc</span><span class="o">.</span><span class="n">signature</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+                <span class="n">axis</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;axis&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">keepdims</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;keepdims&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                <span class="n">in_masks</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">sig</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">in_sig</span><span class="p">,</span> <span class="n">masks</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">sig</span><span class="p">:</span>
+                            <span class="c1"># Input has core dimensions.  Assume that if any</span>
+                            <span class="c1"># value in those is masked, the output will be</span>
+                            <span class="c1"># masked too (TODO: for multiple core dimensions</span>
+                            <span class="c1"># this may be too strong).</span>
+                            <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span>
+                                <span class="n">mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">)</span>
+                        <span class="n">in_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+
+                <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_combine_masks</span><span class="p">(</span><span class="n">in_masks</span><span class="p">)</span>
+                <span class="n">result_masks</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">os</span> <span class="ow">in</span> <span class="n">out_sig</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">os</span><span class="p">:</span>
+                        <span class="c1"># Output has core dimensions.  Assume all those</span>
+                        <span class="c1"># get the same mask.</span>
+                        <span class="n">result_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">result_mask</span> <span class="o">=</span> <span class="n">mask</span>
+                    <span class="n">result_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result_mask</span><span class="p">)</span>
+
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">result_masks</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result_masks</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">result_masks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;__call__&#39;</span><span class="p">:</span>
+            <span class="c1"># Regular ufunc call.</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_combine_masks</span><span class="p">(</span><span class="n">masks</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out_mask</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;outer&#39;</span><span class="p">:</span>
+            <span class="c1"># Must have two arguments; adjust masks as will be done for data.</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">masks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+            <span class="n">masks</span> <span class="o">=</span> <span class="p">[(</span><span class="n">m</span> <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">]</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">masks</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">masks</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">out</span><span class="o">=</span><span class="n">out_mask</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;reduce&#39;</span><span class="p">,</span> <span class="s1">&#39;accumulate&#39;</span><span class="p">}:</span>
+            <span class="c1"># Reductions like np.add.reduce (sum).</span>
+            <span class="k">if</span> <span class="n">masks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># By default, we simply propagate masks, since for</span>
+                <span class="c1"># things like np.sum, it makes no sense to do otherwise.</span>
+                <span class="c1"># Individual methods need to override as needed.</span>
+                <span class="c1"># TODO: take care of &#39;out&#39; too?</span>
+                <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;reduce&#39;</span><span class="p">:</span>
+                    <span class="n">axis</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;axis&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                    <span class="n">keepdims</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;keepdims&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                    <span class="n">where</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;where&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">masks</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+                                                <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">,</span>
+                                                <span class="n">out</span><span class="o">=</span><span class="n">out_mask</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">where</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">:</span>
+                        <span class="c1"># Mask also whole rows that were not selected by where,</span>
+                        <span class="c1"># so would have been left as unmasked above.</span>
+                        <span class="n">mask</span> <span class="o">|=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">masks</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">,</span>
+                                                      <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">)</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Accumulate</span>
+                    <span class="n">axis</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;axis&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="n">masks</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span>
+                                                    <span class="n">out</span><span class="o">=</span><span class="n">out_mask</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+                <span class="c1"># Can only get here if neither input nor output was masked, but</span>
+                <span class="c1"># perhaps axis or where was masked (in numpy &lt; 1.21 this is</span>
+                <span class="c1"># possible).  We don&#39;t support this.</span>
+                <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;reduceat&#39;</span><span class="p">,</span> <span class="s1">&#39;at&#39;</span><span class="p">}:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="c1"># TODO: implement things like np.add.accumulate (used for cumsum).</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;masked instances cannot yet deal with &quot;</span>
+                                      <span class="s2">&quot;&#39;reduceat&#39; or &#39;at&#39;.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">out_unmasked</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out_unmasked</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ufunc</span><span class="p">,</span> <span class="n">method</span><span class="p">)(</span><span class="o">*</span><span class="n">unmasked</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="c1"># This happens for the &quot;at&quot; method.</span>
+            <span class="k">return</span> <span class="n">result</span>
+
+        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_masked_result</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__array_function__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">types</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># TODO: go through functions systematically to see which ones</span>
+        <span class="c1"># work and/or can be supported.</span>
+        <span class="k">if</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">MASKED_SAFE_FUNCTIONS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__array_function__</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">types</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">APPLY_TO_BOTH_FUNCTIONS</span><span class="p">:</span>
+            <span class="n">helper</span> <span class="o">=</span> <span class="n">APPLY_TO_BOTH_FUNCTIONS</span><span class="p">[</span><span class="n">function</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">helper_result</span> <span class="o">=</span> <span class="n">helper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">NotImplementedError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_not_implemented_or_raise</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">types</span><span class="p">)</span>
+
+            <span class="n">data_args</span><span class="p">,</span> <span class="n">mask_args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="n">helper_result</span>
+            <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">Masked</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_not_implemented_or_raise</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">types</span><span class="p">)</span>
+                <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">mask_args</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">data_args</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="o">.</span><span class="n">unmasked</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">out</span>
+
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">mask_args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">data_args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">DISPATCHED_FUNCTIONS</span><span class="p">:</span>
+            <span class="n">dispatched_function</span> <span class="o">=</span> <span class="n">DISPATCHED_FUNCTIONS</span><span class="p">[</span><span class="n">function</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">dispatched_result</span> <span class="o">=</span> <span class="n">dispatched_function</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">NotImplementedError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_not_implemented_or_raise</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">types</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dispatched_result</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">dispatched_result</span>
+
+            <span class="n">result</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="n">dispatched_result</span>
+
+        <span class="k">elif</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">UNSUPPORTED_FUNCTIONS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="c1"># By default, just pass it through for now.</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__array_function__</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">types</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_masked_result</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_not_implemented_or_raise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">types</span><span class="p">):</span>
+        <span class="c1"># Our function helper or dispatcher found that the function does not</span>
+        <span class="c1"># work with Masked.  In principle, there may be another class that</span>
+        <span class="c1"># knows what to do with us, for which we should return NotImplemented.</span>
+        <span class="c1"># But if there is ndarray (or a non-Masked subclass of it) around,</span>
+        <span class="c1"># it quite likely coerces, so we should just break.</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Masked</span><span class="p">)</span>
+               <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">types</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;the MaskedNDArray implementation cannot handle </span><span class="si">{}</span><span class="s2"> &quot;</span>
+                            <span class="s2">&quot;with the given arguments.&quot;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">function</span><span class="p">))</span> <span class="kn">from</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="nf">_masked_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">out</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">mask</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_masked_result</span><span class="p">(</span><span class="n">result_</span><span class="p">,</span> <span class="n">mask_</span><span class="p">,</span> <span class="n">out_</span><span class="p">)</span>
+                         <span class="k">for</span> <span class="p">(</span><span class="n">result_</span><span class="p">,</span> <span class="n">mask_</span><span class="p">,</span> <span class="n">out_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">out</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Note that we cannot count on result being the same class as</span>
+            <span class="c1"># &#39;self&#39; (e.g., comparison of quantity results in an ndarray, most</span>
+            <span class="c1"># operations on Longitude and Latitude result in Angle or</span>
+            <span class="c1"># Quantity), so use Masked to determine the appropriate class.</span>
+            <span class="k">return</span> <span class="n">Masked</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+
+        <span class="c1"># TODO: remove this sanity check once test cases are more complete.</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">Masked</span><span class="p">)</span>
+        <span class="c1"># If we have an output, the result was written in-place, so we should</span>
+        <span class="c1"># also write the mask in-place (if not done already in the code).</span>
+        <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">mask</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">_mask</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="c1"># Below are ndarray methods that need to be overridden as masked elements</span>
+    <span class="c1"># need to be skipped and/or an initial value needs to be set.</span>
+    <span class="k">def</span> <span class="nf">_reduce_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">initial_func</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get default where and initial for masked reductions.</span>
+
+<span class="sd">        Generally, the default should be to skip all masked elements.  For</span>
+<span class="sd">        reductions such as np.minimum.reduce, we also need an initial value,</span>
+<span class="sd">        which can be determined using ``initial_func``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;where&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;where&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span>
+        <span class="k">if</span> <span class="n">initial_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;initial&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;initial&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">initial_func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unmasked</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">kwargs</span>
+
+<div class="viewcode-block" id="MaskedNDArray.trace"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.trace">[docs]</a>    <span class="k">def</span> <span class="nf">trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">axis1</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">axis2</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Unfortunately, cannot override the call to diagonal inside trace, so</span>
+        <span class="c1"># duplicate implementation in numpy/core/src/multiarray/calculation.c.</span>
+        <span class="n">diagonal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span> <span class="n">axis1</span><span class="o">=</span><span class="n">axis1</span><span class="p">,</span> <span class="n">axis2</span><span class="o">=</span><span class="n">axis2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">diagonal</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.min"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.min">[docs]</a>    <span class="k">def</span> <span class="nf">min</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+                           <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_reduce_defaults</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.max"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.max">[docs]</a>    <span class="k">def</span> <span class="nf">max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+                           <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_reduce_defaults</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.nonzero"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.nonzero">[docs]</a>    <span class="k">def</span> <span class="nf">nonzero</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">unmasked_nonzero</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unmasked</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">not_masked</span> <span class="o">=</span> <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">[</span><span class="n">unmasked_nonzero</span><span class="p">]</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="n">not_masked</span><span class="p">]</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">unmasked_nonzero</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">unmasked_nonzero</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.compress"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.compress">[docs]</a>    <span class="k">def</span> <span class="nf">compress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;cannot yet give output&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;compress&#39;</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.repeat"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.repeat">[docs]</a>    <span class="k">def</span> <span class="nf">repeat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">repeats</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;repeat&#39;</span><span class="p">,</span> <span class="n">repeats</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.choose"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.choose">[docs]</a>    <span class="k">def</span> <span class="nf">choose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">choices</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;raise&#39;</span><span class="p">):</span>
+        <span class="c1"># Let __array_function__ take care since choices can be masked too.</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">choose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">choices</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.argmin"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.argmin">[docs]</a>    <span class="k">def</span> <span class="nf">argmin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Todo: should this return a masked integer array, with masks</span>
+        <span class="c1"># if all elements were masked?</span>
+        <span class="n">at_min</span> <span class="o">=</span> <span class="bp">self</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">at_min</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.argmax"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.argmax">[docs]</a>    <span class="k">def</span> <span class="nf">argmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">at_max</span> <span class="o">=</span> <span class="bp">self</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">at_max</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.argsort"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.argsort">[docs]</a>    <span class="k">def</span> <span class="nf">argsort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the indices that would sort an array.</span>
+
+<span class="sd">        Perform an indirect sort along the given axis on both the array</span>
+<span class="sd">        and the mask, with masked items being sorted to the end.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        axis : int or None, optional</span>
+<span class="sd">            Axis along which to sort.  The default is -1 (the last axis).</span>
+<span class="sd">            If None, the flattened array is used.</span>
+<span class="sd">        kind : str or None, ignored.</span>
+<span class="sd">            The kind of sort.  Present only to allow subclasses to work.</span>
+<span class="sd">        order : str or list of str.</span>
+<span class="sd">            For an array with fields defined, the fields to compare first,</span>
+<span class="sd">            second, etc.  A single field can be specified as a string, and not</span>
+<span class="sd">            all fields need be specified, but unspecified fields will still be</span>
+<span class="sd">            used, in dtype order, to break ties.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        index_array : ndarray, int</span>
+<span class="sd">            Array of indices that sorts along the specified ``axis``.  Use</span>
+<span class="sd">            ``np.take_along_axis(self, index_array, axis=axis)`` to obtain</span>
+<span class="sd">            the sorted array.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">:</span>
+            <span class="c1"># As done inside the argsort implementation in multiarray/methods.c.</span>
+            <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">_internal</span><span class="o">.</span><span class="n">_newnames</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+
+            <span class="n">keys</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">order</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">elif</span> <span class="n">order</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot specify order when the array has no fields.&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">,)</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.sort"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.sort">[docs]</a>    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sort an array in-place. Refer to `numpy.sort` for full documentation.&quot;&quot;&quot;</span>
+        <span class="c1"># TODO: probably possible to do this faster than going through argsort!</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">take_along_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.argpartition"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.argpartition">[docs]</a>    <span class="k">def</span> <span class="nf">argpartition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kth</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;introselect&#39;</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># TODO: should be possible to do this faster than with a full argsort!</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.partition"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.partition">[docs]</a>    <span class="k">def</span> <span class="nf">partition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kth</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;introselect&#39;</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># TODO: should be possible to do this faster than with a full argsort!</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.cumsum"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.cumsum">[docs]</a>    <span class="k">def</span> <span class="nf">cumsum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.cumprod"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.cumprod">[docs]</a>    <span class="k">def</span> <span class="nf">cumprod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.clip"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.clip">[docs]</a>    <span class="k">def</span> <span class="nf">clip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an array whose values are limited to ``[min, max]``.</span>
+
+<span class="sd">        Like `~numpy.clip`, but any masked values in ``min`` and ``max``</span>
+<span class="sd">        are ignored for clipping.  The mask of the input array is propagated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO: implement this at the ufunc level.</span>
+        <span class="n">dmin</span><span class="p">,</span> <span class="n">mmin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data_and_mask</span><span class="p">(</span><span class="nb">min</span><span class="p">)</span>
+        <span class="n">dmax</span><span class="p">,</span> <span class="n">mmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_data_and_mask</span><span class="p">(</span><span class="nb">max</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mmin</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">mmax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Fast path for unmasked max, min.</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">masked_out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">positive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">masked_out</span><span class="o">.</span><span class="n">unmasked</span>
+        <span class="k">if</span> <span class="n">dmin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dmin</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">mmin</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="o">~</span><span class="n">mmin</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dmax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dmax</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">mmax</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="o">~</span><span class="n">mmax</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">masked_out</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.mean"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.mean">[docs]</a>    <span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="c1"># Implementation based on that in numpy/core/_methods.py</span>
+        <span class="c1"># Cast bool, unsigned int, and int to float64 by default,</span>
+        <span class="c1"># and do float16 at higher precision.</span>
+        <span class="n">is_float16_result</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)):</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;f8&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float16</span><span class="p">):</span>
+                <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;f4&#39;</span><span class="p">)</span>
+                <span class="n">is_float16_result</span> <span class="o">=</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span>
+
+        <span class="n">where</span> <span class="o">=</span> <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">&amp;</span> <span class="n">where</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+                          <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">where</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">/=</span> <span class="n">n</span>
+        <span class="k">if</span> <span class="n">is_float16_result</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.var"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.var">[docs]</a>    <span class="k">def</span> <span class="nf">var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ddof</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">where_final</span> <span class="o">=</span> <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">&amp;</span> <span class="n">where</span>
+
+        <span class="c1"># Simplified implementation based on that in numpy/core/_methods.py</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">where_final</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+
+        <span class="c1"># Cast bool, unsigned int, and int to float64 by default.</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                                        <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)):</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;f8&#39;</span><span class="p">)</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span> <span class="o">-</span> <span class="n">mean</span>
+        <span class="n">x</span> <span class="o">*=</span> <span class="n">x</span><span class="o">.</span><span class="n">conjugate</span><span class="p">()</span>  <span class="c1"># Conjugate just returns x if not complex.</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+                       <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">where_final</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">-=</span> <span class="n">ddof</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">/=</span> <span class="n">n</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">_mask</span> <span class="o">|=</span> <span class="p">(</span><span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.std"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.std">[docs]</a>    <span class="k">def</span> <span class="nf">std</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ddof</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">ddof</span><span class="o">=</span><span class="n">ddof</span><span class="p">,</span>
+                          <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">result</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># First get result from array itself; this will error if not a scalar.</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__bool__</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span>
+
+<div class="viewcode-block" id="MaskedNDArray.any"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.any">[docs]</a>    <span class="k">def</span> <span class="nf">any</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+                                    <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">,</span> <span class="n">where</span><span class="o">=~</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">&amp;</span> <span class="n">where</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskedNDArray.all"><a class="viewcode-back" href="../../../../api/astropy.utils.masked.MaskedNDArray.html#astropy.utils.masked.MaskedNDArray.all">[docs]</a>    <span class="k">def</span> <span class="nf">all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+                                     <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">,</span> <span class="n">where</span><span class="o">=~</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">&amp;</span> <span class="n">where</span><span class="p">)</span></div>
+
+    <span class="c1"># Following overrides needed since somehow the ndarray implementation</span>
+    <span class="c1"># does not actually call these.</span>
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array_str</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__format__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format_spec</span><span class="p">):</span>
+        <span class="n">string</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__format__</span><span class="p">(</span><span class="n">format_spec</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">string</span><span class="p">)))</span>
+            <span class="k">return</span> <span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">string</span><span class="p">)</span><span class="o">-</span><span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\u2014</span><span class="s1">&#39;</span> <span class="o">*</span> <span class="n">n</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">string</span></div>
+
+
+<span class="k">class</span> <span class="nc">MaskedRecarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">,</span> <span class="n">MaskedNDArray</span><span class="p">,</span> <span class="n">data_cls</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">):</span>
+    <span class="c1"># Explicit definition since we need to override some methods.</span>
+
+    <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="c1"># recarray.__array_finalize__ does not do super, so we do it</span>
+        <span class="c1"># explicitly.</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__array_finalize__</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">recarray</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__array_finalize__</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+    <span class="c1"># __getattribute__, __setattr__, and field use these somewhat</span>
+    <span class="c1"># obscrure ndarray methods.  TODO: override in MaskedNDArray?</span>
+    <span class="k">def</span> <span class="nf">getfield</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">offset</span> <span class="o">==</span> <span class="n">info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;can only get existing field from &#39;</span>
+                                  <span class="s1">&#39;structured dtype.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setfield</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">offset</span> <span class="o">==</span> <span class="n">info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                <span class="k">return</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;can only set existing field from &#39;</span>
+                                  <span class="s1">&#39;structured dtype.&#39;</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,266 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.cosmology.flrw.w0wzcdm &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.cosmology.flrw.w0wzcdm</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">exp</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">from</span> <span class="nn">astropy.cosmology.parameter</span> <span class="kn">import</span> <span class="n">Parameter</span>
+<span class="kn">from</span> <span class="nn">astropy.cosmology.utils</span> <span class="kn">import</span> <span class="n">aszarr</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">scalar_inv_efuncs</span>
+<span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">FLRW</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;w0wzCDM&quot;</span><span class="p">]</span>
+
+<span class="n">__doctest_requires__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;*&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;scipy&#39;</span><span class="p">]}</span>
+
+
+<div class="viewcode-block" id="w0wzCDM"><a class="viewcode-back" href="../../../../api/astropy.cosmology.w0wzCDM.html#astropy.cosmology.w0wzCDM">[docs]</a><span class="k">class</span> <span class="nc">w0wzCDM</span><span class="p">(</span><span class="n">FLRW</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    FLRW cosmology with a variable dark energy equation of state and curvature.</span>
+
+<span class="sd">    The equation for the dark energy equation of state uses the simple form:</span>
+<span class="sd">    :math:`w(z) = w_0 + w_z z`.</span>
+
+<span class="sd">    This form is not recommended for z &gt; 1.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    H0 : float or scalar quantity-like [&#39;frequency&#39;]</span>
+<span class="sd">        Hubble constant at z = 0. If a float, must be in [km/sec/Mpc].</span>
+
+<span class="sd">    Om0 : float</span>
+<span class="sd">        Omega matter: density of non-relativistic matter in units of the</span>
+<span class="sd">        critical density at z=0.</span>
+
+<span class="sd">    Ode0 : float</span>
+<span class="sd">        Omega dark energy: density of dark energy in units of the critical</span>
+<span class="sd">        density at z=0.</span>
+
+<span class="sd">    w0 : float, optional</span>
+<span class="sd">        Dark energy equation of state at z=0. This is pressure/density for</span>
+<span class="sd">        dark energy in units where c=1.</span>
+
+<span class="sd">    wz : float, optional</span>
+<span class="sd">        Derivative of the dark energy equation of state with respect to z.</span>
+<span class="sd">        A cosmological constant has w0=-1.0 and wz=0.0.</span>
+
+<span class="sd">    Tcmb0 : float or scalar quantity-like [&#39;temperature&#39;], optional</span>
+<span class="sd">        Temperature of the CMB z=0. If a float, must be in [K]. Default: 0 [K].</span>
+<span class="sd">        Setting this to zero will turn off both photons and neutrinos</span>
+<span class="sd">        (even massive ones).</span>
+
+<span class="sd">    Neff : float, optional</span>
+<span class="sd">        Effective number of Neutrino species. Default 3.04.</span>
+
+<span class="sd">    m_nu : quantity-like [&#39;energy&#39;, &#39;mass&#39;] or array-like, optional</span>
+<span class="sd">        Mass of each neutrino species in [eV] (mass-energy equivalency enabled).</span>
+<span class="sd">        If this is a scalar Quantity, then all neutrino species are assumed to</span>
+<span class="sd">        have that mass. Otherwise, the mass of each species. The actual number</span>
+<span class="sd">        of neutrino species (and hence the number of elements of m_nu if it is</span>
+<span class="sd">        not scalar) must be the floor of Neff. Typically this means you should</span>
+<span class="sd">        provide three neutrino masses unless you are considering something like</span>
+<span class="sd">        a sterile neutrino.</span>
+
+<span class="sd">    Ob0 : float or None, optional</span>
+<span class="sd">        Omega baryons: density of baryonic matter in units of the critical</span>
+<span class="sd">        density at z=0.  If this is set to None (the default), any computation</span>
+<span class="sd">        that requires its value will raise an exception.</span>
+
+<span class="sd">    name : str or None (optional, keyword-only)</span>
+<span class="sd">        Name for this cosmological object.</span>
+
+<span class="sd">    meta : mapping or None (optional, keyword-only)</span>
+<span class="sd">        Metadata for the cosmology, e.g., a reference.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from astropy.cosmology import w0wzCDM</span>
+<span class="sd">    &gt;&gt;&gt; cosmo = w0wzCDM(H0=70, Om0=0.3, Ode0=0.7, w0=-0.9, wz=0.2)</span>
+
+<span class="sd">    The comoving distance in Mpc at redshift z:</span>
+
+<span class="sd">    &gt;&gt;&gt; z = 0.5</span>
+<span class="sd">    &gt;&gt;&gt; dc = cosmo.comoving_distance(z)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">w0</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">doc</span><span class="o">=</span><span class="s2">&quot;Dark energy equation of state at z=0.&quot;</span><span class="p">,</span> <span class="n">fvalidate</span><span class="o">=</span><span class="s2">&quot;float&quot;</span><span class="p">)</span>
+    <span class="n">wz</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">doc</span><span class="o">=</span><span class="s2">&quot;Derivative of the dark energy equation of state w.r.t. z.&quot;</span><span class="p">,</span>
+                   <span class="n">fvalidate</span><span class="o">=</span><span class="s2">&quot;float&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">H0</span><span class="p">,</span> <span class="n">Om0</span><span class="p">,</span> <span class="n">Ode0</span><span class="p">,</span> <span class="n">w0</span><span class="o">=-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">wz</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">Tcmb0</span><span class="o">=</span><span class="mf">0.0</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="n">Neff</span><span class="o">=</span><span class="mf">3.04</span><span class="p">,</span>
+                 <span class="n">m_nu</span><span class="o">=</span><span class="mf">0.0</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">eV</span><span class="p">,</span> <span class="n">Ob0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">H0</span><span class="o">=</span><span class="n">H0</span><span class="p">,</span> <span class="n">Om0</span><span class="o">=</span><span class="n">Om0</span><span class="p">,</span> <span class="n">Ode0</span><span class="o">=</span><span class="n">Ode0</span><span class="p">,</span> <span class="n">Tcmb0</span><span class="o">=</span><span class="n">Tcmb0</span><span class="p">,</span> <span class="n">Neff</span><span class="o">=</span><span class="n">Neff</span><span class="p">,</span>
+                         <span class="n">m_nu</span><span class="o">=</span><span class="n">m_nu</span><span class="p">,</span> <span class="n">Ob0</span><span class="o">=</span><span class="n">Ob0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">meta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">w0</span> <span class="o">=</span> <span class="n">w0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wz</span> <span class="o">=</span> <span class="n">wz</span>
+
+        <span class="c1"># Please see :ref:`astropy-cosmology-fast-integrals` for discussion</span>
+        <span class="c1"># about what is being done here.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Tcmb0</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_inv_efunc_scalar</span> <span class="o">=</span> <span class="n">scalar_inv_efuncs</span><span class="o">.</span><span class="n">w0wzcdm_inv_efunc_norel</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_inv_efunc_scalar_args</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Om0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ode0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ok0</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">_w0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wz</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_massivenu</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_inv_efunc_scalar</span> <span class="o">=</span> <span class="n">scalar_inv_efuncs</span><span class="o">.</span><span class="n">w0wzcdm_inv_efunc_nomnu</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_inv_efunc_scalar_args</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Om0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ode0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ok0</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">_Ogamma0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Onu0</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">_w0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wz</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_inv_efunc_scalar</span> <span class="o">=</span> <span class="n">scalar_inv_efuncs</span><span class="o">.</span><span class="n">w0wzcdm_inv_efunc</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_inv_efunc_scalar_args</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Om0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ode0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ok0</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">_Ogamma0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_neff_per_nu</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">_nmasslessnu</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">_nu_y_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_w0</span><span class="p">,</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">_wz</span><span class="p">)</span>
+
+<div class="viewcode-block" id="w0wzCDM.w"><a class="viewcode-back" href="../../../../api/astropy.cosmology.w0wzCDM.html#astropy.cosmology.w0wzCDM.w">[docs]</a>    <span class="k">def</span> <span class="nf">w</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Returns dark energy equation of state at redshift ``z``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        z : Quantity-like [&#39;redshift&#39;], array-like, or `~numbers.Number`</span>
+<span class="sd">            Input redshift.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        w : ndarray or float</span>
+<span class="sd">            The dark energy equation of state.</span>
+<span class="sd">            Returns `float` if the input is scalar.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The dark energy equation of state is defined as</span>
+<span class="sd">        :math:`w(z) = P(z)/\rho(z)`, where :math:`P(z)` is the pressure at</span>
+<span class="sd">        redshift z and :math:`\rho(z)` is the density at redshift z, both in</span>
+<span class="sd">        units where c=1. Here this is given by :math:`w(z) = w_0 + w_z z`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_w0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wz</span> <span class="o">*</span> <span class="n">aszarr</span><span class="p">(</span><span class="n">z</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="w0wzCDM.de_density_scale"><a class="viewcode-back" href="../../../../api/astropy.cosmology.w0wzCDM.html#astropy.cosmology.w0wzCDM.de_density_scale">[docs]</a>    <span class="k">def</span> <span class="nf">de_density_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Evaluates the redshift dependence of the dark energy density.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        z : Quantity-like [&#39;redshift&#39;], array-like, or `~numbers.Number`</span>
+<span class="sd">            Input redshift.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        I : ndarray or float</span>
+<span class="sd">            The scaling of the energy density of dark energy with redshift.</span>
+<span class="sd">            Returns `float` if the input is scalar.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The scaling factor, I, is defined by :math:`\rho(z) = \rho_0 I`,</span>
+<span class="sd">        and in this case is given by</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">           I = \left(1 + z\right)^{3 \left(1 + w_0 - w_z\right)}</span>
+<span class="sd">                     \exp \left(-3 w_z z\right)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">aszarr</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+        <span class="n">zp1</span> <span class="o">=</span> <span class="n">z</span> <span class="o">+</span> <span class="mf">1.0</span>  <span class="c1"># (converts z [unit] -&gt; z [dimensionless])</span>
+        <span class="k">return</span> <span class="n">zp1</span> <span class="o">**</span> <span class="p">(</span><span class="mf">3.</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_w0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wz</span><span class="p">))</span> <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">3.</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wz</span> <span class="o">*</span> <span class="n">z</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

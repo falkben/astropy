@@ -1,0 +1,178 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.table &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.table</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">import</span> <span class="nn">astropy.config</span> <span class="k">as</span> <span class="nn">_config</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.compat</span> <span class="kn">import</span> <span class="n">optional_deps</span>
+<span class="kn">from</span> <span class="nn">.column</span> <span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">MaskedColumn</span><span class="p">,</span> <span class="n">StringTruncateWarning</span><span class="p">,</span> <span class="n">ColumnInfo</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;BST&#39;</span><span class="p">,</span> <span class="s1">&#39;Column&#39;</span><span class="p">,</span> <span class="s1">&#39;ColumnGroups&#39;</span><span class="p">,</span> <span class="s1">&#39;ColumnInfo&#39;</span><span class="p">,</span> <span class="s1">&#39;Conf&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;JSViewer&#39;</span><span class="p">,</span> <span class="s1">&#39;MaskedColumn&#39;</span><span class="p">,</span> <span class="s1">&#39;NdarrayMixin&#39;</span><span class="p">,</span> <span class="s1">&#39;QTable&#39;</span><span class="p">,</span> <span class="s1">&#39;Row&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;SCEngine&#39;</span><span class="p">,</span> <span class="s1">&#39;SerializedColumn&#39;</span><span class="p">,</span> <span class="s1">&#39;SortedArray&#39;</span><span class="p">,</span> <span class="s1">&#39;StringTruncateWarning&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;Table&#39;</span><span class="p">,</span> <span class="s1">&#39;TableAttribute&#39;</span><span class="p">,</span> <span class="s1">&#39;TableColumns&#39;</span><span class="p">,</span> <span class="s1">&#39;TableFormatter&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;TableGroups&#39;</span><span class="p">,</span> <span class="s1">&#39;TableMergeError&#39;</span><span class="p">,</span> <span class="s1">&#39;TableReplaceWarning&#39;</span><span class="p">,</span> <span class="s1">&#39;conf&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;connect&#39;</span><span class="p">,</span> <span class="s1">&#39;hstack&#39;</span><span class="p">,</span> <span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="s1">&#39;registry&#39;</span><span class="p">,</span> <span class="s1">&#39;represent_mixins_as_columns&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;setdiff&#39;</span><span class="p">,</span> <span class="s1">&#39;unique&#39;</span><span class="p">,</span> <span class="s1">&#39;vstack&#39;</span><span class="p">,</span> <span class="s1">&#39;dstack&#39;</span><span class="p">,</span> <span class="s1">&#39;conf&#39;</span><span class="p">,</span> <span class="s1">&#39;join_skycoord&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;join_distance&#39;</span><span class="p">,</span> <span class="s1">&#39;PprintIncludeExclude&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Conf"><a class="viewcode-back" href="../../api/astropy.table.Conf.html#astropy.table.Conf">[docs]</a><span class="k">class</span> <span class="nc">Conf</span><span class="p">(</span><span class="n">_config</span><span class="o">.</span><span class="n">ConfigNamespace</span><span class="p">):</span>  <span class="c1"># noqa</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Configuration parameters for `astropy.table`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">auto_colname</span> <span class="o">=</span> <span class="n">_config</span><span class="o">.</span><span class="n">ConfigItem</span><span class="p">(</span>
+        <span class="s1">&#39;col</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;The template that determines the name of a column if it cannot be &#39;</span>
+        <span class="s1">&#39;determined. Uses new-style (format method) string formatting.&#39;</span><span class="p">,</span>
+        <span class="n">aliases</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;astropy.table.column.auto_colname&#39;</span><span class="p">])</span>
+    <span class="n">default_notebook_table_class</span> <span class="o">=</span> <span class="n">_config</span><span class="o">.</span><span class="n">ConfigItem</span><span class="p">(</span>
+        <span class="s1">&#39;table-striped table-bordered table-condensed&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;The table class to be used in Jupyter notebooks when displaying &#39;</span>
+        <span class="s1">&#39;tables (and not overridden). See &lt;https://getbootstrap.com/css/#tables &#39;</span>
+        <span class="s1">&#39;for a list of useful bootstrap classes.&#39;</span><span class="p">)</span>
+    <span class="n">replace_warnings</span> <span class="o">=</span> <span class="n">_config</span><span class="o">.</span><span class="n">ConfigItem</span><span class="p">(</span>
+        <span class="p">[],</span>
+        <span class="s1">&#39;List of conditions for issuing a warning when replacing a table &#39;</span>
+        <span class="s2">&quot;column using setitem, e.g. t[&#39;a&#39;] = value.  Allowed options are &quot;</span>
+        <span class="s2">&quot;&#39;always&#39;, &#39;slice&#39;, &#39;refcount&#39;, &#39;attributes&#39;.&quot;</span><span class="p">,</span>
+        <span class="s1">&#39;string_list&#39;</span><span class="p">)</span>
+    <span class="n">replace_inplace</span> <span class="o">=</span> <span class="n">_config</span><span class="o">.</span><span class="n">ConfigItem</span><span class="p">(</span>
+        <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Always use in-place update of a table column when using setitem, &#39;</span>
+        <span class="s2">&quot;e.g. t[&#39;a&#39;] = value.  This overrides the default behavior of &quot;</span>
+        <span class="s2">&quot;replacing the column entirely with the new value when possible. &quot;</span>
+        <span class="s2">&quot;This configuration option will be deprecated and then removed in &quot;</span>
+        <span class="s2">&quot;subsequent major releases.&quot;</span><span class="p">)</span></div>
+
+
+<span class="n">conf</span> <span class="o">=</span> <span class="n">Conf</span><span class="p">()</span>  <span class="c1"># noqa</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">connect</span>  <span class="c1"># noqa: E402</span>
+<span class="kn">from</span> <span class="nn">.groups</span> <span class="kn">import</span> <span class="n">TableGroups</span><span class="p">,</span> <span class="n">ColumnGroups</span>  <span class="c1"># noqa: E402</span>
+<span class="kn">from</span> <span class="nn">.table</span> <span class="kn">import</span> <span class="p">(</span><span class="n">Table</span><span class="p">,</span> <span class="n">QTable</span><span class="p">,</span> <span class="n">TableColumns</span><span class="p">,</span> <span class="n">Row</span><span class="p">,</span> <span class="n">TableFormatter</span><span class="p">,</span>
+                    <span class="n">NdarrayMixin</span><span class="p">,</span> <span class="n">TableReplaceWarning</span><span class="p">,</span> <span class="n">TableAttribute</span><span class="p">,</span>
+                    <span class="n">PprintIncludeExclude</span><span class="p">)</span>  <span class="c1"># noqa: E402</span>
+<span class="kn">from</span> <span class="nn">.operations</span> <span class="kn">import</span> <span class="p">(</span><span class="n">join</span><span class="p">,</span> <span class="n">setdiff</span><span class="p">,</span> <span class="n">hstack</span><span class="p">,</span> <span class="n">dstack</span><span class="p">,</span> <span class="n">vstack</span><span class="p">,</span> <span class="n">unique</span><span class="p">,</span>  <span class="c1"># noqa: E402</span>
+                         <span class="n">TableMergeError</span><span class="p">,</span> <span class="n">join_skycoord</span><span class="p">,</span> <span class="n">join_distance</span><span class="p">)</span>  <span class="c1"># noqa: E402</span>
+<span class="kn">from</span> <span class="nn">.bst</span> <span class="kn">import</span> <span class="n">BST</span>  <span class="c1"># noqa: E402</span>
+<span class="kn">from</span> <span class="nn">.sorted_array</span> <span class="kn">import</span> <span class="n">SortedArray</span>  <span class="c1"># noqa: E402</span>
+<span class="kn">from</span> <span class="nn">.soco</span> <span class="kn">import</span> <span class="n">SCEngine</span>  <span class="c1"># noqa: E402</span>
+<span class="kn">from</span> <span class="nn">.serialize</span> <span class="kn">import</span> <span class="n">SerializedColumn</span><span class="p">,</span> <span class="n">represent_mixins_as_columns</span>  <span class="c1"># noqa: E402</span>
+
+<span class="c1"># Finally import the formats for the read and write method but delay building</span>
+<span class="c1"># the documentation until all are loaded. (#5275)</span>
+<span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">registry</span>  <span class="c1"># noqa: E402</span>
+
+<span class="k">with</span> <span class="n">registry</span><span class="o">.</span><span class="n">delay_doc_updates</span><span class="p">(</span><span class="n">Table</span><span class="p">):</span>
+    <span class="c1"># Import routines that connect readers/writers to astropy.table</span>
+    <span class="kn">from</span> <span class="nn">.jsviewer</span> <span class="kn">import</span> <span class="n">JSViewer</span>
+    <span class="kn">import</span> <span class="nn">astropy.io.ascii.connect</span>
+    <span class="kn">import</span> <span class="nn">astropy.io.fits.connect</span>
+    <span class="kn">import</span> <span class="nn">astropy.io.misc.connect</span>
+    <span class="kn">import</span> <span class="nn">astropy.io.votable.connect</span>
+    <span class="kn">import</span> <span class="nn">astropy.io.misc.pandas.connect</span>  <span class="c1"># noqa: F401</span>
+
+    <span class="k">if</span> <span class="n">optional_deps</span><span class="o">.</span><span class="n">HAS_ASDF_ASTROPY</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">asdf_astropy.io.connect</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">astropy.io.misc.asdf.connect</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

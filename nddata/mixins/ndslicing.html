@@ -1,0 +1,279 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Slicing and Indexing NDData &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="NDData Arithmetic" href="ndarithmetic.html" />
+    <link rel="prev" title="Mixins for Added Functionality" href="index.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="ndarithmetic.html" title="NDData Arithmetic">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="index.html" title="Mixins for Added Functionality">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../index.html" >N-Dimensional Datasets (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.nddata</span></code>)</a> &#187;</li>
+      <li><a href="index.html" accesskey="U">Mixins for Added Functionality</a> &#187;</li>
+      
+      <li>Slicing and Indexing NDData</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="slicing-and-indexing-nddata">
+<span id="nddata-slicing"></span><h1>Slicing and Indexing NDData<a class="headerlink" href="#slicing-and-indexing-nddata" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>This page only deals with peculiarities that apply to
+<a class="reference internal" href="../../api/astropy.nddata.NDData.html#astropy.nddata.NDData" title="astropy.nddata.NDData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NDData</span></code></a>-like classes. For a tutorial about slicing/indexing see the
+<a class="reference external" href="https://docs.python.org/3/tutorial/introduction.html#lists">python documentation</a>
+and <a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.indexing.html">numpy documentation</a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><a class="reference internal" href="../../api/astropy.nddata.NDData.html#astropy.nddata.NDData" title="astropy.nddata.NDData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NDData</span></code></a> and <a class="reference internal" href="../../api/astropy.nddata.NDDataRef.html#astropy.nddata.NDDataRef" title="astropy.nddata.NDDataRef"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NDDataRef</span></code></a> enforce almost no
+restrictions on the properties, so it might happen that some <strong>valid but
+unusual</strong> combinations of properties always result in an IndexError or
+incorrect results. In this case, see <a class="reference internal" href="../subclassing.html#nddata-subclassing"><span class="std std-ref">Subclassing</span></a> on how to
+customize slicing for a particular property.</p>
+</div>
+</div>
+<div class="section" id="slicing-nddataref">
+<h2>Slicing NDDataRef<a class="headerlink" href="#slicing-nddataref" title="Permalink to this headline">¶</a></h2>
+<p>Unlike <a class="reference internal" href="../../api/astropy.nddata.NDData.html#astropy.nddata.NDData" title="astropy.nddata.NDData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NDData</span></code></a> the class <a class="reference internal" href="../../api/astropy.nddata.NDDataRef.html#astropy.nddata.NDDataRef" title="astropy.nddata.NDDataRef"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NDDataRef</span></code></a>
+implements slicing or indexing. The result will be wrapped inside the same
+class as the sliced object.</p>
+<p>Getting one element:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.nddata</span> <span class="kn">import</span> <span class="n">NDDataRef</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd</span> <span class="o">=</span> <span class="n">NDDataRef</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="go">NDDataRef(2)</span>
+</pre></div>
+</div>
+<p>Getting a sliced portion of the original:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ndd</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>  <span class="c1"># Get element 1 (inclusive) to 3 (exclusive)</span>
+<span class="go">NDDataRef([2, 3])</span>
+</pre></div>
+</div>
+<p>This will return a reference (and as such <strong>not a copy</strong>) of the original
+properties, so changing a slice will affect the original:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span> <span class="o">=</span> <span class="n">ndd</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span>
+<span class="go">NDDataRef([5, 3])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd</span>
+<span class="go">NDDataRef([1, 5, 3, 4])</span>
+</pre></div>
+</div>
+<p>But only the one element that was indexed is affected (for example,
+<code class="docutils literal notranslate"><span class="pre">ndd_sliced</span> <span class="pre">=</span> <span class="pre">ndd[1]</span></code>). The element is a scalar and changes will not
+propagate to the original.</p>
+</div>
+<div class="section" id="slicing-nddataref-including-attributes">
+<h2>Slicing NDDataRef Including Attributes<a class="headerlink" href="#slicing-nddataref-including-attributes" title="Permalink to this headline">¶</a></h2>
+<p>In the case that a <code class="docutils literal notranslate"><span class="pre">mask</span></code>, or <code class="docutils literal notranslate"><span class="pre">uncertainty</span></code> is present, this
+attribute will be sliced too:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.nddata</span> <span class="kn">import</span> <span class="n">StdDevUncertainty</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span> <span class="o">=</span> <span class="n">data</span> <span class="o">&gt;</span> <span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">uncertainty</span> <span class="o">=</span> <span class="n">StdDevUncertainty</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd</span> <span class="o">=</span> <span class="n">NDDataRef</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">uncertainty</span><span class="o">=</span><span class="n">uncertainty</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span> <span class="o">=</span> <span class="n">ndd</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span><span class="o">.</span><span class="n">data</span>
+<span class="go">array([2, 3])</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span><span class="o">.</span><span class="n">mask</span>
+<span class="go">array([False,  True]...)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span><span class="o">.</span><span class="n">uncertainty</span>  
+<span class="go">StdDevUncertainty([1.41421356, 1.73205081])</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">unit</span></code> and <code class="docutils literal notranslate"><span class="pre">meta</span></code>, however, will be unaffected.</p>
+<p>If any of the attributes are set but do not implement slicing, an info will be
+printed and the property will be kept as is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">uncertainty</span> <span class="o">=</span> <span class="n">StdDevUncertainty</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd</span> <span class="o">=</span> <span class="n">NDDataRef</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">uncertainty</span><span class="o">=</span><span class="n">uncertainty</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span> <span class="o">=</span> <span class="n">ndd</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+<span class="go">INFO: uncertainty cannot be sliced. [astropy.nddata.mixins.ndslicing]</span>
+<span class="go">INFO: mask cannot be sliced. [astropy.nddata.mixins.ndslicing]</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span><span class="o">.</span><span class="n">mask</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<div class="section" id="slicing-nddata-with-world-coordinates">
+<h3>Slicing NDData with World Coordinates<a class="headerlink" href="#slicing-nddata-with-world-coordinates" title="Permalink to this headline">¶</a></h3>
+<p>If <code class="docutils literal notranslate"><span class="pre">wcs</span></code> is set, it must be either implement
+<a class="reference internal" href="../../api/astropy.wcs.wcsapi.BaseLowLevelWCS.html#astropy.wcs.wcsapi.BaseLowLevelWCS" title="astropy.wcs.wcsapi.BaseLowLevelWCS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseLowLevelWCS</span></code></a> or <a class="reference internal" href="../../api/astropy.wcs.wcsapi.BaseHighLevelWCS.html#astropy.wcs.wcsapi.BaseHighLevelWCS" title="astropy.wcs.wcsapi.BaseHighLevelWCS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseHighLevelWCS</span></code></a>.
+This means that only integer or range slices without a step are supported. So
+slices like <code class="docutils literal notranslate"><span class="pre">[::10]</span></code> or array or boolean based slices will not work.</p>
+<p>If you want to slice an <code class="docutils literal notranslate"><span class="pre">NDData</span></code> object called <code class="docutils literal notranslate"><span class="pre">ndd</span></code> without the WCS you can remove the
+WCS from the <code class="docutils literal notranslate"><span class="pre">NDData</span></code> object by running:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ndd</span><span class="o">.</span><span class="n">wcs</span> <span class="o">=</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="removing-masked-data">
+<h3>Removing Masked Data<a class="headerlink" href="#removing-masked-data" title="Permalink to this headline">¶</a></h3>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">wcs</span></code> is set this will <strong>NOT</strong> be possible. But you can work around
+this by setting the wcs attribute to <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> with <code class="docutils literal notranslate"><span class="pre">ndd.wcs</span> <span class="pre">=</span> <span class="pre">None</span></code> before slicing.</p>
+</div>
+<p>By convention, the <code class="docutils literal notranslate"><span class="pre">mask</span></code> attribute indicates if a point is valid or invalid.
+So we are able to get all valid data points by slicing with the mask.</p>
+<div class="section" id="examples">
+<h4>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
+<p>To get all of the valid data points by slicing with the mask:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">],[</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">uncertainty</span> <span class="o">=</span> <span class="n">StdDevUncertainty</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd</span> <span class="o">=</span> <span class="n">NDDataRef</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">uncertainty</span><span class="o">=</span><span class="n">uncertainty</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># don&#39;t forget that ~ or you&#39;ll get the invalid points</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span> <span class="o">=</span> <span class="n">ndd</span><span class="p">[</span><span class="o">~</span><span class="n">ndd</span><span class="o">.</span><span class="n">mask</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span>
+<span class="go">NDDataRef([1, 3, 7, 8])</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span><span class="o">.</span><span class="n">mask</span>
+<span class="go">array([False, False, False, False]...)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span><span class="o">.</span><span class="n">uncertainty</span>  
+<span class="go">StdDevUncertainty([1.        , 1.73205081, 2.64575131, 2.82842712])</span>
+</pre></div>
+</div>
+<p>Or all invalid points:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span> <span class="o">=</span> <span class="n">ndd</span><span class="p">[</span><span class="n">ndd</span><span class="o">.</span><span class="n">mask</span><span class="p">]</span> <span class="c1"># without the ~ now!</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span>
+<span class="go">NDDataRef([2, 4, 5, 6, 9])</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span><span class="o">.</span><span class="n">mask</span>
+<span class="go">array([ True,  True,  True,  True,  True]...)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ndd_sliced</span><span class="o">.</span><span class="n">uncertainty</span>  
+<span class="go">StdDevUncertainty([1.41421356, 2.        , 2.23606798, 2.44948974, 3.        ])</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The result of this kind of indexing (boolean indexing) will always be
+one-dimensional!</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Slicing and Indexing NDData</a><ul>
+<li><a class="reference internal" href="#introduction">Introduction</a></li>
+<li><a class="reference internal" href="#slicing-nddataref">Slicing NDDataRef</a></li>
+<li><a class="reference internal" href="#slicing-nddataref-including-attributes">Slicing NDDataRef Including Attributes</a><ul>
+<li><a class="reference internal" href="#slicing-nddata-with-world-coordinates">Slicing NDData with World Coordinates</a></li>
+<li><a class="reference internal" href="#removing-masked-data">Removing Masked Data</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../_sources/nddata/mixins/ndslicing.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

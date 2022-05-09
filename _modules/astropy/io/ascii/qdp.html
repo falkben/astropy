@@ -1,0 +1,732 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.io.ascii.qdp &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.io.ascii.qdp</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This package contains functions for reading and writing QDP tables that are</span>
+<span class="sd">not meant to be used directly, but instead are available as readers/writers in</span>
+<span class="sd">`astropy.table`. See :ref:`astropy:table_io` for more details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.exceptions</span> <span class="kn">import</span> <span class="n">AstropyUserWarning</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">core</span><span class="p">,</span> <span class="n">basic</span>
+
+
+<span class="k">def</span> <span class="nf">_line_type</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Interpret a QDP file line</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    line : str</span>
+<span class="sd">        a single line of the file</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    type : str</span>
+<span class="sd">        Line type: &quot;comment&quot;, &quot;command&quot;, or &quot;data&quot;</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; _line_type(&quot;READ SERR 3&quot;)</span>
+<span class="sd">    &#39;command&#39;</span>
+<span class="sd">    &gt;&gt;&gt; _line_type(&quot; \\n    !some gibberish&quot;)</span>
+<span class="sd">    &#39;comment&#39;</span>
+<span class="sd">    &gt;&gt;&gt; _line_type(&quot;   &quot;)</span>
+<span class="sd">    &#39;comment&#39;</span>
+<span class="sd">    &gt;&gt;&gt; _line_type(&quot; 21345.45&quot;)</span>
+<span class="sd">    &#39;data,1&#39;</span>
+<span class="sd">    &gt;&gt;&gt; _line_type(&quot; 21345.45 1.53e-3 1e-3 .04 NO nan&quot;)</span>
+<span class="sd">    &#39;data,6&#39;</span>
+<span class="sd">    &gt;&gt;&gt; _line_type(&quot; 21345.45,1.53e-3,1e-3,.04,NO,nan&quot;, delimiter=&#39;,&#39;)</span>
+<span class="sd">    &#39;data,6&#39;</span>
+<span class="sd">    &gt;&gt;&gt; _line_type(&quot; 21345.45 ! a comment to disturb&quot;)</span>
+<span class="sd">    &#39;data,1&#39;</span>
+<span class="sd">    &gt;&gt;&gt; _line_type(&quot;NO NO NO NO NO&quot;)</span>
+<span class="sd">    &#39;new&#39;</span>
+<span class="sd">    &gt;&gt;&gt; _line_type(&quot;NO,NO,NO,NO,NO&quot;, delimiter=&#39;,&#39;)</span>
+<span class="sd">    &#39;new&#39;</span>
+<span class="sd">    &gt;&gt;&gt; _line_type(&quot;N O N NOON OON O&quot;)</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">        ...</span>
+<span class="sd">    ValueError: Unrecognized QDP line...</span>
+<span class="sd">    &gt;&gt;&gt; _line_type(&quot; some non-comment gibberish&quot;)</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">        ...</span>
+<span class="sd">    ValueError: Unrecognized QDP line...</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_decimal_re</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?&#39;</span>
+    <span class="n">_command_re</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;READ [TS]ERR(\s+[0-9]+)+&#39;</span>
+
+    <span class="n">sep</span> <span class="o">=</span> <span class="n">delimiter</span>
+    <span class="k">if</span> <span class="n">delimiter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sep</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;\s+&#39;</span>
+    <span class="n">_new_re</span> <span class="o">=</span> <span class="sa">rf</span><span class="s1">&#39;NO(</span><span class="si">{</span><span class="n">sep</span><span class="si">}</span><span class="s1">NO)+&#39;</span>
+    <span class="n">_data_re</span> <span class="o">=</span> <span class="sa">rf</span><span class="s1">&#39;(</span><span class="si">{</span><span class="n">_decimal_re</span><span class="si">}</span><span class="s1">|NO|[-+]?nan)(</span><span class="si">{</span><span class="n">sep</span><span class="si">}</span><span class="s1">(</span><span class="si">{</span><span class="n">_decimal_re</span><span class="si">}</span><span class="s1">|NO|[-+]?nan))*)&#39;</span>
+    <span class="n">_type_re</span> <span class="o">=</span> <span class="sa">rf</span><span class="s1">&#39;^\s*((?P&lt;command&gt;</span><span class="si">{</span><span class="n">_command_re</span><span class="si">}</span><span class="s1">)|(?P&lt;new&gt;</span><span class="si">{</span><span class="n">_new_re</span><span class="si">}</span><span class="s1">)|(?P&lt;data&gt;</span><span class="si">{</span><span class="n">_data_re</span><span class="si">}</span><span class="s1">)?\s*(\!(?P&lt;comment&gt;.*))?\s*$&#39;</span>
+    <span class="n">_line_type_re</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">_type_re</span><span class="p">)</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;comment&#39;</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">_line_type_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Unrecognized QDP line: </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">type_</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">match</span><span class="o">.</span><span class="n">groupdict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">type_</span> <span class="o">==</span> <span class="s1">&#39;data&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;data,</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">sep</span><span class="o">=</span><span class="n">delimiter</span><span class="p">))</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">type_</span>
+
+
+<span class="k">def</span> <span class="nf">_get_type_from_list_of_lines</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read through the list of QDP file lines and label each line by type</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lines : list</span>
+<span class="sd">        List containing one file line in each entry</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    contents : list</span>
+<span class="sd">        List containing the type for each line (see `line_type_and_data`)</span>
+<span class="sd">    ncol : int</span>
+<span class="sd">        The number of columns in the data lines. Must be the same throughout</span>
+<span class="sd">        the file</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; line0 = &quot;! A comment&quot;</span>
+<span class="sd">    &gt;&gt;&gt; line1 = &quot;543 12 456.0&quot;</span>
+<span class="sd">    &gt;&gt;&gt; lines = [line0, line1]</span>
+<span class="sd">    &gt;&gt;&gt; types, ncol = _get_type_from_list_of_lines(lines)</span>
+<span class="sd">    &gt;&gt;&gt; types[0]</span>
+<span class="sd">    &#39;comment&#39;</span>
+<span class="sd">    &gt;&gt;&gt; types[1]</span>
+<span class="sd">    &#39;data,3&#39;</span>
+<span class="sd">    &gt;&gt;&gt; ncol</span>
+<span class="sd">    3</span>
+<span class="sd">    &gt;&gt;&gt; lines.append(&quot;23&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; _get_type_from_list_of_lines(lines)</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">        ...</span>
+<span class="sd">    ValueError: Inconsistent number of columns</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">types</span> <span class="o">=</span> <span class="p">[</span><span class="n">_line_type</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">]</span>
+    <span class="n">current_ncol</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">type_</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">type_</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="p">):</span>
+            <span class="n">ncol</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">type_</span><span class="p">[</span><span class="mi">5</span><span class="p">:])</span>
+            <span class="k">if</span> <span class="n">current_ncol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">current_ncol</span> <span class="o">=</span> <span class="n">ncol</span>
+            <span class="k">elif</span> <span class="n">ncol</span> <span class="o">!=</span> <span class="n">current_ncol</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Inconsistent number of columns&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">types</span><span class="p">,</span> <span class="n">current_ncol</span>
+
+
+<span class="k">def</span> <span class="nf">_get_lines_from_file</span><span class="p">(</span><span class="n">qdp_file</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">qdp_file</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">qdp_file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qdp_file</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">qdp_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">fobj</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fobj</span><span class="o">.</span><span class="n">readlines</span><span class="p">()]</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qdp_file</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">qdp_file</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;invalid value of qdb_file&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">lines</span>
+
+
+<span class="k">def</span> <span class="nf">_interpret_err_lines</span><span class="p">(</span><span class="n">err_specs</span><span class="p">,</span> <span class="n">ncols</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Give list of column names from the READ SERR and TERR commands</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    err_specs : dict</span>
+<span class="sd">        ``{&#39;serr&#39;: [n0, n1, ...], &#39;terr&#39;: [n2, n3, ...]}``</span>
+<span class="sd">        Error specifications for symmetric and two-sided errors</span>
+<span class="sd">    ncols : int</span>
+<span class="sd">        Number of data columns</span>
+
+<span class="sd">    Other Parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    names : list of str</span>
+<span class="sd">        Name of data columns (defaults to [&#39;col1&#39;, &#39;col2&#39;, ...]), _not_</span>
+<span class="sd">        including error columns.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    colnames : list</span>
+<span class="sd">        List containing the column names. Error columns will have the name</span>
+<span class="sd">        of the main column plus ``_err`` for symmetric errors, and ``_perr``</span>
+<span class="sd">        and ``_nerr`` for positive and negative errors respectively</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; col_in = [&#39;MJD&#39;, &#39;Rate&#39;]</span>
+<span class="sd">    &gt;&gt;&gt; cols = _interpret_err_lines(None, 2, names=col_in)</span>
+<span class="sd">    &gt;&gt;&gt; cols[0]</span>
+<span class="sd">    &#39;MJD&#39;</span>
+<span class="sd">    &gt;&gt;&gt; err_specs = {&#39;terr&#39;: [1], &#39;serr&#39;: [2]}</span>
+<span class="sd">    &gt;&gt;&gt; ncols = 5</span>
+<span class="sd">    &gt;&gt;&gt; cols = _interpret_err_lines(err_specs, ncols, names=col_in)</span>
+<span class="sd">    &gt;&gt;&gt; cols[0]</span>
+<span class="sd">    &#39;MJD&#39;</span>
+<span class="sd">    &gt;&gt;&gt; cols[2]</span>
+<span class="sd">    &#39;MJD_nerr&#39;</span>
+<span class="sd">    &gt;&gt;&gt; cols[4]</span>
+<span class="sd">    &#39;Rate_err&#39;</span>
+<span class="sd">    &gt;&gt;&gt; _interpret_err_lines(err_specs, 6, names=col_in)</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">        ...</span>
+<span class="sd">    ValueError: Inconsistent number of input colnames</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">colnames</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncols</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">err_specs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">serr_cols</span> <span class="o">=</span> <span class="n">terr_cols</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># I don&#39;t want to empty the original one when using `pop` below</span>
+        <span class="n">err_specs</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">err_specs</span><span class="p">)</span>
+
+        <span class="n">serr_cols</span> <span class="o">=</span> <span class="n">err_specs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;serr&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">terr_cols</span> <span class="o">=</span> <span class="n">err_specs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;terr&quot;</span><span class="p">,</span> <span class="p">[])</span>
+
+    <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">all_error_cols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">serr_cols</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">terr_cols</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">all_error_cols</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">!=</span> <span class="n">ncols</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Inconsistent number of input colnames&quot;</span><span class="p">)</span>
+
+    <span class="n">shift</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncols</span><span class="p">):</span>
+        <span class="n">col_num</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">shift</span>
+        <span class="k">if</span> <span class="n">colnames</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">colname_root</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;col</span><span class="si">{</span><span class="n">col_num</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">colname_root</span> <span class="o">=</span> <span class="n">names</span><span class="p">[</span><span class="n">col_num</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">colnames</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">colname_root</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="n">col_num</span> <span class="ow">in</span> <span class="n">serr_cols</span><span class="p">:</span>
+            <span class="n">colnames</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">colname_root</span><span class="si">}</span><span class="s2">_err&quot;</span>
+            <span class="n">shift</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">col_num</span> <span class="ow">in</span> <span class="n">terr_cols</span><span class="p">:</span>
+            <span class="n">colnames</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">colname_root</span><span class="si">}</span><span class="s2">_perr&quot;</span>
+            <span class="n">colnames</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">colname_root</span><span class="si">}</span><span class="s2">_nerr&quot;</span>
+            <span class="n">shift</span> <span class="o">+=</span> <span class="mi">2</span>
+            <span class="k">continue</span>
+
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">([</span><span class="n">c</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">colnames</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">colnames</span>
+
+
+<span class="k">def</span> <span class="nf">_get_tables_from_qdp_file</span><span class="p">(</span><span class="n">qdp_file</span><span class="p">,</span> <span class="n">input_colnames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get all tables from a QDP file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    qdp_file : str</span>
+<span class="sd">        Input QDP file name</span>
+
+<span class="sd">    Other Parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    input_colnames : list of str</span>
+<span class="sd">        Name of data columns (defaults to [&#39;col1&#39;, &#39;col2&#39;, ...]), _not_</span>
+<span class="sd">        including error columns.</span>
+<span class="sd">    delimiter : str</span>
+<span class="sd">        Delimiter for the values in the table.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list of `~astropy.table.Table`</span>
+<span class="sd">        List containing all the tables present inside the QDP file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">_get_lines_from_file</span><span class="p">(</span><span class="n">qdp_file</span><span class="p">)</span>
+    <span class="n">contents</span><span class="p">,</span> <span class="n">ncol</span> <span class="o">=</span> <span class="n">_get_type_from_list_of_lines</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">)</span>
+
+    <span class="n">table_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">err_specs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">colnames</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">comment_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">initial_comments</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">command_lines</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">current_rows</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">line</span><span class="p">,</span> <span class="n">datatype</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">contents</span><span class="p">):</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;!&#39;</span><span class="p">)</span>
+        <span class="c1"># Is this a comment?</span>
+        <span class="k">if</span> <span class="n">datatype</span> <span class="o">==</span> <span class="s2">&quot;comment&quot;</span><span class="p">:</span>
+            <span class="n">comment_text</span> <span class="o">+=</span> <span class="n">line</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">datatype</span> <span class="o">==</span> <span class="s2">&quot;command&quot;</span><span class="p">:</span>
+            <span class="c1"># The first time I find commands, I save whatever comments into</span>
+            <span class="c1"># The initial comments.</span>
+            <span class="k">if</span> <span class="n">command_lines</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">initial_comments</span> <span class="o">=</span> <span class="n">comment_text</span>
+                <span class="n">comment_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="n">err_specs</span> <span class="o">!=</span> <span class="p">{}:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;This file contains multiple command blocks. Please verify&quot;</span><span class="p">,</span>
+                    <span class="n">AstropyUserWarning</span>
+                <span class="p">)</span>
+            <span class="n">command_lines</span> <span class="o">+=</span> <span class="n">line</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">datatype</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">):</span>
+            <span class="c1"># The first time I find data, I define err_specs</span>
+            <span class="k">if</span> <span class="n">err_specs</span> <span class="o">==</span> <span class="p">{}</span> <span class="ow">and</span> <span class="n">command_lines</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">cline</span> <span class="ow">in</span> <span class="n">command_lines</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+                    <span class="n">command</span> <span class="o">=</span> <span class="n">cline</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                    <span class="c1"># This should never happen, but just in case.</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">command</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="n">err_specs</span><span class="p">[</span><span class="n">command</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span>
+                                                     <span class="n">command</span><span class="p">[</span><span class="mi">2</span><span class="p">:]]</span>
+            <span class="k">if</span> <span class="n">colnames</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">colnames</span> <span class="o">=</span> <span class="n">_interpret_err_lines</span><span class="p">(</span>
+                    <span class="n">err_specs</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">input_colnames</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">current_rows</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">current_rows</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">delimiter</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="s2">&quot;NO&quot;</span><span class="p">:</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Understand if number is int or float</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+            <span class="n">current_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">datatype</span> <span class="o">==</span> <span class="s2">&quot;new&quot;</span><span class="p">:</span>
+            <span class="c1"># Save table to table_list and reset</span>
+            <span class="k">if</span> <span class="n">current_rows</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">new_table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="n">colnames</span><span class="p">,</span> <span class="n">rows</span><span class="o">=</span><span class="n">current_rows</span><span class="p">)</span>
+                <span class="n">new_table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;initial_comments&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">initial_comments</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">new_table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;comments&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">comment_text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1"># Reset comments</span>
+                <span class="n">comment_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="n">table_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_table</span><span class="p">)</span>
+                <span class="n">current_rows</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">continue</span>
+
+    <span class="c1"># At the very end, if there is still a table being written, let&#39;s save</span>
+    <span class="c1"># it to the table_list</span>
+    <span class="k">if</span> <span class="n">current_rows</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">new_table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="n">colnames</span><span class="p">,</span> <span class="n">rows</span><span class="o">=</span><span class="n">current_rows</span><span class="p">)</span>
+        <span class="n">new_table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;initial_comments&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">initial_comments</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">new_table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;comments&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">comment_text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">table_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_table</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">table_list</span>
+
+
+<span class="k">def</span> <span class="nf">_understand_err_col</span><span class="p">(</span><span class="n">colnames</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get which column names are error columns</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; colnames = [&#39;a&#39;, &#39;a_err&#39;, &#39;b&#39;, &#39;b_perr&#39;, &#39;b_nerr&#39;]</span>
+<span class="sd">    &gt;&gt;&gt; serr, terr = _understand_err_col(colnames)</span>
+<span class="sd">    &gt;&gt;&gt; np.allclose(serr, [1])</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; np.allclose(terr, [2])</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; serr, terr = _understand_err_col([&#39;a&#39;, &#39;a_nerr&#39;])</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">    ...</span>
+<span class="sd">    ValueError: Missing positive error...</span>
+<span class="sd">    &gt;&gt;&gt; serr, terr = _understand_err_col([&#39;a&#39;, &#39;a_perr&#39;])</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">    ...</span>
+<span class="sd">    ValueError: Missing negative error...</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shift</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">serr</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">terr</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">colnames</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_err&quot;</span><span class="p">):</span>
+            <span class="c1"># The previous column, but they&#39;re numbered from 1!</span>
+            <span class="c1"># Plus, take shift into account</span>
+            <span class="n">serr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="n">shift</span><span class="p">)</span>
+            <span class="n">shift</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">col</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_perr&quot;</span><span class="p">):</span>
+            <span class="n">terr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="n">shift</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">colnames</span><span class="p">)</span> <span class="o">==</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">colnames</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;_nerr&#39;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Missing negative error&quot;</span><span class="p">)</span>
+            <span class="n">shift</span> <span class="o">+=</span> <span class="mi">2</span>
+        <span class="k">elif</span> <span class="n">col</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_nerr&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">colnames</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;_perr&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Missing positive error&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">serr</span><span class="p">,</span> <span class="n">terr</span>
+
+
+<span class="k">def</span> <span class="nf">_read_table_qdp</span><span class="p">(</span><span class="n">qdp_file</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">table_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read a table from a QDP file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    qdp_file : str</span>
+<span class="sd">        Input QDP file name</span>
+
+<span class="sd">    Other Parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    names : list of str</span>
+<span class="sd">        Name of data columns (defaults to [&#39;col1&#39;, &#39;col2&#39;, ...]), _not_</span>
+<span class="sd">        including error columns.</span>
+
+<span class="sd">    table_id : int, default 0</span>
+<span class="sd">        Number of the table to be read from the QDP file. This is useful</span>
+<span class="sd">        when multiple tables present in the file. By default, the first is read.</span>
+
+<span class="sd">    delimiter : str</span>
+<span class="sd">        Any delimiter accepted by the `sep` argument of str.split()</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tables : list of `~astropy.table.Table`</span>
+<span class="sd">        List containing all the tables present inside the QDP file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">table_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;table_id not specified. Reading the first available &quot;</span>
+                      <span class="s2">&quot;table&quot;</span><span class="p">,</span> <span class="n">AstropyUserWarning</span><span class="p">)</span>
+        <span class="n">table_id</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">tables</span> <span class="o">=</span> <span class="n">_get_tables_from_qdp_file</span><span class="p">(</span><span class="n">qdp_file</span><span class="p">,</span> <span class="n">input_colnames</span><span class="o">=</span><span class="n">names</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tables</span><span class="p">[</span><span class="n">table_id</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_write_table_qdp</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">err_specs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Write a table to a QDP file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    table : :class:`~astropy.table.Table`</span>
+<span class="sd">        Input table to be written</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        Output QDP file name</span>
+
+<span class="sd">    Other Parameters</span>
+<span class="sd">    ----------------</span>
+<span class="sd">    err_specs : dict</span>
+<span class="sd">        Dictionary of the format {&#39;serr&#39;: [1], &#39;terr&#39;: [2, 3]}, specifying</span>
+<span class="sd">        which columns have symmetric and two-sided errors (see QDP format</span>
+<span class="sd">        specification)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">io</span>
+    <span class="n">fobj</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="s1">&#39;initial_comments&#39;</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span> <span class="ow">and</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;initial_comments&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="p">[]:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;initial_comments&#39;</span><span class="p">]:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;!&quot;</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;!&quot;</span> <span class="o">+</span> <span class="n">line</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">fobj</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">err_specs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">serr_cols</span><span class="p">,</span> <span class="n">terr_cols</span> <span class="o">=</span> <span class="n">_understand_err_col</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">colnames</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">serr_cols</span> <span class="o">=</span> <span class="n">err_specs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;serr&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">terr_cols</span> <span class="o">=</span> <span class="n">err_specs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;terr&quot;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="k">if</span> <span class="n">serr_cols</span> <span class="o">!=</span> <span class="p">[]:</span>
+        <span class="n">col_string</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">serr_cols</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;READ SERR </span><span class="si">{</span><span class="n">col_string</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">fobj</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">terr_cols</span> <span class="o">!=</span> <span class="p">[]:</span>
+        <span class="n">col_string</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">terr_cols</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;READ TERR </span><span class="si">{</span><span class="n">col_string</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">fobj</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;comments&#39;</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span> <span class="ow">and</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;comments&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="p">[]:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;comments&#39;</span><span class="p">]:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;!&quot;</span><span class="p">):</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="s2">&quot;!&quot;</span> <span class="o">+</span> <span class="n">line</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">fobj</span><span class="p">)</span>
+
+    <span class="n">colnames</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">colnames</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;!&quot;</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">colnames</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">fobj</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">table</span><span class="p">:</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">is_masked</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+                <span class="n">rep</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rep</span> <span class="o">=</span> <span class="s2">&quot;NO&quot;</span>
+            <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rep</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">fobj</span><span class="p">)</span>
+
+    <span class="n">full_string</span> <span class="o">=</span> <span class="n">fobj</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+    <span class="n">fobj</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fobj</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">full_string</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">fobj</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">full_string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">QDPSplitter</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">DefaultSplitter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Split on space for QDP tables</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">delimiter</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+
+
+<span class="k">class</span> <span class="nc">QDPHeader</span><span class="p">(</span><span class="n">basic</span><span class="o">.</span><span class="n">CommentedHeaderHeader</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Header that uses the :class:`astropy.io.ascii.basic.QDPSplitter`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">splitter_class</span> <span class="o">=</span> <span class="n">QDPSplitter</span>
+    <span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot;!&quot;</span>
+    <span class="n">write_comment</span> <span class="o">=</span> <span class="s2">&quot;!&quot;</span>
+
+
+<span class="k">class</span> <span class="nc">QDPData</span><span class="p">(</span><span class="n">basic</span><span class="o">.</span><span class="n">BasicData</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Data that uses the :class:`astropy.io.ascii.basic.CsvSplitter`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">splitter_class</span> <span class="o">=</span> <span class="n">QDPSplitter</span>
+    <span class="n">fill_values</span> <span class="o">=</span> <span class="p">[(</span><span class="n">core</span><span class="o">.</span><span class="n">masked</span><span class="p">,</span> <span class="s1">&#39;NO&#39;</span><span class="p">)]</span>
+    <span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot;!&quot;</span>
+    <span class="n">write_comment</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="QDP"><a class="viewcode-back" href="../../../../api/astropy.io.ascii.QDP.html#astropy.io.ascii.QDP">[docs]</a><span class="k">class</span> <span class="nc">QDP</span><span class="p">(</span><span class="n">basic</span><span class="o">.</span><span class="n">Basic</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Quick and Dandy Plot table.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        ! Initial comment line 1</span>
+<span class="sd">        ! Initial comment line 2</span>
+<span class="sd">        READ TERR 1</span>
+<span class="sd">        READ SERR 3</span>
+<span class="sd">        ! Table 0 comment</span>
+<span class="sd">        !a a(pos) a(neg) b be c d</span>
+<span class="sd">        53000.5   0.25  -0.5   1  1.5  3.5 2</span>
+<span class="sd">        54000.5   1.25  -1.5   2  2.5  4.5 3</span>
+<span class="sd">        NO NO NO NO NO</span>
+<span class="sd">        ! Table 1 comment</span>
+<span class="sd">        !a a(pos) a(neg) b be c d</span>
+<span class="sd">        54000.5   2.25  -2.5   NO  3.5  5.5 5</span>
+<span class="sd">        55000.5   3.25  -3.5   4  4.5  6.5 nan</span>
+
+<span class="sd">    The input table above contains some initial comments, the error commands,</span>
+<span class="sd">    then two tables.</span>
+<span class="sd">    This file format can contain multiple tables, separated by a line full</span>
+<span class="sd">    of ``NO``s. Comments are exclamation marks, and missing values are single</span>
+<span class="sd">    ``NO`` entries. The delimiter is usually whitespace, more rarely a comma.</span>
+<span class="sd">    The QDP format differentiates between data and error columns. The table</span>
+<span class="sd">    above has commands::</span>
+
+<span class="sd">        READ TERR 1</span>
+<span class="sd">        READ SERR 3</span>
+
+<span class="sd">    which mean that after data column 1 there will be two error columns</span>
+<span class="sd">    containing its positive and engative error bars, then data column 2 without</span>
+<span class="sd">    error bars, then column 3, then a column with the symmetric error of column</span>
+<span class="sd">    3, then the remaining data columns.</span>
+
+<span class="sd">    As explained below, table headers are highly inconsistent. Possible</span>
+<span class="sd">    comments containing column names will be ignored and columns will be called</span>
+<span class="sd">    ``col1``, ``col2``, etc. unless the user specifies their names with the</span>
+<span class="sd">    ``names=`` keyword argument,</span>
+<span class="sd">    When passing column names, pass **only the names of the data columns, not</span>
+<span class="sd">    the error columns.**</span>
+<span class="sd">    Error information will be encoded in the names of the table columns.</span>
+<span class="sd">    (e.g. ``a_perr`` and ``a_nerr`` for the positive and negative error of</span>
+<span class="sd">    column ``a``, ``b_err`` the symmetric error of column ``b``.)</span>
+
+<span class="sd">    When writing tables to this format, users can pass an ``err_specs`` keyword</span>
+<span class="sd">    passing a dictionary ``{&#39;serr&#39;: [3], &#39;terr&#39;: [1, 2]}``, meaning that data</span>
+<span class="sd">    columns 1 and two will have two additional columns each with their positive</span>
+<span class="sd">    and negative errors, and data column 3 will have an additional column with</span>
+<span class="sd">    a symmetric error (just like the ``READ SERR`` and ``READ TERR`` commands</span>
+<span class="sd">    above)</span>
+
+<span class="sd">    Headers are just comments, and tables distributed by various missions</span>
+<span class="sd">    can differ greatly in their use of conventions. For example, light curves</span>
+<span class="sd">    distributed by the Swift-Gehrels mission have an extra space in one header</span>
+<span class="sd">    entry that makes the number of labels inconsistent with the number of cols.</span>
+<span class="sd">    For this reason, we ignore the comments that might encode the column names</span>
+<span class="sd">    and leave the name specification to the user.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        &gt;               Extra space</span>
+<span class="sd">        &gt;                   |</span>
+<span class="sd">        &gt;                   v</span>
+<span class="sd">        &gt;!     MJD       Err (pos)       Err(neg)        Rate            Error</span>
+<span class="sd">        &gt;53000.123456   2.378e-05     -2.378472e-05     NO             0.212439</span>
+
+<span class="sd">    These readers and writer classes will strive to understand which of the</span>
+<span class="sd">    comments belong to all the tables, and which ones to each single table.</span>
+<span class="sd">    General comments will be stored in the ``initial_comments`` meta of each</span>
+<span class="sd">    table. The comments of each table will be stored in the ``comments`` meta.</span>
+
+<span class="sd">    Example::</span>
+
+<span class="sd">        t = Table.read(example_qdp, format=&#39;ascii.qdp&#39;, table_id=1, names=[&#39;a&#39;, &#39;b&#39;, &#39;c&#39;, &#39;d&#39;])</span>
+
+<span class="sd">    reads the second table (``table_id=1``) in file ``example.qdp`` containing</span>
+<span class="sd">    the table above. There are four column names but seven data columns, why?</span>
+<span class="sd">    Because the ``READ SERR`` and ``READ TERR`` commands say that there are</span>
+<span class="sd">    three error columns.</span>
+<span class="sd">    ``t.meta[&#39;initial_comments&#39;]`` will contain the initial two comment lines</span>
+<span class="sd">    in the file, while ``t.meta[&#39;comments&#39;]`` will contain ``Table 1 comment``</span>
+
+<span class="sd">    The table can be written to another file, preserving the same information,</span>
+<span class="sd">    as::</span>
+
+<span class="sd">        t.write(test_file, err_specs={&#39;terr&#39;: [1], &#39;serr&#39;: [3]})</span>
+
+<span class="sd">    Note how the ``terr`` and ``serr`` commands are passed to the writer.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_format_name</span> <span class="o">=</span> <span class="s1">&#39;qdp&#39;</span>
+    <span class="n">_io_registry_can_write</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">_io_registry_suffix</span> <span class="o">=</span> <span class="s1">&#39;.qdp&#39;</span>
+    <span class="n">_description</span> <span class="o">=</span> <span class="s1">&#39;Quick and Dandy Plotter&#39;</span>
+
+    <span class="n">header_class</span> <span class="o">=</span> <span class="n">QDPHeader</span>
+    <span class="n">data_class</span> <span class="o">=</span> <span class="n">QDPData</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">err_specs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">table_id</span> <span class="o">=</span> <span class="n">table_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_specs</span> <span class="o">=</span> <span class="n">err_specs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delimiter</span> <span class="o">=</span> <span class="n">sep</span>
+
+<div class="viewcode-block" id="QDP.read"><a class="viewcode-back" href="../../../../api/astropy.io.ascii.QDP.html#astropy.io.ascii.QDP.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputter</span><span class="o">.</span><span class="n">get_lines</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_read_table_qdp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">,</span> <span class="n">table_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">table_id</span><span class="p">,</span>
+                               <span class="n">names</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">delimiter</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QDP.write"><a class="viewcode-back" href="../../../../api/astropy.io.ascii.QDP.html#astropy.io.ascii.QDP.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_multidim_table</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">_write_table_qdp</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">err_specs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">err_specs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">lines</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

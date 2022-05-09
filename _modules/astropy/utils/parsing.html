@@ -1,0 +1,254 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.utils.parsing &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.utils.parsing</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Wrappers for PLY to provide thread safety.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lex&#39;</span><span class="p">,</span> <span class="s1">&#39;ThreadSafeParser&#39;</span><span class="p">,</span> <span class="s1">&#39;yacc&#39;</span><span class="p">]</span>
+
+
+<span class="n">_TAB_HEADER</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;# -*- coding: utf-8 -*-</span>
+<span class="s2"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="s2"># This file was automatically generated from ply. To re-generate this file,</span>
+<span class="s2"># remove it from this folder, then build astropy and run the tests in-place:</span>
+<span class="s2">#</span>
+<span class="s2">#   python setup.py build_ext --inplace</span>
+<span class="s2">#   pytest </span><span class="si">{package}</span><span class="s2"></span>
+<span class="s2">#</span>
+<span class="s2"># You can then commit the changes to this file.</span>
+
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="n">_LOCK</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">RLock</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_add_tab_header</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">package</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">contents</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">_TAB_HEADER</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="n">package</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">contents</span><span class="p">)</span>
+
+
+<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">_patch_get_caller_module_dict</span><span class="p">(</span><span class="n">module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Temporarily replace the module&#39;s get_caller_module_dict.</span>
+
+<span class="sd">    This is a function inside ``ply.lex`` and ``ply.yacc`` (each has a copy)</span>
+<span class="sd">    that is used to retrieve the caller&#39;s local symbols. Here, we patch the</span>
+<span class="sd">    function to instead retrieve the grandparent&#39;s local symbols to account</span>
+<span class="sd">    for a wrapper layer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">original</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">get_caller_module_dict</span>
+
+    <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">original</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">levels</span><span class="p">):</span>
+        <span class="c1"># Add 2, not 1, because the wrapper itself adds another level</span>
+        <span class="k">return</span> <span class="n">original</span><span class="p">(</span><span class="n">levels</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">module</span><span class="o">.</span><span class="n">get_caller_module_dict</span> <span class="o">=</span> <span class="n">wrapper</span>
+    <span class="k">yield</span>
+    <span class="n">module</span><span class="o">.</span><span class="n">get_caller_module_dict</span> <span class="o">=</span> <span class="n">original</span>
+
+
+<div class="viewcode-block" id="lex"><a class="viewcode-back" href="../../../api/astropy.utils.parsing.lex.html#astropy.utils.parsing.lex">[docs]</a><span class="k">def</span> <span class="nf">lex</span><span class="p">(</span><span class="n">lextab</span><span class="p">,</span> <span class="n">package</span><span class="p">,</span> <span class="n">reflags</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;Create a lexer from local variables.</span>
+
+<span class="sd">    It automatically compiles the lexer in optimized mode, writing to</span>
+<span class="sd">    ``lextab`` in the same directory as the calling file.</span>
+
+<span class="sd">    This function is thread-safe. The returned lexer is *not* thread-safe, but</span>
+<span class="sd">    if it is used exclusively with a single parser returned by :func:`yacc`</span>
+<span class="sd">    then it will be safe.</span>
+
+<span class="sd">    It is only intended to work with lexers defined within the calling</span>
+<span class="sd">    function, rather than at class or module scope.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lextab : str</span>
+<span class="sd">        Name for the file to write with the generated tables, if it does not</span>
+<span class="sd">        already exist (without ``.py`` suffix).</span>
+<span class="sd">    package : str</span>
+<span class="sd">        Name of a test package which should be run with pytest to regenerate</span>
+<span class="sd">        the output file. This is inserted into a comment in the generated</span>
+<span class="sd">        file.</span>
+<span class="sd">    reflags : int</span>
+<span class="sd">        Passed to ``ply.lex``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">astropy.extern.ply</span> <span class="kn">import</span> <span class="n">lex</span>
+
+    <span class="n">caller_file</span> <span class="o">=</span> <span class="n">lex</span><span class="o">.</span><span class="n">get_caller_module_dict</span><span class="p">(</span><span class="mi">2</span><span class="p">)[</span><span class="s1">&#39;__file__&#39;</span><span class="p">]</span>
+    <span class="n">lextab_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">caller_file</span><span class="p">),</span> <span class="n">lextab</span> <span class="o">+</span> <span class="s1">&#39;.py&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">_LOCK</span><span class="p">:</span>
+        <span class="n">lextab_exists</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">lextab_filename</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">_patch_get_caller_module_dict</span><span class="p">(</span><span class="n">lex</span><span class="p">):</span>
+            <span class="n">lexer</span> <span class="o">=</span> <span class="n">lex</span><span class="o">.</span><span class="n">lex</span><span class="p">(</span><span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lextab</span><span class="o">=</span><span class="n">lextab</span><span class="p">,</span>
+                            <span class="n">outputdir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">caller_file</span><span class="p">),</span>
+                            <span class="n">reflags</span><span class="o">=</span><span class="n">reflags</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">lextab_exists</span><span class="p">:</span>
+            <span class="n">_add_tab_header</span><span class="p">(</span><span class="n">lextab_filename</span><span class="p">,</span> <span class="n">package</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">lexer</span></div>
+
+
+<div class="viewcode-block" id="ThreadSafeParser"><a class="viewcode-back" href="../../../api/astropy.utils.parsing.ThreadSafeParser.html#astropy.utils.parsing.ThreadSafeParser">[docs]</a><span class="k">class</span> <span class="nc">ThreadSafeParser</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Wrap a parser produced by ``ply.yacc.yacc``.</span>
+
+<span class="sd">    It provides a :meth:`parse` method that is thread-safe.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">RLock</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ThreadSafeParser.parse"><a class="viewcode-back" href="../../../api/astropy.utils.parsing.ThreadSafeParser.html#astropy.utils.parsing.ThreadSafeParser.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Run the wrapped parser, with a lock to ensure serialization.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="yacc"><a class="viewcode-back" href="../../../api/astropy.utils.parsing.yacc.html#astropy.utils.parsing.yacc">[docs]</a><span class="k">def</span> <span class="nf">yacc</span><span class="p">(</span><span class="n">tabmodule</span><span class="p">,</span> <span class="n">package</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a parser from local variables.</span>
+
+<span class="sd">    It automatically compiles the parser in optimized mode, writing to</span>
+<span class="sd">    ``tabmodule`` in the same directory as the calling file.</span>
+
+<span class="sd">    This function is thread-safe, and the returned parser is also thread-safe,</span>
+<span class="sd">    provided that it does not share a lexer with any other parser.</span>
+
+<span class="sd">    It is only intended to work with parsers defined within the calling</span>
+<span class="sd">    function, rather than at class or module scope.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tabmodule : str</span>
+<span class="sd">        Name for the file to write with the generated tables, if it does not</span>
+<span class="sd">        already exist (without ``.py`` suffix).</span>
+<span class="sd">    package : str</span>
+<span class="sd">        Name of a test package which should be run with pytest to regenerate</span>
+<span class="sd">        the output file. This is inserted into a comment in the generated</span>
+<span class="sd">        file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">astropy.extern.ply</span> <span class="kn">import</span> <span class="n">yacc</span>
+
+    <span class="n">caller_file</span> <span class="o">=</span> <span class="n">yacc</span><span class="o">.</span><span class="n">get_caller_module_dict</span><span class="p">(</span><span class="mi">2</span><span class="p">)[</span><span class="s1">&#39;__file__&#39;</span><span class="p">]</span>
+    <span class="n">tab_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">caller_file</span><span class="p">),</span> <span class="n">tabmodule</span> <span class="o">+</span> <span class="s1">&#39;.py&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">_LOCK</span><span class="p">:</span>
+        <span class="n">tab_exists</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">tab_filename</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">_patch_get_caller_module_dict</span><span class="p">(</span><span class="n">yacc</span><span class="p">):</span>
+            <span class="n">parser</span> <span class="o">=</span> <span class="n">yacc</span><span class="o">.</span><span class="n">yacc</span><span class="p">(</span><span class="n">tabmodule</span><span class="o">=</span><span class="n">tabmodule</span><span class="p">,</span>
+                               <span class="n">outputdir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">caller_file</span><span class="p">),</span>
+                               <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">write_tables</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">tab_exists</span><span class="p">:</span>
+            <span class="n">_add_tab_header</span><span class="p">(</span><span class="n">tab_filename</span><span class="p">,</span> <span class="n">package</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ThreadSafeParser</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

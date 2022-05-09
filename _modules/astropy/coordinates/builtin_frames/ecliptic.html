@@ -1,0 +1,345 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.coordinates.builtin_frames.ecliptic &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" >Module code</a> &#187;</li>
+      <li><a href="../builtin_frames.html" accesskey="U">astropy.coordinates.builtin_frames</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.coordinates.builtin_frames.ecliptic</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.decorators</span> <span class="kn">import</span> <span class="n">format_doc</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">representation</span> <span class="k">as</span> <span class="n">r</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.baseframe</span> <span class="kn">import</span> <span class="n">BaseCoordinateFrame</span><span class="p">,</span> <span class="n">base_doc</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.attributes</span> <span class="kn">import</span> <span class="n">TimeAttribute</span><span class="p">,</span> <span class="n">QuantityAttribute</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">EQUINOX_J2000</span><span class="p">,</span> <span class="n">DEFAULT_OBSTIME</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;GeocentricMeanEcliptic&#39;</span><span class="p">,</span> <span class="s1">&#39;BarycentricMeanEcliptic&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;HeliocentricMeanEcliptic&#39;</span><span class="p">,</span> <span class="s1">&#39;BaseEclipticFrame&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;GeocentricTrueEcliptic&#39;</span><span class="p">,</span> <span class="s1">&#39;BarycentricTrueEcliptic&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;HeliocentricTrueEcliptic&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;HeliocentricEclipticIAU76&#39;</span><span class="p">,</span> <span class="s1">&#39;CustomBarycentricEcliptic&#39;</span><span class="p">]</span>
+
+
+<span class="n">doc_components_ecl</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    lon : `~astropy.coordinates.Angle`, optional, keyword-only</span>
+<span class="s2">        The ecliptic longitude for this object (``lat`` must also be given and</span>
+<span class="s2">        ``representation`` must be None).</span>
+<span class="s2">    lat : `~astropy.coordinates.Angle`, optional, keyword-only</span>
+<span class="s2">        The ecliptic latitude for this object (``lon`` must also be given and</span>
+<span class="s2">        ``representation`` must be None).</span>
+<span class="s2">    distance : `~astropy.units.Quantity` [&#39;length&#39;], optional, keyword-only</span>
+<span class="s2">        The distance for this object from the </span><span class="si">{0}</span><span class="s2">.</span>
+<span class="s2">        (``representation`` must be None).</span>
+
+<span class="s2">    pm_lon_coslat : `~astropy.units.Quantity` [&#39;angualar speed&#39;], optional, keyword-only</span>
+<span class="s2">        The proper motion in the ecliptic longitude (including the ``cos(lat)``</span>
+<span class="s2">        factor) for this object (``pm_lat`` must also be given).</span>
+<span class="s2">    pm_lat : `~astropy.units.Quantity` [&#39;angular speed&#39;], optional, keyword-only</span>
+<span class="s2">        The proper motion in the ecliptic latitude for this object</span>
+<span class="s2">        (``pm_lon_coslat`` must also be given).</span>
+<span class="s2">    radial_velocity : `~astropy.units.Quantity` [&#39;speed&#39;], optional, keyword-only</span>
+<span class="s2">        The radial velocity of this object.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="BaseEclipticFrame"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.BaseEclipticFrame.html#astropy.coordinates.BaseEclipticFrame">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span>
+            <span class="n">components</span><span class="o">=</span><span class="n">doc_components_ecl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;specified location&#39;</span><span class="p">),</span>
+            <span class="n">footer</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BaseEclipticFrame</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A base class for frames that have names and conventions like that of</span>
+<span class="sd">    ecliptic frames.</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">            In the current version of astropy, the ecliptic frames do not yet have</span>
+<span class="sd">            stringent accuracy tests.  We recommend you test to &quot;known-good&quot; cases</span>
+<span class="sd">            to ensure this frames are what you are looking for. (and then ideally</span>
+<span class="sd">            you would contribute these tests to Astropy!)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span>
+    <span class="n">default_differential</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">SphericalCosLatDifferential</span></div>
+
+
+<span class="n">doc_footer_geo</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Other parameters</span>
+<span class="s2">    ----------------</span>
+<span class="s2">    equinox : `~astropy.time.Time`, optional</span>
+<span class="s2">        The date to assume for this frame.  Determines the location of the</span>
+<span class="s2">        x-axis and the location of the Earth (necessary for transformation to</span>
+<span class="s2">        non-geocentric systems). Defaults to the &#39;J2000&#39; equinox.</span>
+<span class="s2">    obstime : `~astropy.time.Time`, optional</span>
+<span class="s2">        The time at which the observation is taken.  Used for determining the</span>
+<span class="s2">        position of the Earth. Defaults to J2000.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="GeocentricMeanEcliptic"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.GeocentricMeanEcliptic.html#astropy.coordinates.GeocentricMeanEcliptic">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components_ecl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;geocenter&#39;</span><span class="p">),</span>
+            <span class="n">footer</span><span class="o">=</span><span class="n">doc_footer_geo</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">GeocentricMeanEcliptic</span><span class="p">(</span><span class="n">BaseEclipticFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Geocentric mean ecliptic coordinates.  These origin of the coordinates are the</span>
+<span class="sd">    geocenter (Earth), with the x axis pointing to the *mean* (not true) equinox</span>
+<span class="sd">    at the time specified by the ``equinox`` attribute, and the xy-plane in the</span>
+<span class="sd">    plane of the ecliptic for that date.</span>
+
+<span class="sd">    Be aware that the definition of &quot;geocentric&quot; here means that this frame</span>
+<span class="sd">    *includes* light deflection from the sun, aberration, etc when transforming</span>
+<span class="sd">    to/from e.g. ICRS.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">equinox</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">EQUINOX_J2000</span><span class="p">)</span>
+    <span class="n">obstime</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_OBSTIME</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GeocentricTrueEcliptic"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.GeocentricTrueEcliptic.html#astropy.coordinates.GeocentricTrueEcliptic">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components_ecl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;geocenter&#39;</span><span class="p">),</span>
+            <span class="n">footer</span><span class="o">=</span><span class="n">doc_footer_geo</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">GeocentricTrueEcliptic</span><span class="p">(</span><span class="n">BaseEclipticFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Geocentric true ecliptic coordinates.  These origin of the coordinates are the</span>
+<span class="sd">    geocenter (Earth), with the x axis pointing to the *true* (not mean) equinox</span>
+<span class="sd">    at the time specified by the ``equinox`` attribute, and the xy-plane in the</span>
+<span class="sd">    plane of the ecliptic for that date.</span>
+
+<span class="sd">    Be aware that the definition of &quot;geocentric&quot; here means that this frame</span>
+<span class="sd">    *includes* light deflection from the sun, aberration, etc when transforming</span>
+<span class="sd">    to/from e.g. ICRS.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">equinox</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">EQUINOX_J2000</span><span class="p">)</span>
+    <span class="n">obstime</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_OBSTIME</span><span class="p">)</span></div>
+
+
+<span class="n">doc_footer_bary</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Other parameters</span>
+<span class="s2">    ----------------</span>
+<span class="s2">    equinox : `~astropy.time.Time`, optional</span>
+<span class="s2">        The date to assume for this frame.  Determines the location of the</span>
+<span class="s2">        x-axis and the location of the Earth and Sun.</span>
+<span class="s2">        Defaults to the &#39;J2000&#39; equinox.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="BarycentricMeanEcliptic"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.BarycentricMeanEcliptic.html#astropy.coordinates.BarycentricMeanEcliptic">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components_ecl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;barycenter&quot;</span><span class="p">),</span>
+            <span class="n">footer</span><span class="o">=</span><span class="n">doc_footer_bary</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BarycentricMeanEcliptic</span><span class="p">(</span><span class="n">BaseEclipticFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Barycentric mean ecliptic coordinates.  These origin of the coordinates are the</span>
+<span class="sd">    barycenter of the solar system, with the x axis pointing in the direction of</span>
+<span class="sd">    the *mean* (not true) equinox as at the time specified by the ``equinox``</span>
+<span class="sd">    attribute (as seen from Earth), and the xy-plane in the plane of the</span>
+<span class="sd">    ecliptic for that date.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">equinox</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">EQUINOX_J2000</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BarycentricTrueEcliptic"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.BarycentricTrueEcliptic.html#astropy.coordinates.BarycentricTrueEcliptic">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components_ecl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;barycenter&quot;</span><span class="p">),</span>
+            <span class="n">footer</span><span class="o">=</span><span class="n">doc_footer_bary</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BarycentricTrueEcliptic</span><span class="p">(</span><span class="n">BaseEclipticFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Barycentric true ecliptic coordinates.  These origin of the coordinates are the</span>
+<span class="sd">    barycenter of the solar system, with the x axis pointing in the direction of</span>
+<span class="sd">    the *true* (not mean) equinox as at the time specified by the ``equinox``</span>
+<span class="sd">    attribute (as seen from Earth), and the xy-plane in the plane of the</span>
+<span class="sd">    ecliptic for that date.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">equinox</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">EQUINOX_J2000</span><span class="p">)</span></div>
+
+
+<span class="n">doc_footer_helio</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Other parameters</span>
+<span class="s2">    ----------------</span>
+<span class="s2">    equinox : `~astropy.time.Time`, optional</span>
+<span class="s2">        The date to assume for this frame.  Determines the location of the</span>
+<span class="s2">        x-axis and the location of the Earth and Sun.</span>
+<span class="s2">        Defaults to the &#39;J2000&#39; equinox.</span>
+<span class="s2">    obstime : `~astropy.time.Time`, optional</span>
+<span class="s2">        The time at which the observation is taken.  Used for determining the</span>
+<span class="s2">        position of the Sun. Defaults to J2000.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="HeliocentricMeanEcliptic"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.HeliocentricMeanEcliptic.html#astropy.coordinates.HeliocentricMeanEcliptic">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components_ecl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;sun&#39;s center&quot;</span><span class="p">),</span>
+            <span class="n">footer</span><span class="o">=</span><span class="n">doc_footer_helio</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">HeliocentricMeanEcliptic</span><span class="p">(</span><span class="n">BaseEclipticFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Heliocentric mean ecliptic coordinates.  These origin of the coordinates are the</span>
+<span class="sd">    center of the sun, with the x axis pointing in the direction of</span>
+<span class="sd">    the *mean* (not true) equinox as at the time specified by the ``equinox``</span>
+<span class="sd">    attribute (as seen from Earth), and the xy-plane in the plane of the</span>
+<span class="sd">    ecliptic for that date.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**.</span>
+
+<span class="sd">    {params}</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">equinox</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">EQUINOX_J2000</span><span class="p">)</span>
+    <span class="n">obstime</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_OBSTIME</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HeliocentricTrueEcliptic"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.HeliocentricTrueEcliptic.html#astropy.coordinates.HeliocentricTrueEcliptic">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components_ecl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;sun&#39;s center&quot;</span><span class="p">),</span>
+            <span class="n">footer</span><span class="o">=</span><span class="n">doc_footer_helio</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">HeliocentricTrueEcliptic</span><span class="p">(</span><span class="n">BaseEclipticFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Heliocentric true ecliptic coordinates.  These origin of the coordinates are the</span>
+<span class="sd">    center of the sun, with the x axis pointing in the direction of</span>
+<span class="sd">    the *true* (not mean) equinox as at the time specified by the ``equinox``</span>
+<span class="sd">    attribute (as seen from Earth), and the xy-plane in the plane of the</span>
+<span class="sd">    ecliptic for that date.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**.</span>
+
+<span class="sd">    {params}</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">equinox</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">EQUINOX_J2000</span><span class="p">)</span>
+    <span class="n">obstime</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_OBSTIME</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HeliocentricEclipticIAU76"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.HeliocentricEclipticIAU76.html#astropy.coordinates.HeliocentricEclipticIAU76">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components_ecl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;sun&#39;s center&quot;</span><span class="p">),</span>
+            <span class="n">footer</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">HeliocentricEclipticIAU76</span><span class="p">(</span><span class="n">BaseEclipticFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Heliocentric mean (IAU 1976) ecliptic coordinates.  These origin of the coordinates are the</span>
+<span class="sd">    center of the sun, with the x axis pointing in the direction of</span>
+<span class="sd">    the *mean* (not true) equinox of J2000, and the xy-plane in the plane of the</span>
+<span class="sd">    ecliptic of J2000 (according to the IAU 1976/1980 obliquity model).</span>
+<span class="sd">    It has, therefore, a fixed equinox and an older obliquity value</span>
+<span class="sd">    than the rest of the frames.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**.</span>
+
+<span class="sd">    {params}</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">obstime</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_OBSTIME</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CustomBarycentricEcliptic"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.CustomBarycentricEcliptic.html#astropy.coordinates.CustomBarycentricEcliptic">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components_ecl</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;barycenter&quot;</span><span class="p">),</span>
+            <span class="n">footer</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">CustomBarycentricEcliptic</span><span class="p">(</span><span class="n">BaseEclipticFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Barycentric ecliptic coordinates with custom obliquity.</span>
+<span class="sd">    These origin of the coordinates are the</span>
+<span class="sd">    barycenter of the solar system, with the x axis pointing in the direction of</span>
+<span class="sd">    the *mean* (not true) equinox of J2000, and the xy-plane in the plane of the</span>
+<span class="sd">    ecliptic tilted a custom obliquity angle.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">obliquity</span> <span class="o">=</span> <span class="n">QuantityAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">84381.448</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

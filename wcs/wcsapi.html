@@ -1,0 +1,434 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shared Python Interface for World Coordinate Systems &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Legacy Interface" href="legacy_interface.html" />
+    <link rel="prev" title="World Coordinate System (astropy.wcs)" href="index.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="legacy_interface.html" title="Legacy Interface">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="index.html" title="World Coordinate System (astropy.wcs)">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">World Coordinate System (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.wcs</span></code>)</a> &#187;</li>
+      
+      <li>Shared Python Interface for World Coordinate Systems</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="shared-python-interface-for-world-coordinate-systems">
+<span id="wcsapi"></span><h1>Shared Python Interface for World Coordinate Systems<a class="headerlink" href="#shared-python-interface-for-world-coordinate-systems" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="background">
+<h2>Background<a class="headerlink" href="#background" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../api/astropy.wcs.WCS.html#astropy.wcs.WCS" title="astropy.wcs.WCS"><code class="xref py py-class docutils literal notranslate"><span class="pre">WCS</span></code></a> class implements what is considered the
+most common ‘standard’ for representing world coordinate systems in
+FITS files, but it cannot represent arbitrarily complex transformations
+and there is no agreement on how to use the standard beyond FITS files.
+Therefore, other world coordinate system transformation approaches exist,
+such as the <a class="reference external" href="https://gwcs.readthedocs.io/">gwcs</a> package being developed
+for the James Webb Space Telescope (which is also applicable to other data).</p>
+<p>Since one of the goals of the Astropy Project is to improve interoperability
+between packages, we have collaboratively defined a standardized application
+programming interface (API) for world coordinate system objects to be used
+in Python. This API is described in the Astropy Proposal for Enhancements (APE) 14:
+<a class="reference external" href="https://doi.org/10.5281/zenodo.1188874">A shared Python interface for World Coordinate Systems</a>.</p>
+<p>The core astropy package provides base classes that define the low- and high-
+level APIs described in APE 14 in the <a class="reference internal" href="reference_api.html#module-astropy.wcs.wcsapi" title="astropy.wcs.wcsapi"><code class="xref py py-mod docutils literal notranslate"><span class="pre">astropy.wcs.wcsapi</span></code></a> module, and
+these are listed in the <a class="reference internal" href="index.html#wcs-reference-api"><span class="std std-ref">Reference/API</span></a> section below.</p>
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>While the full  details and motivation for the API are detailed in APE 14,  this
+documentation summarizes the elements that are implemented directly in the
+astropy core package.  The high-level interface is likely of most interest to
+the average user.  In particular, the most important methods are the
+<a class="reference internal" href="../api/astropy.wcs.wcsapi.BaseHighLevelWCS.html#astropy.wcs.wcsapi.BaseHighLevelWCS.pixel_to_world" title="astropy.wcs.wcsapi.BaseHighLevelWCS.pixel_to_world"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pixel_to_world()</span></code></a> and
+<a class="reference internal" href="../api/astropy.wcs.wcsapi.BaseHighLevelWCS.html#astropy.wcs.wcsapi.BaseHighLevelWCS.world_to_pixel" title="astropy.wcs.wcsapi.BaseHighLevelWCS.world_to_pixel"><code class="xref py py-meth docutils literal notranslate"><span class="pre">world_to_pixel()</span></code></a> methods. These
+provide the essential elements of WCS: mapping to and from world coordinates.
+The remainder generally provide information about the <em>kind</em> of world
+coordinates or similar information about the structure of the WCS.</p>
+<p>In a bit more detail, the key classes implemented here are a high-level that
+provides the main user interface (<a class="reference internal" href="../api/astropy.wcs.wcsapi.BaseHighLevelWCS.html#astropy.wcs.wcsapi.BaseHighLevelWCS" title="astropy.wcs.wcsapi.BaseHighLevelWCS"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseHighLevelWCS</span></code></a> and
+subclasses), and a lower-level interface (<a class="reference internal" href="../api/astropy.wcs.wcsapi.BaseLowLevelWCS.html#astropy.wcs.wcsapi.BaseLowLevelWCS" title="astropy.wcs.wcsapi.BaseLowLevelWCS"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLowLevelWCS</span></code></a>
+and subclasses).  These can be distinct objects <em>or</em> the same one.  For
+FITS-WCS, the <a class="reference internal" href="../api/astropy.wcs.WCS.html#astropy.wcs.WCS" title="astropy.wcs.WCS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">WCS</span></code></a> object meant for FITS-WCS follows both
+interfaces, allowing immediate use of this API with files that already contain
+FITS-WCS. More concrete examples are outlined below.</p>
+</div>
+<div class="section" id="basic-usage">
+<h2>Basic usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h2>
+<p>Let’s start off by looking at the shared Python interface for WCS by using a
+simple image with two celestial axes (Right Ascension and Declination):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">WCS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.utils.data</span> <span class="kn">import</span> <span class="n">get_pkg_data_filename</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">filename</span> <span class="o">=</span> <span class="n">get_pkg_data_filename</span><span class="p">(</span><span class="s1">&#39;galactic_center/gc_2mass_k.fits&#39;</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdulist</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span> <span class="o">=</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span> <span class="o">=</span> <span class="n">WCS</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span>  
+<span class="go">WCS Keywords</span>
+<span class="go">Number of WCS axes: 2</span>
+<span class="go">CTYPE : &#39;RA---TAN&#39;  &#39;DEC--TAN&#39;</span>
+<span class="go">CRVAL : 266.4  -28.93333</span>
+<span class="go">CRPIX : 361.0  360.5</span>
+<span class="go">NAXIS : 721  720</span>
+</pre></div>
+</div>
+<p>We can check how many pixel and world axes are in the transformation as well
+as the shape of the data the WCS applies to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span>  
+<span class="go">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="o">.</span><span class="n">world_n_dim</span>  
+<span class="go">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="o">.</span><span class="n">array_shape</span>  
+<span class="go">(720, 721)</span>
+</pre></div>
+</div>
+<p>Note that the array shape should match that of the data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span>  
+<span class="go">(720, 721)</span>
+</pre></div>
+</div>
+<p>As mentioned in <a class="reference internal" href="index.html#pixel-conventions"><span class="std std-ref">Pixel Conventions and Definitions</span></a>, what would normally be
+considered the ‘y-axis’ of the image (when looking at it visually) is the first
+dimension, while the ‘x-axis’ of the image is the second dimension. Thus
+<a class="reference internal" href="../api/astropy.wcs.WCS.html#astropy.wcs.WCS.array_shape" title="astropy.wcs.WCS.array_shape"><code class="xref py py-attr docutils literal notranslate"><span class="pre">array_shape</span></code></a> returns the shape in the <em>opposite</em> order
+to the NAXIS keywords in the FITS header (in the case of FITS-WCS). If you are
+interested in the data shape in the reverse order (which would match the NAXIS
+order in the case of FITS-WCS), then you can use
+<a class="reference internal" href="../api/astropy.wcs.WCS.html#astropy.wcs.WCS.pixel_shape" title="astropy.wcs.WCS.pixel_shape"><code class="xref py py-attr docutils literal notranslate"><span class="pre">pixel_shape</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="o">.</span><span class="n">pixel_shape</span>  
+<span class="go">(721, 720)</span>
+</pre></div>
+</div>
+<p>Let’s now check what the physical type of each axis is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="o">.</span><span class="n">world_axis_physical_types</span>  
+<span class="go">[&#39;pos.eq.ra&#39;, &#39;pos.eq.dec&#39;]</span>
+</pre></div>
+</div>
+<p>This is indeed an image with two celestial axes.</p>
+<p>The main part of the new interface defines standard methods for transforming
+coordinates. The most convenient way is to use the high-level methods
+<a class="reference internal" href="../api/astropy.wcs.wcsapi.BaseHighLevelWCS.html#astropy.wcs.wcsapi.BaseHighLevelWCS.pixel_to_world" title="astropy.wcs.wcsapi.BaseHighLevelWCS.pixel_to_world"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pixel_to_world()</span></code></a> and
+<a class="reference internal" href="../api/astropy.wcs.wcsapi.BaseHighLevelWCS.html#astropy.wcs.wcsapi.BaseHighLevelWCS.world_to_pixel" title="astropy.wcs.wcsapi.BaseHighLevelWCS.world_to_pixel"><code class="xref py py-meth docutils literal notranslate"><span class="pre">world_to_pixel()</span></code></a>, which can
+transform directly to astropy objects:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">coord</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_to_world</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coord</span>  
+<span class="go">&lt;SkyCoord (FK5: equinox=2000.0): (ra, dec) in deg</span>
+<span class="go">    [(266.97242993, -29.42584415), (266.97084321, -29.42723968)]&gt;</span>
+</pre></div>
+</div>
+<p>Similarly, we can transform astropy objects back - we can test this by creating
+Galactic coordinates and these will automatically be converted:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coord</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s1">&#39;00h00m00s +00d00m00s&#39;</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;galactic&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pixels</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">world_to_pixel</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pixels</span>  
+<span class="go">(array(356.85179997), array(357.45340331))</span>
+</pre></div>
+</div>
+<p>If you are looking to index the original data using these pixel coordinates,
+be sure to instead use
+<a class="reference internal" href="../api/astropy.wcs.wcsapi.BaseHighLevelWCS.html#astropy.wcs.wcsapi.BaseHighLevelWCS.world_to_array_index" title="astropy.wcs.wcsapi.BaseHighLevelWCS.world_to_array_index"><code class="xref py py-meth docutils literal notranslate"><span class="pre">world_to_array_index()</span></code></a> which returns
+the coordinates in the correct order to index Numpy arrays, and also rounds to
+the nearest integer values:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">world_to_array_index</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">index</span>  
+<span class="go">(357, 357)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>  
+<span class="go">563.7532</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdulist</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>  
+</pre></div>
+</div>
+</div>
+<div class="section" id="advanced-usage">
+<h2>Advanced usage<a class="headerlink" href="#advanced-usage" title="Permalink to this headline">¶</a></h2>
+<p>Let’s now take a look at a WCS for a spectral cube (two celestial axes and one
+spectral axis):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">filename</span> <span class="o">=</span> <span class="n">get_pkg_data_filename</span><span class="p">(</span><span class="s1">&#39;l1448/l1448_13co.fits&#39;</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdulist</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span> <span class="o">=</span> <span class="n">hdulist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span> <span class="o">=</span> <span class="n">WCS</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span>  
+<span class="go">WCS Keywords</span>
+<span class="go">Number of WCS axes: 3</span>
+<span class="go">CTYPE : &#39;RA---SFL&#39;  &#39;DEC--SFL&#39;  &#39;VOPT&#39;</span>
+<span class="go">CRVAL : 57.6599999999  0.0  -9959.44378305</span>
+<span class="go">CRPIX : -799.0  -4741.913  -187.0</span>
+<span class="go">PC1_1 PC1_2 PC1_3  : 1.0  0.0  0.0</span>
+<span class="go">PC2_1 PC2_2 PC2_3  : 0.0  1.0  0.0</span>
+<span class="go">PC3_1 PC3_2 PC3_3  : 0.0  0.0  1.0</span>
+<span class="go">CDELT : -0.006388889  0.006388889  66.42361</span>
+<span class="go">NAXIS : 105  105  53</span>
+</pre></div>
+</div>
+<p>As before we can check how many pixel and world axes are in the transformation
+as well as the shape of the data the WCS applies to, as well as the physical
+types of each axis:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span>  
+<span class="go">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="o">.</span><span class="n">world_n_dim</span>  
+<span class="go">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="o">.</span><span class="n">array_shape</span>  
+<span class="go">(53, 105, 105)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="o">.</span><span class="n">world_axis_physical_types</span>  
+<span class="go">[&#39;pos.eq.ra&#39;, &#39;pos.eq.dec&#39;, &#39;spect.dopplerVeloc.opt&#39;]</span>
+</pre></div>
+</div>
+<p>This is indeed a spectral cube, with RA/Dec and a velocity axis.</p>
+<p>As before, we can convert between pixels and high-level Astropy objects:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">celestial</span><span class="p">,</span> <span class="n">spectral</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_to_world</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">celestial</span>  
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec) in deg</span>
+<span class="go">    [(51.73115731, 30.32750025), (51.72414268, 30.32111136)]&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spectral</span>  
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (target: &lt;ICRS Coordinate: (ra, dec, distance) in (deg, deg, kpc)</span>
+<span class="go">                (57.66, 0., 1000.)</span>
+<span class="go">             (pm_ra_cosdec, pm_dec, radial_velocity) in (mas / yr, mas / yr, km / s)</span>
+<span class="go">                (0., 0., 0.)&gt;)</span>
+<span class="go">  [2661.04211695, 2727.46572695] m / s&gt;</span>
+</pre></div>
+</div>
+<p>and back:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">coord</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s1">&#39;03h26m36.4901s +30d45m22.2012s&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pixels</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">world_to_pixel</span><span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="mi">3000</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pixels</span>  
+<span class="go">(array(8.11341207), array(71.0956641), array(7.10297292))</span>
+</pre></div>
+</div>
+<p>And as before we can index array values using:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">world_to_array_index</span><span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="mi">3000</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">index</span>  
+<span class="go">(7, 71, 8)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>  
+<span class="go">0.22262384</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdulist</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>  
+</pre></div>
+</div>
+<p>If you are interested in converting to/from world values as simple Python scalars
+or Numpy arrays without using high-level astropy objects, there are methods
+such as <a class="reference internal" href="../api/astropy.wcs.wcsapi.BaseLowLevelWCS.html#astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_to_world_values" title="astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_to_world_values"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pixel_to_world_values()</span></code></a> to
+do this - see <a class="reference internal" href="index.html#wcs-reference-api"><span class="std std-ref">Reference/API</span></a> section for more details.</p>
+</div>
+<div class="section" id="extending-the-physical-types-in-fits-wcs">
+<h2>Extending the physical types in FITS-WCS<a class="headerlink" href="#extending-the-physical-types-in-fits-wcs" title="Permalink to this headline">¶</a></h2>
+<p>As shown above, the <a class="reference internal" href="../api/astropy.wcs.WCS.html#astropy.wcs.WCS.world_axis_physical_types" title="astropy.wcs.WCS.world_axis_physical_types"><code class="xref py py-attr docutils literal notranslate"><span class="pre">world_axis_physical_types</span></code></a> property
+returns the list of physical types for each axis. For FITS-WCS, this is
+determined from the CTYPE values in the header. In cases where the physical
+type is not known, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> is returned. However, it is possible to override the
+physical types returned by using the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">custom_ctype_to_ucd_mapping</span></code> context
+manager. Consider a WCS with the following CTYPE:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">WCS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span> <span class="o">=</span> <span class="n">WCS</span><span class="p">(</span><span class="n">naxis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">ctype</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SPAM&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="o">.</span><span class="n">world_axis_physical_types</span>
+<span class="go">[None]</span>
+</pre></div>
+</div>
+<p>We can specify that for this CTYPE, the physical type should be
+<code class="docutils literal notranslate"><span class="pre">'food.spam'</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.wcs.wcsapi.fitswcs</span> <span class="kn">import</span> <span class="n">custom_ctype_to_ucd_mapping</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">custom_ctype_to_ucd_mapping</span><span class="p">({</span><span class="s1">&#39;SPAM&#39;</span><span class="p">:</span> <span class="s1">&#39;food.spam&#39;</span><span class="p">}):</span>
+<span class="gp">... </span>    <span class="n">wcs</span><span class="o">.</span><span class="n">world_axis_physical_types</span>
+<span class="go">[&#39;food.spam&#39;]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="slicing-of-wcs-objects">
+<h2>Slicing of WCS objects<a class="headerlink" href="#slicing-of-wcs-objects" title="Permalink to this headline">¶</a></h2>
+<p>A common operation when dealing with data with WCS information attached is to
+slice the WCS - this can be either to extract the WCS for a sub-region of the
+data, preserving the overall number of dimensions (e.g. a cutout from an image)
+or it can be reducing the dimensionality of the data and associated WCS (e.g.
+extracting a slice from a spectral cube).</p>
+<p>The <a class="reference internal" href="../api/astropy.wcs.wcsapi.SlicedLowLevelWCS.html#astropy.wcs.wcsapi.SlicedLowLevelWCS" title="astropy.wcs.wcsapi.SlicedLowLevelWCS"><code class="xref py py-class docutils literal notranslate"><span class="pre">SlicedLowLevelWCS</span></code></a> class can be used to slice
+any WCS object that conforms to the <a class="reference internal" href="../api/astropy.wcs.wcsapi.BaseLowLevelWCS.html#astropy.wcs.wcsapi.BaseLowLevelWCS" title="astropy.wcs.wcsapi.BaseLowLevelWCS"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLowLevelWCS</span></code></a>
+API. To demonstrate this, let’s start off by reading in a spectral cube file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">filename</span> <span class="o">=</span> <span class="n">get_pkg_data_filename</span><span class="p">(</span><span class="s1">&#39;l1448/l1448_13co.fits&#39;</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span> <span class="o">=</span> <span class="n">WCS</span><span class="p">(</span><span class="n">fits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>  
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">wcs</span></code> object is an instance of <a class="reference internal" href="../api/astropy.wcs.WCS.html#astropy.wcs.WCS" title="astropy.wcs.WCS"><code class="xref py py-class docutils literal notranslate"><span class="pre">WCS</span></code></a> which conforms to the
+<a class="reference internal" href="../api/astropy.wcs.wcsapi.BaseLowLevelWCS.html#astropy.wcs.wcsapi.BaseLowLevelWCS" title="astropy.wcs.wcsapi.BaseLowLevelWCS"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLowLevelWCS</span></code></a> API. We can then use the
+<a class="reference internal" href="../api/astropy.wcs.wcsapi.SlicedLowLevelWCS.html#astropy.wcs.wcsapi.SlicedLowLevelWCS" title="astropy.wcs.wcsapi.SlicedLowLevelWCS"><code class="xref py py-class docutils literal notranslate"><span class="pre">SlicedLowLevelWCS</span></code></a> class to slice the cube:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.wcs.wcsapi</span> <span class="kn">import</span> <span class="n">SlicedLowLevelWCS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">slices</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="mi">100</span><span class="p">)]</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">subwcs</span> <span class="o">=</span> <span class="n">SlicedLowLevelWCS</span><span class="p">(</span><span class="n">wcs</span><span class="p">,</span> <span class="n">slices</span><span class="o">=</span><span class="n">slices</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">slices</span></code> argument takes any combination of slices, integer values, and
+ellipsis which would normally slice a Numpy array. In the above case, we are
+extracting a spectral slice, and in that slice we are extracting a sub-region
+on the sky.</p>
+<p>If you are implementing your own WCS class, you could choose to implement
+<code class="docutils literal notranslate"><span class="pre">__getitem__</span></code> and have it internally use
+<a class="reference internal" href="../api/astropy.wcs.wcsapi.SlicedLowLevelWCS.html#astropy.wcs.wcsapi.SlicedLowLevelWCS" title="astropy.wcs.wcsapi.SlicedLowLevelWCS"><code class="xref py py-class docutils literal notranslate"><span class="pre">SlicedLowLevelWCS</span></code></a>. In fact, the
+<a class="reference internal" href="../api/astropy.wcs.WCS.html#astropy.wcs.WCS" title="astropy.wcs.WCS"><code class="xref py py-class docutils literal notranslate"><span class="pre">WCS</span></code></a> class does this - the example above can be written
+more succinctly as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">30</span><span class="p">:</span><span class="mi">100</span><span class="p">,</span> <span class="mi">30</span><span class="p">:</span><span class="mi">100</span><span class="p">]</span>  
+<span class="go">&lt;...&gt;</span>
+<span class="go">SlicedFITSWCS Transformation</span>
+
+<span class="go">This transformation has 2 pixel and 2 world dimensions</span>
+
+<span class="go">Array shape (Numpy order): (70, 70)</span>
+
+<span class="go">Pixel Dim  Axis Name  Data size  Bounds</span>
+<span class="go">        0  None              70  None</span>
+<span class="go">        1  None              70  None</span>
+
+<span class="go">World Dim  Axis Name  Physical Type  Units</span>
+<span class="go">        0  None       pos.eq.ra      deg</span>
+<span class="go">        1  None       pos.eq.dec     deg</span>
+
+<span class="go">Correlation between pixel and world axes:</span>
+
+<span class="go">           Pixel Dim</span>
+<span class="go">World Dim    0    1</span>
+<span class="go">        0  yes  yes</span>
+<span class="go">        1  yes  yes</span>
+</pre></div>
+</div>
+<p>This slicing infrastructure is able to deal with slicing of WCS objects which
+have correlated axes - in this case, you may end up with a WCS that has a
+different number of pixel and world coordinates. For example, if we slice
+a spectral cube to extract a 1D dataset corresponding to a row in the
+image plane of a spectral slice, the final WCS will have one pixel dimension
+and two world dimensions (since both RA/Dec vary over the extracted 1D slice):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wcs</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="p">:]</span>  
+<span class="go">&lt;...&gt;</span>
+<span class="go">SlicedFITSWCS Transformation</span>
+
+<span class="go">This transformation has 1 pixel and 2 world dimensions</span>
+
+<span class="go">Array shape (Numpy order): (105,)</span>
+
+<span class="go">Pixel Dim  Axis Name  Data size  Bounds</span>
+<span class="go">        0  None             105  None</span>
+
+<span class="go">World Dim  Axis Name  Physical Type  Units</span>
+<span class="go">        0  None       pos.eq.ra      deg</span>
+<span class="go">        1  None       pos.eq.dec     deg</span>
+
+<span class="go">Correlation between pixel and world axes:</span>
+
+<span class="go">           Pixel Dim</span>
+<span class="go">World Dim    0</span>
+<span class="go">        0  yes</span>
+<span class="go">        1  yes</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Shared Python Interface for World Coordinate Systems</a><ul>
+<li><a class="reference internal" href="#background">Background</a></li>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#basic-usage">Basic usage</a></li>
+<li><a class="reference internal" href="#advanced-usage">Advanced usage</a></li>
+<li><a class="reference internal" href="#extending-the-physical-types-in-fits-wcs">Extending the physical types in FITS-WCS</a></li>
+<li><a class="reference internal" href="#slicing-of-wcs-objects">Slicing of WCS objects</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/wcs/wcsapi.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,276 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fitting a Line &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Fitting with constraints" href="example-fitting-constraints.html" />
+    <link rel="prev" title="1D Spline Models" href="spline_models.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="example-fitting-constraints.html" title="Fitting with constraints">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="spline_models.html" title="1D Spline Models">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Models and Fitting (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling</span></code>)</a> &#187;</li>
+      
+      <li>Fitting a Line</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="fitting-a-line">
+<span id="example-fitting-line"></span><h1>Fitting a Line<a class="headerlink" href="#fitting-a-line" title="Permalink to this headline">¶</a></h1>
+<p>Fitting a line to (x,y) data points is a common case in many areas.
+Examples fits are given for fitting, fitting using the uncertainties
+as weights, and fitting using iterative sigma clipping.</p>
+<div class="section" id="simple-fit">
+<h2>Simple Fit<a class="headerlink" href="#simple-fit" title="Permalink to this headline">¶</a></h2>
+<p>Here the (x,y) data points are fit with a line.  The (x,y) data
+points are simulated and have a range of uncertainties to give
+a realistic example.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">astropy.modeling</span> <span class="kn">import</span> <span class="n">models</span><span class="p">,</span> <span class="n">fitting</span>
+
+<span class="c1"># define a model for a line</span>
+<span class="n">line_orig</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Linear1D</span><span class="p">(</span><span class="n">slope</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">intercept</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+<span class="c1"># generate x, y data non-uniformly spaced in x</span>
+<span class="c1"># add noise to y measurements</span>
+<span class="n">npts</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="n">npts</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">line_orig</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">yunc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="n">npts</span><span class="p">))</span>
+<span class="n">y</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">yunc</span><span class="p">,</span> <span class="n">npts</span><span class="p">)</span>
+
+<span class="c1"># initialize a linear fitter</span>
+<span class="n">fit</span> <span class="o">=</span> <span class="n">fitting</span><span class="o">.</span><span class="n">LinearLSQFitter</span><span class="p">()</span>
+
+<span class="c1"># initialize a linear model</span>
+<span class="n">line_init</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Linear1D</span><span class="p">()</span>
+
+<span class="c1"># fit the data with the fitter</span>
+<span class="n">fitted_line</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">line_init</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+<span class="c1"># plot</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s1">&#39;ko&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Data&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">line_orig</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Simulation Model&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">fitted_line</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;k-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Fitted Model&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../modeling/example-fitting-line-1.png">png</a>, <a class="reference external" href="../modeling/example-fitting-line-1.svg">svg</a>, <a class="reference external" href="../modeling/example-fitting-line-1.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/example-fitting-line-1.png" class="plot-directive" src="../_images/example-fitting-line-1.png" />
+</div>
+</div>
+<div class="section" id="fit-using-uncertainties">
+<h2>Fit using uncertainties<a class="headerlink" href="#fit-using-uncertainties" title="Permalink to this headline">¶</a></h2>
+<p>Fitting can be done using the uncertainties as weights.
+To get the standard weighting of 1/unc^2 for the case of
+Gaussian errors, the weights to pass to the fitting are 1/unc.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">astropy.modeling</span> <span class="kn">import</span> <span class="n">models</span><span class="p">,</span> <span class="n">fitting</span>
+
+<span class="c1"># define a model for a line</span>
+<span class="n">line_orig</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Linear1D</span><span class="p">(</span><span class="n">slope</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">intercept</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+<span class="c1"># generate x, y data non-uniformly spaced in x</span>
+<span class="c1"># add noise to y measurements</span>
+<span class="n">npts</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="n">npts</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">line_orig</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">yunc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="n">npts</span><span class="p">))</span>
+<span class="n">y</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">yunc</span><span class="p">,</span> <span class="n">npts</span><span class="p">)</span>
+
+<span class="c1"># initialize a linear fitter</span>
+<span class="n">fit</span> <span class="o">=</span> <span class="n">fitting</span><span class="o">.</span><span class="n">LinearLSQFitter</span><span class="p">()</span>
+
+<span class="c1"># initialize a linear model</span>
+<span class="n">line_init</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Linear1D</span><span class="p">()</span>
+
+<span class="c1"># fit the data with the fitter</span>
+<span class="n">fitted_line</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">line_init</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="mf">1.0</span><span class="o">/</span><span class="n">yunc</span><span class="p">)</span>
+
+<span class="c1"># plot</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">yunc</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;ko&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Data&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">line_orig</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Simulation Model&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">fitted_line</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;k-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Fitted Model&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../modeling/example-fitting-line-2.png">png</a>, <a class="reference external" href="../modeling/example-fitting-line-2.svg">svg</a>, <a class="reference external" href="../modeling/example-fitting-line-2.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/example-fitting-line-2.png" class="plot-directive" src="../_images/example-fitting-line-2.png" />
+</div>
+</div>
+<div class="section" id="iterative-fitting-using-sigma-clipping">
+<h2>Iterative fitting using sigma clipping<a class="headerlink" href="#iterative-fitting-using-sigma-clipping" title="Permalink to this headline">¶</a></h2>
+<p>When fitting, there may be data that are outliers from the fit
+that can significantly bias the fitting.  These outliers can
+be identified and removed from the fitting iteratively.
+Note that the iterative sigma clipping assumes all the data
+have the same uncertainties for the sigma clipping decision.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">astropy.stats</span> <span class="kn">import</span> <span class="n">sigma_clip</span>
+<span class="kn">from</span> <span class="nn">astropy.modeling</span> <span class="kn">import</span> <span class="n">models</span><span class="p">,</span> <span class="n">fitting</span>
+
+<span class="c1"># define a model for a line</span>
+<span class="n">line_orig</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Linear1D</span><span class="p">(</span><span class="n">slope</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">intercept</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+<span class="c1"># generate x, y data non-uniformly spaced in x</span>
+<span class="c1"># add noise to y measurements</span>
+<span class="n">npts</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="n">npts</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">line_orig</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">yunc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">,</span> <span class="n">npts</span><span class="p">))</span>
+<span class="n">y</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">yunc</span><span class="p">,</span> <span class="n">npts</span><span class="p">)</span>
+
+<span class="c1"># make true outliers</span>
+<span class="n">y</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">line_orig</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="o">+</span> <span class="mi">6</span> <span class="o">*</span> <span class="n">yunc</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">y</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">=</span> <span class="n">line_orig</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">10</span><span class="p">])</span> <span class="o">-</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">yunc</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+
+<span class="c1"># initialize a linear fitter</span>
+<span class="n">fit</span> <span class="o">=</span> <span class="n">fitting</span><span class="o">.</span><span class="n">LinearLSQFitter</span><span class="p">()</span>
+
+<span class="c1"># initialize the outlier removal fitter</span>
+<span class="n">or_fit</span> <span class="o">=</span> <span class="n">fitting</span><span class="o">.</span><span class="n">FittingWithOutlierRemoval</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="n">sigma_clip</span><span class="p">,</span> <span class="n">niter</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
+
+<span class="c1"># initialize a linear model</span>
+<span class="n">line_init</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Linear1D</span><span class="p">()</span>
+
+<span class="c1"># fit the data with the fitter</span>
+<span class="n">fitted_line</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">or_fit</span><span class="p">(</span><span class="n">line_init</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="mf">1.0</span><span class="o">/</span><span class="n">yunc</span><span class="p">)</span>
+<span class="n">filtered_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_array</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+
+<span class="c1"># plot</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">yunc</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;ko&quot;</span><span class="p">,</span> <span class="n">fillstyle</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Clipped Data&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">filtered_data</span><span class="p">,</span> <span class="s2">&quot;ko&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Fitted Data&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">line_orig</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Simulation Model&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">fitted_line</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;k-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Fitted Model&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../modeling/example-fitting-line-3.png">png</a>, <a class="reference external" href="../modeling/example-fitting-line-3.svg">svg</a>, <a class="reference external" href="../modeling/example-fitting-line-3.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/example-fitting-line-3.png" class="plot-directive" src="../_images/example-fitting-line-3.png" />
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Fitting a Line</a><ul>
+<li><a class="reference internal" href="#simple-fit">Simple Fit</a></li>
+<li><a class="reference internal" href="#fit-using-uncertainties">Fit using uncertainties</a></li>
+<li><a class="reference internal" href="#iterative-fitting-using-sigma-clipping">Iterative fitting using sigma clipping</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/modeling/example-fitting-line.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

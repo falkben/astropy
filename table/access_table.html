@@ -1,0 +1,1029 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Accessing a Table &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Modifying a Table" href="modify_table.html" />
+    <link rel="prev" title="Constructing a Table" href="construct_table.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="modify_table.html" title="Modifying a Table">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="construct_table.html" title="Constructing a Table">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Data Tables (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table</span></code>)</a> &#187;</li>
+      
+      <li>Accessing a Table</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="accessing-a-table">
+<span id="access-table"></span><h1>Accessing a Table<a class="headerlink" href="#accessing-a-table" title="Permalink to this headline">¶</a></h1>
+<p>Accessing table properties and data is generally consistent with the basic
+interface for <code class="docutils literal notranslate"><span class="pre">numpy</span></code> <a class="reference external" href="https://numpy.org/doc/stable/user/basics.rec.html">structured arrays</a>.</p>
+<div class="section" id="basics">
+<h2>Basics<a class="headerlink" href="#basics" title="Permalink to this headline">¶</a></h2>
+<p>For a quick overview, the code below shows the basics of accessing table data.
+Where relevant, there is a comment about what sort of object is returned.
+Except where noted, table access returns objects that can be modified in order
+to update the original table data or properties. See also the section on
+<a class="reference internal" href="construct_table.html#copy-versus-reference"><span class="std std-ref">Copy versus Reference</span></a> to learn more about this topic.</p>
+<p><strong>Make a table</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">),</span> <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;key1&#39;</span><span class="p">:</span> <span class="s1">&#39;val1&#39;</span><span class="p">}})</span>
+</pre></div>
+</div>
+<p><strong>Table properties</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">t</span><span class="o">.</span><span class="n">columns</span>   <span class="c1"># Dict of table columns (access by column name, index, or slice)</span>
+<span class="n">t</span><span class="o">.</span><span class="n">colnames</span>  <span class="c1"># List of column names</span>
+<span class="n">t</span><span class="o">.</span><span class="n">meta</span>      <span class="c1"># Dict of meta-data</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>      <span class="c1"># Number of table rows</span>
+</pre></div>
+</div>
+<p><strong>Access table data</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>       <span class="c1"># Column &#39;a&#39;</span>
+<span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>    <span class="c1"># Row 1 of column &#39;a&#39;</span>
+<span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>         <span class="c1"># Row 1</span>
+<span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>    <span class="c1"># Column &#39;a&#39; of row 1</span>
+<span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">5</span><span class="p">]</span>       <span class="c1"># Table object with rows 2:5</span>
+<span class="n">t</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]]</span>  <span class="c1"># Table object with rows 1, 3, 4 (copy)</span>
+<span class="n">t</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])]</span>  <span class="c1"># Table object with rows 1, 3, 4 (copy)</span>
+<span class="n">t</span><span class="p">[[]]</span>        <span class="c1"># Same table definition but with no rows of data</span>
+<span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span>  <span class="c1"># Table with cols &#39;a&#39;, &#39;c&#39; (copy)</span>
+<span class="n">dat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>  <span class="c1"># Copy table data to numpy structured array object</span>
+<span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span>  <span class="c1"># an astropy.units.Quantity for Column &#39;a&#39;</span>
+<span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;km&#39;</span><span class="p">)</span>  <span class="c1"># an astropy.units.Quantity for Column &#39;a&#39; in units of kilometers</span>
+<span class="n">t</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Column 1 (which is the &#39;b&#39; column)</span>
+<span class="n">t</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># New table with columns 0 and 1</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although they appear nearly equivalent, there is a factor of two performance
+difference between <code class="docutils literal notranslate"><span class="pre">t[1]['a']</span></code> (slower, because an intermediate <a class="reference internal" href="../api/astropy.table.Row.html#astropy.table.Row" title="astropy.table.Row"><code class="xref py py-class docutils literal notranslate"><span class="pre">Row</span></code></a>
+object gets created) versus <code class="docutils literal notranslate"><span class="pre">t['a'][1]</span></code> (faster). Always use the latter
+when possible.</p>
+</div>
+<p><strong>Print table or column</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>     <span class="c1"># Print formatted version of table to the screen</span>
+<span class="n">t</span><span class="o">.</span><span class="n">pprint</span><span class="p">()</span>   <span class="c1"># Same as above</span>
+<span class="n">t</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">show_unit</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># Show column unit</span>
+<span class="n">t</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">show_name</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># Do not show column names</span>
+<span class="n">t</span><span class="o">.</span><span class="n">pprint_all</span><span class="p">()</span> <span class="c1"># Print full table no matter how long / wide it is (same as t.pprint(max_lines=-1, max_width=-1))</span>
+
+<span class="n">t</span><span class="o">.</span><span class="n">more</span><span class="p">()</span>  <span class="c1"># Interactively scroll through table like Unix &quot;more&quot;</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">])</span>    <span class="c1"># Formatted column values</span>
+<span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pprint</span><span class="p">()</span>  <span class="c1"># Same as above, with same options as Table.pprint()</span>
+<span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">more</span><span class="p">()</span>    <span class="c1"># Interactively scroll through column</span>
+<span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pprint</span><span class="p">()</span>  <span class="c1"># Print columns &#39;a&#39; and &#39;c&#39; of table</span>
+
+<span class="n">lines</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">pformat</span><span class="p">()</span>  <span class="c1"># Formatted table as a list of lines (same options as pprint)</span>
+<span class="n">lines</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pformat</span><span class="p">()</span>  <span class="c1"># Formatted column values as a list</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="details">
+<h2>Details<a class="headerlink" href="#details" title="Permalink to this headline">¶</a></h2>
+<p>For all of the following examples it is assumed that the table has been created
+as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">Column</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">),</span> <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;key1&#39;</span><span class="p">:</span> <span class="s1">&#39;val1&#39;</span><span class="p">}})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:.3f}</span><span class="s2">&quot;</span>  <span class="c1"># print with 3 digits after decimal point</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;m sec^-1&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="s1">&#39;unladen swallow velocity&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go">     a      b   c</span>
+<span class="go">  m sec^-1</span>
+<span class="go">  -------- --- ---</span>
+<span class="go">     0.000   1   2</span>
+<span class="go">     3.000   4   5</span>
+<span class="go">     6.000   7   8</span>
+<span class="go">     9.000  10  11</span>
+<span class="go">    12.000  13  14</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In the example above the <code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">unit</span></code>, and <code class="docutils literal notranslate"><span class="pre">description</span></code>
+attributes of the <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-class docutils literal notranslate"><span class="pre">Column</span></code></a> were set directly. For <a class="reference internal" href="mixin_columns.html#mixin-columns"><span class="std std-ref">Mixin Columns</span></a> like
+<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> you must set via the <code class="docutils literal notranslate"><span class="pre">info</span></code> attribute, for example,
+<code class="docutils literal notranslate"><span class="pre">t['a'].info.format</span> <span class="pre">=</span> <span class="pre">&quot;{:.3f}&quot;</span></code>. You can use the <code class="docutils literal notranslate"><span class="pre">info</span></code> attribute with
+<a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-class docutils literal notranslate"><span class="pre">Column</span></code></a> objects as well, so the general solution that works with any table
+column is to set via the <code class="docutils literal notranslate"><span class="pre">info</span></code> attribute. See <a class="reference internal" href="mixin_columns.html#mixin-attributes"><span class="std std-ref">Mixin Attributes</span></a> for
+more information.</p>
+</div>
+<div class="section" id="summary-information">
+<span id="table-summary-information"></span><h3>Summary Information<a class="headerlink" href="#summary-information" title="Permalink to this headline">¶</a></h3>
+<p>You can get summary information about the table as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">info</span>
+<span class="go">&lt;Table length=5&gt;</span>
+<span class="go">name dtype   unit   format       description</span>
+<span class="go">---- ----- -------- ------ ------------------------</span>
+<span class="go">   a int32 m sec^-1 {:.3f} unladen swallow velocity</span>
+<span class="go">   b int32</span>
+<span class="go">   c int32</span>
+</pre></div>
+</div>
+<p>If called as a function then you can supply an <code class="docutils literal notranslate"><span class="pre">option</span></code> that specifies
+the type of information to return. The built-in <code class="docutils literal notranslate"><span class="pre">option</span></code> choices are
+<code class="docutils literal notranslate"><span class="pre">'attributes'</span></code> (column attributes, which is the default) or <code class="docutils literal notranslate"><span class="pre">'stats'</span></code>
+(basic column statistics). The <code class="docutils literal notranslate"><span class="pre">option</span></code> argument can also be a list
+of available options:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;stats&#39;</span><span class="p">)</span>  
+<span class="go">&lt;Table length=5&gt;</span>
+<span class="go">name mean   std   min max</span>
+<span class="go">---- ---- ------- --- ---</span>
+<span class="go">   a    6 4.24264   0  12</span>
+<span class="go">   b    7 4.24264   1  13</span>
+<span class="go">   c    8 4.24264   2  14</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">info</span><span class="p">([</span><span class="s1">&#39;attributes&#39;</span><span class="p">,</span> <span class="s1">&#39;stats&#39;</span><span class="p">])</span>  
+<span class="go">&lt;Table length=5&gt;</span>
+<span class="go">name dtype   unit   format       description        mean   std   min max</span>
+<span class="go">---- ----- -------- ------ ------------------------ ---- ------- --- ---</span>
+<span class="go">   a int32 m sec^-1 {:.3f} unladen swallow velocity    6 4.24264   0  12</span>
+<span class="go">   b int32                                             7 4.24264   1  13</span>
+<span class="go">   c int32                                             8 4.24264   2  14</span>
+</pre></div>
+</div>
+<p>Columns also have an <code class="docutils literal notranslate"><span class="pre">info</span></code> property that has the same behavior and
+arguments, but provides information about a single column:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">info</span>
+<span class="go">name = a</span>
+<span class="go">dtype = int32</span>
+<span class="go">unit = m sec^-1</span>
+<span class="go">format = {:.3f}</span>
+<span class="go">description = unladen swallow velocity</span>
+<span class="go">class = Column</span>
+<span class="go">n_bad = 0</span>
+<span class="go">length = 5</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;stats&#39;</span><span class="p">)</span>  
+<span class="go">name = a</span>
+<span class="go">mean = 6</span>
+<span class="go">std = 4.24264</span>
+<span class="go">min = 0</span>
+<span class="go">max = 12</span>
+<span class="go">n_bad = 0</span>
+<span class="go">length = 5</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="accessing-properties">
+<h3>Accessing Properties<a class="headerlink" href="#accessing-properties" title="Permalink to this headline">¶</a></h3>
+<p>The code below shows accessing the table columns as a <a class="reference internal" href="../api/astropy.table.TableColumns.html#astropy.table.TableColumns" title="astropy.table.TableColumns"><code class="xref py py-class docutils literal notranslate"><span class="pre">TableColumns</span></code></a> object,
+getting the column names, table metadata, and number of table rows. The table
+metadata is an <a class="reference external" href="https://docs.python.org/3/library/collections.html#collections.OrderedDict" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OrderedDict</span></code></a> by default.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">columns</span>
+<span class="go">&lt;TableColumns names=(&#39;a&#39;,&#39;b&#39;,&#39;c&#39;)&gt;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">colnames</span>
+<span class="go">[&#39;a&#39;, &#39;b&#39;, &#39;c&#39;]</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">meta</span>  <span class="c1"># Dict of meta-data</span>
+<span class="go">{&#39;keywords&#39;: {&#39;key1&#39;: &#39;val1&#39;}}</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go">5</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="accessing-data">
+<h3>Accessing Data<a class="headerlink" href="#accessing-data" title="Permalink to this headline">¶</a></h3>
+<p>As expected you can access a table column by name and get an element from that
+column with a numerical index:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>  <span class="c1"># Column &#39;a&#39;</span>
+<span class="go">&lt;Column name=&#39;a&#39; dtype=&#39;int32&#39; unit=&#39;m sec^-1&#39; format=&#39;{:.3f}&#39; description=&#39;unladen swallow velocity&#39; length=5&gt;</span>
+<span class="go"> 0.000</span>
+<span class="go"> 3.000</span>
+<span class="go"> 6.000</span>
+<span class="go"> 9.000</span>
+<span class="go">12.000</span>
+
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Row 1 of column &#39;a&#39;</span>
+<span class="go">3</span>
+</pre></div>
+</div>
+<p>When a table column is printed, it is formatted according to the <code class="docutils literal notranslate"><span class="pre">format</span></code>
+attribute (see <a class="reference internal" href="construct_table.html#table-format-string"><span class="std std-ref">Format Specifier</span></a>). Note the difference between the
+column representation above and how it appears via <code class="docutils literal notranslate"><span class="pre">print()</span></code> or <code class="docutils literal notranslate"><span class="pre">str()</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">])</span>
+<span class="go">   a</span>
+<span class="go">m sec^-1</span>
+<span class="go">--------</span>
+<span class="go">   0.000</span>
+<span class="go">   3.000</span>
+<span class="go">   6.000</span>
+<span class="go">   9.000</span>
+<span class="go">  12.000</span>
+</pre></div>
+</div>
+<p>Likewise a table row and a column from that row can be selected:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Row object corresponding to row 1</span>
+<span class="go">&lt;Row index=1&gt;</span>
+<span class="go">   a       b     c</span>
+<span class="go">m sec^-1</span>
+<span class="go"> int32   int32 int32</span>
+<span class="go">-------- ----- -----</span>
+<span class="go">   3.000     4     5</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>  <span class="c1"># Column &#39;a&#39; of row 1</span>
+<span class="go">3</span>
+</pre></div>
+</div>
+<p>A <a class="reference internal" href="../api/astropy.table.Row.html#astropy.table.Row" title="astropy.table.Row"><code class="xref py py-class docutils literal notranslate"><span class="pre">Row</span></code></a> object has the same columns and metadata as its parent table:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span>
+<span class="go">&lt;TableColumns names=(&#39;a&#39;,&#39;b&#39;,&#39;c&#39;)&gt;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">meta</span>
+<span class="go">{&#39;keywords&#39;: {&#39;key1&#39;: &#39;val1&#39;}}</span>
+</pre></div>
+</div>
+<p>Slicing a table returns a new table object with references to the original
+data within the slice region (See <a class="reference internal" href="construct_table.html#copy-versus-reference"><span class="std std-ref">Copy versus Reference</span></a>). The table
+metadata and column definitions are copied.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">5</span><span class="p">]</span>  <span class="c1"># Table object with rows 2:5 (reference)</span>
+<span class="go">&lt;Table length=3&gt;</span>
+<span class="go">   a       b     c</span>
+<span class="go">m sec^-1</span>
+<span class="go"> int32   int32 int32</span>
+<span class="go">-------- ----- -----</span>
+<span class="go">   6.000     7     8</span>
+<span class="go">   9.000    10    11</span>
+<span class="go">  12.000    13    14</span>
+</pre></div>
+</div>
+<p>It is possible to select table rows with an array of indexes or by specifying
+multiple column names. This returns a copy of the original table for the
+selected rows or columns.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]])</span>  <span class="c1"># Table object with rows 1, 3, 4 (copy)</span>
+<span class="go">     a      b   c</span>
+<span class="go">  m sec^-1</span>
+<span class="go">  -------- --- ---</span>
+<span class="go">     3.000   4   5</span>
+<span class="go">     9.000  10  11</span>
+<span class="go">    12.000  13  14</span>
+
+
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])])</span>  <span class="c1"># Table object with rows 1, 3, 4 (copy)</span>
+<span class="go">     a      b   c</span>
+<span class="go">  m sec^-1</span>
+<span class="go">  -------- --- ---</span>
+<span class="go">     3.000   4   5</span>
+<span class="go">     9.000  10  11</span>
+<span class="go">    12.000  13  14</span>
+
+
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">])</span>  <span class="c1"># or t[[&#39;a&#39;, &#39;c&#39;]] or t[(&#39;a&#39;, &#39;c&#39;)]</span>
+<span class="gp">... </span>                    <span class="c1"># Table with cols &#39;a&#39;, &#39;c&#39; (copy)</span>
+<span class="go">     a      c</span>
+<span class="go">  m sec^-1</span>
+<span class="go">  -------- ---</span>
+<span class="go">     0.000   2</span>
+<span class="go">     3.000   5</span>
+<span class="go">     6.000   8</span>
+<span class="go">     9.000  11</span>
+<span class="go">    12.000  14</span>
+</pre></div>
+</div>
+<p>We can select rows from a table using conditionals to create boolean masks. A
+table indexed with a boolean array will only return rows where the mask array
+element is <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>. Different conditionals can be combined using the bitwise
+operators.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">8</span><span class="p">)</span>  <span class="c1"># Table rows where column a &gt; 4</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>                      <span class="c1"># and b &gt; 8</span>
+<span class="gp">...</span>
+<span class="go">     a      b   c</span>
+<span class="go">  m sec^-1</span>
+<span class="go">  -------- --- ---</span>
+<span class="go">     9.000  10  11</span>
+<span class="go">    12.000  13  14</span>
+</pre></div>
+</div>
+<p>Finally, you can access the underlying table data as a native <code class="docutils literal notranslate"><span class="pre">numpy</span></code>
+structured array by creating a copy or reference with <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy.array" title="(in NumPy v1.22)"><code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.array()</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>  <span class="c1"># copy of data in t as a structured array</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># reference to data in t</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="table-equality">
+<h3>Table Equality<a class="headerlink" href="#table-equality" title="Permalink to this headline">¶</a></h3>
+<p>We can check table data equality using two different methods:</p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">==</span></code> comparison operator. This returns a <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a> for
+each row if the <em>entire row</em> matches. This is the same as the behavior of
+<code class="docutils literal notranslate"><span class="pre">numpy</span></code> structured arrays.</p></li>
+<li><p>Table <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.values_equal" title="astropy.table.Table.values_equal"><code class="xref py py-meth docutils literal notranslate"><span class="pre">values_equal()</span></code></a> to compare table values
+element-wise. This returns a boolean <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a> for each table
+<em>element</em>, so you get a <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table</span></code></a> of values.</p></li>
+</ul>
+<div class="section" id="examples">
+<h4>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
+<p>To check table equality:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">rows</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">9</span><span class="p">]],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t2</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">rows</span><span class="o">=</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">9</span><span class="p">]],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">])</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span> <span class="o">==</span> <span class="n">t2</span>
+<span class="go">array([False, False,  True])</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="o">.</span><span class="n">values_equal</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>  <span class="c1"># Compare to another table</span>
+<span class="go">&lt;Table length=3&gt;</span>
+<span class="go"> a     b     c</span>
+<span class="go">bool  bool  bool</span>
+<span class="go">---- ----- -----</span>
+<span class="go">True  True False</span>
+<span class="go">True False  True</span>
+<span class="go">True  True  True</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="o">.</span><span class="n">values_equal</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>  <span class="c1"># Compare to an array column-wise</span>
+<span class="go">&lt;Table length=3&gt;</span>
+<span class="go">  a     b     c</span>
+<span class="go"> bool  bool  bool</span>
+<span class="go">----- ----- -----</span>
+<span class="go">False  True False</span>
+<span class="go"> True False False</span>
+<span class="go"> True  True False</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="o">.</span><span class="n">values_equal</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>  <span class="c1"># Compare to a scalar column-wise</span>
+<span class="go">&lt;Table length=3&gt;</span>
+<span class="go">  a     b     c</span>
+<span class="go"> bool  bool  bool</span>
+<span class="go">----- ----- -----</span>
+<span class="go">False False False</span>
+<span class="go">False False False</span>
+<span class="go"> True  True False</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="formatted-printing">
+<h3>Formatted Printing<a class="headerlink" href="#formatted-printing" title="Permalink to this headline">¶</a></h3>
+<p>The values in a table or column can be printed or retrieved as a formatted
+table using one of several methods:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="http://docs.python.org/3/library/functions.html#print" title="(in Python v3.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">print()</span></code></a> function.</p></li>
+<li><p><a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.more" title="astropy.table.Table.more"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table.more()</span></code></a> or <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column.more" title="astropy.table.Column.more"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column.more()</span></code></a> methods to interactively scroll through
+table values.</p></li>
+<li><p><a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pprint" title="astropy.table.Table.pprint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table.pprint()</span></code></a> or <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column.pprint" title="astropy.table.Column.pprint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column.pprint()</span></code></a> methods to print a formatted version of
+the table to the screen.</p></li>
+<li><p><a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pformat" title="astropy.table.Table.pformat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table.pformat()</span></code></a> or <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column.pformat" title="astropy.table.Column.pformat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column.pformat()</span></code></a> methods to return the formatted table
+or column as a list of fixed-width strings. This could be used as a quick way
+to save a table.</p></li>
+</ul>
+<p>These methods use <a class="reference internal" href="construct_table.html#table-format-string"><span class="std std-ref">Format Specifier</span></a>
+if available and strive to make the output readable.
+By default, table and column printing will
+not print the table larger than the available interactive screen size. If the
+screen size cannot be determined (in a non-interactive environment or on
+Windows) then a default size of 25 rows by 80 columns is used. If a table is
+too large, then rows and/or columns are cut from the middle so it fits.</p>
+<div class="section" id="example">
+<h4>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<p>To print a formatted table:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">3000</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>  <span class="c1"># 100 rows x 30 columns array</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go">col0 col1 col2 col3 col4 col5 col6 ... col23 col24 col25 col26 col27 col28 col29</span>
+<span class="go">---- ---- ---- ---- ---- ---- ---- ... ----- ----- ----- ----- ----- ----- -----</span>
+<span class="go">   0    1    2    3    4    5    6 ...    23    24    25    26    27    28    29</span>
+<span class="go">  30   31   32   33   34   35   36 ...    53    54    55    56    57    58    59</span>
+<span class="go">  60   61   62   63   64   65   66 ...    83    84    85    86    87    88    89</span>
+<span class="go">  90   91   92   93   94   95   96 ...   113   114   115   116   117   118   119</span>
+<span class="go"> 120  121  122  123  124  125  126 ...   143   144   145   146   147   148   149</span>
+<span class="go"> 150  151  152  153  154  155  156 ...   173   174   175   176   177   178   179</span>
+<span class="go"> 180  181  182  183  184  185  186 ...   203   204   205   206   207   208   209</span>
+<span class="go"> 210  211  212  213  214  215  216 ...   233   234   235   236   237   238   239</span>
+<span class="go"> 240  241  242  243  244  245  246 ...   263   264   265   266   267   268   269</span>
+<span class="go"> 270  271  272  273  274  275  276 ...   293   294   295   296   297   298   299</span>
+<span class="go"> ...  ...  ...  ...  ...  ...  ... ...   ...   ...   ...   ...   ...   ...   ...</span>
+<span class="go">2670 2671 2672 2673 2674 2675 2676 ...  2693  2694  2695  2696  2697  2698  2699</span>
+<span class="go">2700 2701 2702 2703 2704 2705 2706 ...  2723  2724  2725  2726  2727  2728  2729</span>
+<span class="go">2730 2731 2732 2733 2734 2735 2736 ...  2753  2754  2755  2756  2757  2758  2759</span>
+<span class="go">2760 2761 2762 2763 2764 2765 2766 ...  2783  2784  2785  2786  2787  2788  2789</span>
+<span class="go">2790 2791 2792 2793 2794 2795 2796 ...  2813  2814  2815  2816  2817  2818  2819</span>
+<span class="go">2820 2821 2822 2823 2824 2825 2826 ...  2843  2844  2845  2846  2847  2848  2849</span>
+<span class="go">2850 2851 2852 2853 2854 2855 2856 ...  2873  2874  2875  2876  2877  2878  2879</span>
+<span class="go">2880 2881 2882 2883 2884 2885 2886 ...  2903  2904  2905  2906  2907  2908  2909</span>
+<span class="go">2910 2911 2912 2913 2914 2915 2916 ...  2933  2934  2935  2936  2937  2938  2939</span>
+<span class="go">2940 2941 2942 2943 2944 2945 2946 ...  2963  2964  2965  2966  2967  2968  2969</span>
+<span class="go">2970 2971 2972 2973 2974 2975 2976 ...  2993  2994  2995  2996  2997  2998  2999</span>
+<span class="go">Length = 100 rows</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="more-method">
+<h4>more() method<a class="headerlink" href="#more-method" title="Permalink to this headline">¶</a></h4>
+<p>In order to browse all rows of a table or column use the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.more" title="astropy.table.Table.more"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table.more()</span></code></a> or <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column.more" title="astropy.table.Column.more"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column.more()</span></code></a>
+methods. These let you interactively scroll through the rows much like the Unix
+<code class="docutils literal notranslate"><span class="pre">more</span></code> command. Once part of the table or column is displayed the supported
+navigation keys are:</p>
+<div class="line-block">
+<div class="line"><strong>f, space</strong> : forward one page</div>
+<div class="line"><strong>b</strong> : back one page</div>
+<div class="line"><strong>r</strong> : refresh same page</div>
+<div class="line"><strong>n</strong> : next row</div>
+<div class="line"><strong>p</strong> : previous row</div>
+<div class="line"><strong>&lt;</strong> : go to beginning</div>
+<div class="line"><strong>&gt;</strong> : go to end</div>
+<div class="line"><strong>q</strong> : quit browsing</div>
+<div class="line"><strong>h</strong> : print this help</div>
+</div>
+</div>
+<div class="section" id="pprint-method">
+<h4>pprint() method<a class="headerlink" href="#pprint-method" title="Permalink to this headline">¶</a></h4>
+<p>In order to fully control the print output use the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pprint" title="astropy.table.Table.pprint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table.pprint()</span></code></a> or <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column.pprint" title="astropy.table.Column.pprint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column.pprint()</span></code></a> methods. These have keyword arguments
+<code class="docutils literal notranslate"><span class="pre">max_lines</span></code>, <code class="docutils literal notranslate"><span class="pre">max_width</span></code>, <code class="docutils literal notranslate"><span class="pre">show_name</span></code>, <code class="docutils literal notranslate"><span class="pre">show_unit</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">show_dtype</span></code>, with meanings as shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">3000</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;col0&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%e</span><span class="s1">&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;col0&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;km**2&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;col29&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;kg sec m**-2&#39;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">max_lines</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">max_width</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+<span class="go">    col0     ...    col29</span>
+<span class="go">    km2      ... kg sec m**-2</span>
+<span class="go">------------ ... ------------</span>
+<span class="go">0.000000e+00 ...         29.0</span>
+<span class="go">         ... ...          ...</span>
+<span class="go">2.940000e+03 ...       2969.0</span>
+<span class="go">2.970000e+03 ...       2999.0</span>
+<span class="go">Length = 100 rows</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">max_lines</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">max_width</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">show_unit</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">    col0     ... col29</span>
+<span class="go">------------ ... ------</span>
+<span class="go">0.000000e+00 ...   29.0</span>
+<span class="go">         ... ...    ...</span>
+<span class="go">2.940000e+03 ... 2969.0</span>
+<span class="go">2.970000e+03 ... 2999.0</span>
+<span class="go">Length = 100 rows</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">max_lines</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">max_width</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">show_name</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">    km2      ... kg sec m**-2</span>
+<span class="go">------------ ... ------------</span>
+<span class="go">0.000000e+00 ...         29.0</span>
+<span class="go">3.000000e+01 ...         59.0</span>
+<span class="go">         ... ...          ...</span>
+<span class="go">2.940000e+03 ...       2969.0</span>
+<span class="go">2.970000e+03 ...       2999.0</span>
+<span class="go">Length = 100 rows</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">max_lines</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">max_width</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">show_dtype</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">    col0       col1  ...    col29</span>
+<span class="go">    km2              ... kg sec m**-2</span>
+<span class="go">  float64    float64 ...   float64</span>
+<span class="go">------------ ------- ... ------------</span>
+<span class="go">0.000000e+00     1.0 ...         29.0</span>
+<span class="go">         ...     ... ...          ...</span>
+<span class="go">2.970000e+03  2971.0 ...       2999.0</span>
+<span class="go">Length = 100 rows</span>
+</pre></div>
+</div>
+<p>In order to force printing all values regardless of the output length or width
+use <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pprint_all" title="astropy.table.Table.pprint_all"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pprint_all()</span></code></a>, which is equivalent to setting
+<code class="docutils literal notranslate"><span class="pre">max_lines</span></code> and <code class="docutils literal notranslate"><span class="pre">max_width</span></code> to <code class="docutils literal notranslate"><span class="pre">-1</span></code> in <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pprint" title="astropy.table.Table.pprint"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pprint()</span></code></a>.
+<a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pprint_all" title="astropy.table.Table.pprint_all"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pprint_all()</span></code></a> takes the same arguments as <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pprint" title="astropy.table.Table.pprint"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pprint()</span></code></a>.
+For the wide table in this example you see six lines of wrapped output like the
+following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint_all</span><span class="p">(</span><span class="n">max_lines</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>  
+<span class="go">    col0         col1     col2   col3   col4   col5   col6   col7   col8   col9  col10  col11  col12  col13  col14  col15  col16  col17  col18  col19  col20  col21  col22  col23  col24  col25  col26  col27  col28     col29</span>
+<span class="go">    km2                                                                                                                                                                                                               kg sec m**-2</span>
+<span class="go">------------ ----------- ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------ ------------</span>
+<span class="go">0.000000e+00    1.000000    2.0    3.0    4.0    5.0    6.0    7.0    8.0    9.0   10.0   11.0   12.0   13.0   14.0   15.0   16.0   17.0   18.0   19.0   20.0   21.0   22.0   23.0   24.0   25.0   26.0   27.0   28.0         29.0</span>
+<span class="go">         ...         ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...    ...          ...</span>
+<span class="go">2.940000e+03 2941.000000 2942.0 2943.0 2944.0 2945.0 2946.0 2947.0 2948.0 2949.0 2950.0 2951.0 2952.0 2953.0 2954.0 2955.0 2956.0 2957.0 2958.0 2959.0 2960.0 2961.0 2962.0 2963.0 2964.0 2965.0 2966.0 2967.0 2968.0       2969.0</span>
+<span class="go">2.970000e+03 2971.000000 2972.0 2973.0 2974.0 2975.0 2976.0 2977.0 2978.0 2979.0 2980.0 2981.0 2982.0 2983.0 2984.0 2985.0 2986.0 2987.0 2988.0 2989.0 2990.0 2991.0 2992.0 2993.0 2994.0 2995.0 2996.0 2997.0 2998.0       2999.0</span>
+<span class="go">Length = 100 rows</span>
+</pre></div>
+</div>
+<p>For columns, the syntax and behavior of <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column.pprint" title="astropy.table.Column.pprint"><code class="xref py py-func docutils literal notranslate"><span class="pre">pprint()</span></code></a> is
+the same except that there is no <code class="docutils literal notranslate"><span class="pre">max_width</span></code> keyword argument:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;col3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">max_lines</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="go"> col3</span>
+<span class="go">------</span>
+<span class="go">   3.0</span>
+<span class="go">  33.0</span>
+<span class="go">   ...</span>
+<span class="go">2943.0</span>
+<span class="go">2973.0</span>
+<span class="go">Length = 100 rows</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="column-alignment">
+<h4>Column alignment<a class="headerlink" href="#column-alignment" title="Permalink to this headline">¶</a></h4>
+<p>Individual columns have the ability to be aligned in a number of different
+ways for an enhanced viewing experience:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="p">[</span><span class="s1">&#39;long column name 1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="p">[</span><span class="s1">&#39;long column name 2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="p">[</span><span class="s1">&#39;long column name 3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="p">[</span><span class="s1">&#39;long column name 4&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">700000</span><span class="p">,</span> <span class="mi">800000</span><span class="p">,</span> <span class="mi">900000</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="p">[</span><span class="s1">&#39;long column name 2&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s1">&#39;&lt;&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="p">[</span><span class="s1">&#39;long column name 3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s1">&#39;0=&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="p">[</span><span class="s1">&#39;long column name 4&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s1">&#39;^&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="o">.</span><span class="n">pprint</span><span class="p">()</span>
+<span class="go"> long column name 1 long column name 2 long column name 3 long column name 4</span>
+<span class="go">------------------ ------------------ ------------------ ------------------</span>
+<span class="go">                 1 4                  000000000000000007       700000</span>
+<span class="go">                 2 5                  000000000000000008       800000</span>
+<span class="go">                 3 6                  000000000000000009       900000</span>
+</pre></div>
+</div>
+<p>Conveniently, alignment can be handled another way — by passing a list to the
+keyword argument <code class="docutils literal notranslate"><span class="pre">align</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="p">[</span><span class="s1">&#39;column1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="p">[</span><span class="s1">&#39;column2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">align</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;&lt;&#39;</span><span class="p">,</span> <span class="s1">&#39;0=&#39;</span><span class="p">])</span>
+<span class="go">column1 column2</span>
+<span class="go">------- -------</span>
+<span class="go">1       0000002</span>
+<span class="go">2       0000004</span>
+<span class="go">3       0000006</span>
+</pre></div>
+</div>
+<p>It is also possible to set the alignment of all columns with a single
+string value:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">align</span><span class="o">=</span><span class="s1">&#39;^&#39;</span><span class="p">)</span>
+<span class="go">column1 column2</span>
+<span class="go">------- -------</span>
+<span class="go">   1       2</span>
+<span class="go">   2       4</span>
+<span class="go">   3       6</span>
+</pre></div>
+</div>
+<p>The fill character for justification can be set as a prefix to the
+alignment character (see <a class="reference external" href="https://docs.python.org/3/library/string.html#format-specification-mini-language">Format Specification Mini-Language</a>
+for additional explanation). This can be done both in the <code class="docutils literal notranslate"><span class="pre">align</span></code> argument
+and in the column <code class="docutils literal notranslate"><span class="pre">format</span></code> attribute. Note the interesting interaction below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span> <span class="o">=</span> <span class="n">Table</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;column1&#39;</span><span class="p">,</span> <span class="s1">&#39;column2&#39;</span><span class="p">])</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="p">[</span><span class="s1">&#39;column1&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s1">&#39;#^.2f&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="o">.</span><span class="n">pprint</span><span class="p">()</span>
+<span class="go">column1 column2</span>
+<span class="go">------- -------</span>
+<span class="go">##1.00#       1</span>
+<span class="go">##2.00#       2</span>
+</pre></div>
+</div>
+<p>Now if we set a global align, it seems like our original column format
+got lost:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">align</span><span class="o">=</span><span class="s1">&#39;!&lt;&#39;</span><span class="p">)</span>
+<span class="go">column1 column2</span>
+<span class="go">------- -------</span>
+<span class="go">1.00!!! 1!!!!!!</span>
+<span class="go">2.00!!! 2!!!!!!</span>
+</pre></div>
+</div>
+<p>The way to avoid this is to explicitly specify the alignment strings
+for every column and use <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> where the column format should be
+used:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">align</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;!&lt;&#39;</span><span class="p">])</span>
+<span class="go">column1 column2</span>
+<span class="go">------- -------</span>
+<span class="go">##1.00# 1!!!!!!</span>
+<span class="go">##2.00# 2!!!!!!</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="pformat-method">
+<h4>pformat() method<a class="headerlink" href="#pformat-method" title="Permalink to this headline">¶</a></h4>
+<p>In order to get the formatted output for manipulation or writing to a file use
+the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pformat" title="astropy.table.Table.pformat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table.pformat()</span></code></a> or <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column.pformat" title="astropy.table.Column.pformat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column.pformat()</span></code></a> methods. These behave just as for
+<a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pprint" title="astropy.table.Table.pprint"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pprint()</span></code></a> but return a list corresponding to each
+formatted line in the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pprint" title="astropy.table.Table.pprint"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pprint()</span></code></a> output. The
+<a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pformat_all" title="astropy.table.Table.pformat_all"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pformat_all()</span></code></a> method can be used to return a list
+for all lines in the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">lines</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;col3&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pformat</span><span class="p">(</span><span class="n">max_lines</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="hiding-columns">
+<h4>Hiding columns<a class="headerlink" href="#hiding-columns" title="Permalink to this headline">¶</a></h4>
+<p>The <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> class has functionality to selectively show or hide certain columns
+within the table when using any of the print methods. This can be useful for
+columns that are very wide or else “uninteresting” for various reasons. The
+specification of which columns are outputted is associated with the table itself
+so that it persists through slicing, copying, and serialization (e.g. saving to
+<a class="reference internal" href="../io/ascii/ecsv.html#ecsv-format"><span class="std std-ref">ECSV Format</span></a>). One use case is for specialized table subclasses that
+contain auxiliary columns that are not typically useful to the user.</p>
+<p>The specification of which columns to include when printing is handled through
+two complementary <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> attributes:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pprint_include_names" title="astropy.table.Table.pprint_include_names"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pprint_include_names</span></code></a>: column names to include, where
+the default value of <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> implies including all columns.</p></li>
+<li><p><a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.pprint_exclude_names" title="astropy.table.Table.pprint_exclude_names"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pprint_exclude_names</span></code></a>: column names to exclude, where
+the default value of <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> implies excluding no columns.</p></li>
+</ul>
+<p>Typically you should use just one of the two attributes at a time. However,
+both can be set at once and the set of columns that actually gets printed
+is conceptually expressed in this pseudo-code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">include_names</span> <span class="o">=</span> <span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">pprint_include_names</span><span class="p">()</span> <span class="ow">or</span> <span class="n">table</span><span class="o">.</span><span class="n">colnames</span><span class="p">)</span>
+                 <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">pprint_exclude_names</span><span class="p">()</span> <span class="ow">or</span> <span class="p">())</span>
+</pre></div>
+</div>
+<div class="section" id="id1">
+<h5>Examples<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h5>
+<p>Let’s start with defining a simple table with one row and six columns:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table.table_helpers</span> <span class="kn">import</span> <span class="n">simple_table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">simple_table</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go">a   b   c   d   e   f</span>
+<span class="go">--- --- --- --- --- ---</span>
+<span class="go">1 1.0   c   4 4.0   f</span>
+</pre></div>
+</div>
+<p>Now you can get the value of the <code class="docutils literal notranslate"><span class="pre">pprint_include_names</span></code> attribute by calling
+it as a function, and then include some names for printing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">pprint_include_names</span><span class="p">())</span>
+<span class="go">None</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint_include_names</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">pprint_include_names</span><span class="p">())</span>
+<span class="go">(&#39;a&#39;, &#39;c&#39;, &#39;e&#39;)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go"> a   c   e</span>
+<span class="go">--- --- ---</span>
+<span class="go">  1   c 4.0</span>
+</pre></div>
+</div>
+<p>Now you can instead exclude some columns from printing. Note that for both
+include and exclude, you can add column names that do not exist in the table.
+This allows pre-defining the attributes before the table has been fully
+constructed.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint_include_names</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Revert to printing all columns</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint_exclude_names</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;does-not-exist&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go"> b   d   f</span>
+<span class="go">--- --- ---</span>
+<span class="go">1.0   4   f</span>
+</pre></div>
+</div>
+<p>Next you can <code class="docutils literal notranslate"><span class="pre">add</span></code> or <code class="docutils literal notranslate"><span class="pre">remove</span></code> names from the attribute:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">simple_table</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>  <span class="c1"># Start with a fresh table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint_exclude_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">)</span>  <span class="c1"># Single name</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint_exclude_names</span><span class="o">.</span><span class="n">add</span><span class="p">([</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">])</span>  <span class="c1"># List or tuple of names</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint_exclude_names</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;f&#39;</span><span class="p">)</span>  <span class="c1"># Single name or list/tuple of names</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint_exclude_names</span><span class="p">()</span>
+<span class="go">(&#39;b&#39;, &#39;d&#39;)</span>
+</pre></div>
+</div>
+<p>Finally, you can temporarily set the attributes within a <a class="reference external" href="https://docs.python.org/3/reference/datamodel.html#context-managers">context manager</a>. For
+example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">simple_table</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint_include_names</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go"> a   b</span>
+<span class="go">--- ---</span>
+<span class="go">  1 1.0</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Show all (for pprint_include_names the value of None =&gt; all columns)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">t</span><span class="o">.</span><span class="n">pprint_include_names</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go"> a   b   c   d   e   f</span>
+<span class="go">--- --- --- --- --- ---</span>
+<span class="go">  1 1.0   c   4 4.0   f</span>
+</pre></div>
+</div>
+<p>The specification of names for these attributes can include Unix-style globs
+like <code class="docutils literal notranslate"><span class="pre">*</span></code> and <code class="docutils literal notranslate"><span class="pre">?</span></code>. See <a class="reference external" href="https://docs.python.org/3/library/fnmatch.html#module-fnmatch" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fnmatch</span></code></a> for details (and in particular how to
+escape those characters if needed). For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint_exclude_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;boring*&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;boring_ra&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">122.0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;boring_dec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">89.9</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go"> a   b</span>
+<span class="go">--- ---</span>
+<span class="go">  1   b</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="multidimensional-columns">
+<h4>Multidimensional columns<a class="headerlink" href="#multidimensional-columns" title="Permalink to this headline">¶</a></h4>
+<p>If a column has more than one dimension then each element of the column is
+itself an array. In the example below there are three rows, each of which is a
+<code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">x</span> <span class="pre">2</span></code> array. The formatted output for such a column shows only the first
+and last value of each row element and indicates the array dimensions in the
+column name header:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">arr</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span> <span class="mf">1.</span><span class="p">,</span>  <span class="mf">2.</span><span class="p">],</span>
+<span class="gp">... </span>                  <span class="p">[</span><span class="mf">10.</span><span class="p">,</span> <span class="mf">20.</span><span class="p">]]),</span>
+<span class="gp">... </span>        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span> <span class="mf">3.</span><span class="p">,</span>  <span class="mf">4.</span><span class="p">],</span>
+<span class="gp">... </span>                  <span class="p">[</span><span class="mf">30.</span><span class="p">,</span> <span class="mf">40.</span><span class="p">]]),</span>
+<span class="gp">... </span>        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span> <span class="mf">5.</span><span class="p">,</span>  <span class="mf">6.</span><span class="p">],</span>
+<span class="gp">... </span>                  <span class="p">[</span><span class="mf">50.</span><span class="p">,</span> <span class="mf">60.</span><span class="p">]])</span> <span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(3, 2, 2)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">pprint</span><span class="p">()</span>
+<span class="go">     a</span>
+<span class="go">-----------</span>
+<span class="go">1.0 .. 20.0</span>
+<span class="go">3.0 .. 40.0</span>
+<span class="go">5.0 .. 60.0</span>
+</pre></div>
+</div>
+<p>In order to see all of the data values for a multidimensional column use the
+column representation. This uses the standard <code class="docutils literal notranslate"><span class="pre">numpy</span></code> mechanism for printing
+any array:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+<span class="go">array([[[ 1.,  2.],</span>
+<span class="go">        [10., 20.]],</span>
+<span class="go">       [[ 3.,  4.],</span>
+<span class="go">        [30., 40.]],</span>
+<span class="go">       [[ 5.,  6.],</span>
+<span class="go">        [50., 60.]]])</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="columns-with-units">
+<span id="id2"></span><h4>Columns with Units<a class="headerlink" href="#columns-with-units" title="Permalink to this headline">¶</a></h4>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> and <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a> instances handle entries with units differently. The
+following describes <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a>. <a class="reference internal" href="mixin_columns.html#quantity-and-qtable"><span class="std std-ref">Quantity and QTable</span></a> explains how a
+<a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a> differs from a <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a>.</p>
+</div>
+<p>A <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-class docutils literal notranslate"><span class="pre">Column</span></code></a> object with units within a standard <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> has certain
+quantity-related conveniences available. To begin with, it can be converted
+explicitly to a <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> object via the
+<a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column.quantity" title="astropy.table.Column.quantity"><code class="xref py py-attr docutils literal notranslate"><span class="pre">quantity</span></code></a> property and the
+<a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column.to" title="astropy.table.Column.to"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to()</span></code></a> method:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">,</span> <span class="mf">3.</span><span class="p">],</span> <span class="p">[</span><span class="mf">40000.</span><span class="p">,</span> <span class="mf">50000.</span><span class="p">,</span> <span class="mf">60000.</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;km/s&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span>  
+<span class="go">&lt;Quantity [1., 2., 3.] m&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">Myr</span><span class="p">)</span>  
+<span class="go">&lt;Quantity [40.9084866 , 51.13560825, 61.3627299 ] kpc / Myr&gt;</span>
+</pre></div>
+</div>
+<p>Note that the <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column.quantity" title="astropy.table.Column.quantity"><code class="xref py py-attr docutils literal notranslate"><span class="pre">quantity</span></code></a> property is actually
+a <em>view</em> of the data in the column, not a copy. Hence, you can set the
+values of a column in a way that respects units by making in-place
+changes to the <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column.quantity" title="astropy.table.Column.quantity"><code class="xref py py-attr docutils literal notranslate"><span class="pre">quantity</span></code></a> property:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span>
+<span class="go">&lt;Column name=&#39;b&#39; dtype=&#39;float64&#39; unit=&#39;km / s&#39; length=3&gt;</span>
+<span class="go">40000.0</span>
+<span class="go">50000.0</span>
+<span class="go">60000.0</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">45000000</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span>
+<span class="go">&lt;Column name=&#39;b&#39; dtype=&#39;float64&#39; unit=&#39;km / s&#39; length=3&gt;</span>
+<span class="go">45000.0</span>
+<span class="go">50000.0</span>
+<span class="go">60000.0</span>
+</pre></div>
+</div>
+<p>Even without explicit conversion, columns with units can be treated like a
+<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> in <em>some</em> arithmetic expressions (see the warning below for caveats
+to this):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mf">.005</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span>  
+<span class="go">&lt;Quantity [6., 7., 8.] m&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.constants</span> <span class="kn">import</span> <span class="n">c</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">decompose</span><span class="p">()</span>  
+<span class="go">&lt;Quantity [0.15010384, 0.16678205, 0.20013846]&gt;</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> columns do <em>not</em> always behave the same as <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>. <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a>
+columns act more like regular <code class="docutils literal notranslate"><span class="pre">numpy</span></code> arrays unless either explicitly
+converted to a <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> or combined with a <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> using an arithmetic
+operator. For example, the following does not work in the way you would
+expect:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">30</span><span class="p">,</span> <span class="mi">90</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;angle&#39;</span><span class="p">,))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;angle&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;deg&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;angle&#39;</span><span class="p">])</span>  
+<span class="go">&lt;Column name=&#39;angle&#39; dtype=&#39;float64&#39; unit=&#39;deg&#39; length=2&gt;</span>
+<span class="go">-0.988031624093</span>
+<span class="go"> 0.893996663601</span>
+</pre></div>
+</div>
+<p>This is wrong both in that it says the result is in degrees, <em>and</em>
+<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sin.html#numpy.sin" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sin</span></code></a> treated the values as radians rather than degrees. If at all in
+doubt that you will get the right result, the safest choice is to either use
+<a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a> or to explicitly convert to <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;angle&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span><span class="p">)</span>  
+<span class="go">&lt;Quantity [0.5, 1. ]&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="bytestring-columns">
+<span id="bytestring-columns-python-3"></span><h4>Bytestring Columns<a class="headerlink" href="#bytestring-columns" title="Permalink to this headline">¶</a></h4>
+<p>Using bytestring columns (<code class="docutils literal notranslate"><span class="pre">numpy</span></code> <code class="docutils literal notranslate"><span class="pre">'S'</span></code> dtype) is possible
+with <code class="docutils literal notranslate"><span class="pre">astropy</span></code> tables since they can be compared with the natural
+Python string (<code class="docutils literal notranslate"><span class="pre">str</span></code>) type. See <a class="reference external" href="https://eli.thegreenplace.net/2012/01/30/the-bytesstr-dichotomy-in-python-3">The bytes/str dichotomy in Python 3</a>
+for a very brief overview of the difference.</p>
+<p>The standard method of representing strings in <code class="docutils literal notranslate"><span class="pre">numpy</span></code> is via the
+unicode <code class="docutils literal notranslate"><span class="pre">'U'</span></code> dtype. The problem is that this requires 4 bytes per
+character, and if you have a very large number of strings this could
+fill memory and impact performance. A very common use case is that these
+strings are actually ASCII and can be represented with 1 byte per character.
+In <code class="docutils literal notranslate"><span class="pre">astropy</span></code> it is possible to work directly and conveniently with
+bytestring data in <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> and <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-class docutils literal notranslate"><span class="pre">Column</span></code></a> operations.</p>
+<p>Note that the bytestring issue is a particular problem when dealing with HDF5
+files, where character data are read as bytestrings (<code class="docutils literal notranslate"><span class="pre">'S'</span></code> dtype) when using
+the <a class="reference internal" href="../io/unified.html#table-io"><span class="std std-ref">Unified File Read/Write Interface</span></a>. Since HDF5 files are frequently used to store very large
+datasets, the memory bloat associated with conversion to <code class="docutils literal notranslate"><span class="pre">'U'</span></code> dtype is
+unacceptable.</p>
+<div class="section" id="id3">
+<h5>Examples<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h5>
+<p>The examples below illustrate dealing with bytestring data in <code class="docutils literal notranslate"><span class="pre">astropy</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">([[</span><span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;def&#39;</span><span class="p">]],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">])</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;abc&#39;</span>  <span class="c1"># Gives expected answer</span>
+<span class="go">array([ True, False])</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="sa">b</span><span class="s1">&#39;abc&#39;</span>  <span class="c1"># Still gives expected answer</span>
+<span class="go">array([ True, False])</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;abc&#39;</span>  <span class="c1"># Expected answer</span>
+<span class="go">True</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="sa">b</span><span class="s1">&#39;abc&#39;</span>  <span class="c1"># Cannot compare to bytestring</span>
+<span class="go">False</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;bä&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span>
+<span class="go">&lt;Table length=2&gt;</span>
+<span class="go">  a</span>
+<span class="go">bytes3</span>
+<span class="go">------</span>
+<span class="go">    bä</span>
+<span class="go">   def</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;bä&#39;</span>
+<span class="go">array([ True, False])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Round trip unicode strings through HDF5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;test.hdf5&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;hdf5&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t2</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;test.hdf5&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;hdf5&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t2</span>
+<span class="go">&lt;Table length=2&gt;</span>
+<span class="go"> col0</span>
+<span class="go">bytes3</span>
+<span class="go">------</span>
+<span class="go">    bä</span>
+<span class="go">   def</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Accessing a Table</a><ul>
+<li><a class="reference internal" href="#basics">Basics</a></li>
+<li><a class="reference internal" href="#details">Details</a><ul>
+<li><a class="reference internal" href="#summary-information">Summary Information</a></li>
+<li><a class="reference internal" href="#accessing-properties">Accessing Properties</a></li>
+<li><a class="reference internal" href="#accessing-data">Accessing Data</a></li>
+<li><a class="reference internal" href="#table-equality">Table Equality</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#formatted-printing">Formatted Printing</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+<li><a class="reference internal" href="#more-method">more() method</a></li>
+<li><a class="reference internal" href="#pprint-method">pprint() method</a></li>
+<li><a class="reference internal" href="#column-alignment">Column alignment</a></li>
+<li><a class="reference internal" href="#pformat-method">pformat() method</a></li>
+<li><a class="reference internal" href="#hiding-columns">Hiding columns</a><ul>
+<li><a class="reference internal" href="#id1">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#multidimensional-columns">Multidimensional columns</a></li>
+<li><a class="reference internal" href="#columns-with-units">Columns with Units</a></li>
+<li><a class="reference internal" href="#bytestring-columns">Bytestring Columns</a><ul>
+<li><a class="reference internal" href="#id3">Examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/table/access_table.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,1619 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.io.fits.hdu.hdulist &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/jquery.js"></script>
+    <script src="../../../../../_static/underscore.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.io.fits.hdu.hdulist</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see PYFITS.rst</span>
+
+<span class="kn">import</span> <span class="nn">gzip</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">compressed</span>
+<span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">_BaseHDU</span><span class="p">,</span> <span class="n">_ValidHDU</span><span class="p">,</span> <span class="n">_NonstandardHDU</span><span class="p">,</span> <span class="n">ExtensionHDU</span>
+<span class="kn">from</span> <span class="nn">.groups</span> <span class="kn">import</span> <span class="n">GroupsHDU</span>
+<span class="kn">from</span> <span class="nn">.image</span> <span class="kn">import</span> <span class="n">PrimaryHDU</span><span class="p">,</span> <span class="n">ImageHDU</span>
+<span class="kn">from</span> <span class="nn">astropy.io.fits.file</span> <span class="kn">import</span> <span class="n">_File</span><span class="p">,</span> <span class="n">FILE_MODES</span>
+<span class="kn">from</span> <span class="nn">astropy.io.fits.header</span> <span class="kn">import</span> <span class="n">_pad_length</span>
+<span class="kn">from</span> <span class="nn">astropy.io.fits.util</span> <span class="kn">import</span> <span class="p">(</span><span class="n">_free_space_check</span><span class="p">,</span> <span class="n">_get_array_mmap</span><span class="p">,</span> <span class="n">_is_int</span><span class="p">,</span>
+                                  <span class="n">_tmp_name</span><span class="p">,</span> <span class="n">fileobj_closed</span><span class="p">,</span> <span class="n">fileobj_mode</span><span class="p">,</span>
+                                  <span class="n">ignore_sigint</span><span class="p">,</span> <span class="n">isfile</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">astropy.io.fits.verify</span> <span class="kn">import</span> <span class="n">_Verify</span><span class="p">,</span> <span class="n">_ErrList</span><span class="p">,</span> <span class="n">VerifyError</span><span class="p">,</span> <span class="n">VerifyWarning</span>
+<span class="kn">from</span> <span class="nn">astropy.utils</span> <span class="kn">import</span> <span class="n">indent</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.exceptions</span> <span class="kn">import</span> <span class="n">AstropyUserWarning</span>
+
+<span class="c1"># NOTE: Python can be built without bz2.</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.compat.optional_deps</span> <span class="kn">import</span> <span class="n">HAS_BZ2</span>
+<span class="k">if</span> <span class="n">HAS_BZ2</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">bz2</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;HDUList&quot;</span><span class="p">,</span> <span class="s2">&quot;fitsopen&quot;</span><span class="p">]</span>
+
+<span class="c1"># FITS file signature as per RFC 4047</span>
+<span class="n">FITS_SIGNATURE</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;SIMPLE  =                    T&#39;</span>
+
+
+<span class="k">def</span> <span class="nf">fitsopen</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;readonly&#39;</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_backup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+             <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lazy_load_hdus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_missing_simple</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+             <span class="n">use_fsspec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fsspec_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Factory function to open a FITS file and return an `HDUList` object.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str, file-like or `pathlib.Path`</span>
+<span class="sd">        File to be opened.</span>
+
+<span class="sd">    mode : str, optional</span>
+<span class="sd">        Open mode, &#39;readonly&#39;, &#39;update&#39;, &#39;append&#39;, &#39;denywrite&#39;, or</span>
+<span class="sd">        &#39;ostream&#39;. Default is &#39;readonly&#39;.</span>
+
+<span class="sd">        If ``name`` is a file object that is already opened, ``mode`` must</span>
+<span class="sd">        match the mode the file was opened with, readonly (rb), update (rb+),</span>
+<span class="sd">        append (ab+), ostream (w), denywrite (rb)).</span>
+
+<span class="sd">    memmap : bool, optional</span>
+<span class="sd">        Is memory mapping to be used? This value is obtained from the</span>
+<span class="sd">        configuration item ``astropy.io.fits.Conf.use_memmap``.</span>
+<span class="sd">        Default is `True`.</span>
+
+<span class="sd">    save_backup : bool, optional</span>
+<span class="sd">        If the file was opened in update or append mode, this ensures that</span>
+<span class="sd">        a backup of the original file is saved before any changes are flushed.</span>
+<span class="sd">        The backup has the same name as the original file with &quot;.bak&quot; appended.</span>
+<span class="sd">        If &quot;file.bak&quot; already exists then &quot;file.bak.1&quot; is used, and so on.</span>
+<span class="sd">        Default is `False`.</span>
+
+<span class="sd">    cache : bool, optional</span>
+<span class="sd">        If the file name is a URL, `~astropy.utils.data.download_file` is used</span>
+<span class="sd">        to open the file.  This specifies whether or not to save the file</span>
+<span class="sd">        locally in Astropy&#39;s download cache. Default is `True`.</span>
+
+<span class="sd">    lazy_load_hdus : bool, optional</span>
+<span class="sd">        To avoid reading all the HDUs and headers in a FITS file immediately</span>
+<span class="sd">        upon opening.  This is an optimization especially useful for large</span>
+<span class="sd">        files, as FITS has no way of determining the number and offsets of all</span>
+<span class="sd">        the HDUs in a file without scanning through the file and reading all</span>
+<span class="sd">        the headers. Default is `True`.</span>
+
+<span class="sd">        To disable lazy loading and read all HDUs immediately (the old</span>
+<span class="sd">        behavior) use ``lazy_load_hdus=False``.  This can lead to fewer</span>
+<span class="sd">        surprises--for example with lazy loading enabled, ``len(hdul)``</span>
+<span class="sd">        can be slow, as it means the entire FITS file needs to be read in</span>
+<span class="sd">        order to determine the number of HDUs.  ``lazy_load_hdus=False``</span>
+<span class="sd">        ensures that all HDUs have already been loaded after the file has</span>
+<span class="sd">        been opened.</span>
+
+<span class="sd">        .. versionadded:: 1.3</span>
+
+<span class="sd">    uint : bool, optional</span>
+<span class="sd">        Interpret signed integer data where ``BZERO`` is the central value and</span>
+<span class="sd">        ``BSCALE == 1`` as unsigned integer data.  For example, ``int16`` data</span>
+<span class="sd">        with ``BZERO = 32768`` and ``BSCALE = 1`` would be treated as</span>
+<span class="sd">        ``uint16`` data. Default is `True` so that the pseudo-unsigned</span>
+<span class="sd">        integer convention is assumed.</span>
+
+<span class="sd">    ignore_missing_end : bool, optional</span>
+<span class="sd">        Do not raise an exception when opening a file that is missing an</span>
+<span class="sd">        ``END`` card in the last header. Default is `False`.</span>
+
+<span class="sd">    ignore_missing_simple : bool, optional</span>
+<span class="sd">        Do not raise an exception when the SIMPLE keyword is missing. Note</span>
+<span class="sd">        that io.fits will raise a warning if a SIMPLE card is present but</span>
+<span class="sd">        written in a way that does not follow the FITS Standard.</span>
+<span class="sd">        Default is `False`.</span>
+
+<span class="sd">        .. versionadded:: 4.2</span>
+
+<span class="sd">    use_fsspec : bool, optional</span>
+<span class="sd">        Use the ``fsspec`` library to open the file? Defaults to `False` unless</span>
+<span class="sd">        the ``name`` parameter starts with the Amazon S3 storage prefix ``s3://``</span>
+<span class="sd">        or the Google Cloud Storage prefix ``gs://``.  Can also be used for paths</span>
+<span class="sd">        with other prefixes (e.g. ``http://``) but in this case you must</span>
+<span class="sd">        explicitely pass ``use_fsspec=True``.</span>
+<span class="sd">        Use of this feature requires the optional ``fsspec`` package.</span>
+<span class="sd">        A ``ModuleNotFoundError`` will be raised if the dependency is missing.</span>
+
+<span class="sd">        .. versionadded:: 5.2</span>
+
+<span class="sd">    fsspec_kwargs : dict, optional</span>
+<span class="sd">        Keyword arguments passed on to `fsspec.open`. This can be used to</span>
+<span class="sd">        configure cloud storage credentials and caching behavior.</span>
+<span class="sd">        Defaults to ``{&quot;anon&quot;: True}`` for paths with prefix ``s3://``</span>
+<span class="sd">        which is required for reading data from Amazon S3 open data buckets.</span>
+<span class="sd">        See ``fsspec``&#39;s documentation for available parameters.</span>
+
+<span class="sd">        .. versionadded:: 5.2</span>
+
+<span class="sd">    checksum : bool, str, optional</span>
+<span class="sd">        If `True`, verifies that both ``DATASUM`` and ``CHECKSUM`` card values</span>
+<span class="sd">        (when present in the HDU header) match the header and data of all HDU&#39;s</span>
+<span class="sd">        in the file.  Updates to a file that already has a checksum will</span>
+<span class="sd">        preserve and update the existing checksums unless this argument is</span>
+<span class="sd">        given a value of &#39;remove&#39;, in which case the CHECKSUM and DATASUM</span>
+<span class="sd">        values are not checked, and are removed when saving changes to the</span>
+<span class="sd">        file. Default is `False`.</span>
+
+<span class="sd">    disable_image_compression : bool, optional</span>
+<span class="sd">        If `True`, treats compressed image HDU&#39;s like normal binary table</span>
+<span class="sd">        HDU&#39;s.  Default is `False`.</span>
+
+<span class="sd">    do_not_scale_image_data : bool, optional</span>
+<span class="sd">        If `True`, image data is not scaled using BSCALE/BZERO values</span>
+<span class="sd">        when read.  Default is `False`.</span>
+
+<span class="sd">    character_as_bytes : bool, optional</span>
+<span class="sd">        Whether to return bytes for string columns, otherwise unicode strings</span>
+<span class="sd">        are returned, but this does not respect memory mapping and loads the</span>
+<span class="sd">        whole column in memory when accessed. Default is `False`.</span>
+
+<span class="sd">    ignore_blank : bool, optional</span>
+<span class="sd">        If `True`, the BLANK keyword is ignored if present.</span>
+<span class="sd">        Default is `False`.</span>
+
+<span class="sd">    scale_back : bool, optional</span>
+<span class="sd">        If `True`, when saving changes to a file that contained scaled image</span>
+<span class="sd">        data, restore the data to the original type and reapply the original</span>
+<span class="sd">        BSCALE/BZERO values. This could lead to loss of accuracy if scaling</span>
+<span class="sd">        back to integer values after performing floating point operations on</span>
+<span class="sd">        the data. Default is `False`.</span>
+
+<span class="sd">    output_verify : str</span>
+<span class="sd">        Output verification option.  Must be one of ``&quot;fix&quot;``,</span>
+<span class="sd">        ``&quot;silentfix&quot;``, ``&quot;ignore&quot;``, ``&quot;warn&quot;``, or</span>
+<span class="sd">        ``&quot;exception&quot;``.  May also be any combination of ``&quot;fix&quot;`` or</span>
+<span class="sd">        ``&quot;silentfix&quot;`` with ``&quot;+ignore&quot;``, ``+warn``, or ``+exception&quot;</span>
+<span class="sd">        (e.g. ``&quot;fix+warn&quot;``).  See :ref:`astropy:verify` for more info.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    hdulist : `HDUList`</span>
+<span class="sd">        `HDUList` containing all of the header data units in the file.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">astropy.io.fits</span> <span class="kn">import</span> <span class="n">conf</span>
+
+    <span class="k">if</span> <span class="n">memmap</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># distinguish between True (kwarg explicitly set)</span>
+        <span class="c1"># and None (preference for memmap in config, might be ignored)</span>
+        <span class="n">memmap</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">conf</span><span class="o">.</span><span class="n">use_memmap</span> <span class="k">else</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">memmap</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">memmap</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">lazy_load_hdus</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">lazy_load_hdus</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="n">lazy_load_hdus</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lazy_load_hdus</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">lazy_load_hdus</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">use_fsspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;s3://&quot;</span><span class="p">,</span> <span class="s2">&quot;gs://&quot;</span><span class="p">)):</span>
+            <span class="n">use_fsspec</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">use_fsspec</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="n">use_fsspec</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">use_fsspec</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">use_fsspec</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">use_fsspec</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;`name` must be a string when `use_fsspec=True`&quot;</span><span class="p">)</span>
+        <span class="c1"># For s3:// paths, it is useful to have fsspec default to `anon=True`</span>
+        <span class="c1"># because Hubble&#39;s data archive is available via a public S3 buckets.</span>
+        <span class="c1"># Accessing a public bucket without credentials raises a</span>
+        <span class="c1"># `NoCredentialsError` unless `anon=True` is passed explicitely.</span>
+        <span class="k">if</span> <span class="n">fsspec_kwargs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">):</span>
+            <span class="n">fsspec_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;anon&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+
+    <span class="k">if</span> <span class="s1">&#39;uint&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;uint&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="n">enable_uint</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Empty filename: </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">HDUList</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">memmap</span><span class="p">,</span> <span class="n">save_backup</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span>
+                            <span class="n">lazy_load_hdus</span><span class="p">,</span> <span class="n">ignore_missing_simple</span><span class="p">,</span>
+                            <span class="n">use_fsspec</span><span class="o">=</span><span class="n">use_fsspec</span><span class="p">,</span> <span class="n">fsspec_kwargs</span><span class="o">=</span><span class="n">fsspec_kwargs</span><span class="p">,</span>
+                            <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="HDUList"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList">[docs]</a><span class="k">class</span> <span class="nc">HDUList</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">_Verify</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    HDU list class.  This is the top-level FITS object.  When a FITS</span>
+<span class="sd">    file is opened, a `HDUList` object is returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hdus</span><span class="o">=</span><span class="p">[],</span> <span class="n">file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a `HDUList` object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hdus : BaseHDU or sequence thereof, optional</span>
+<span class="sd">            The HDU object(s) to comprise the `HDUList`.  Should be</span>
+<span class="sd">            instances of HDU classes like `ImageHDU` or `BinTableHDU`.</span>
+
+<span class="sd">        file : file-like, bytes, optional</span>
+<span class="sd">            The opened physical file associated with the `HDUList`</span>
+<span class="sd">            or a bytes object containing the contents of the FITS</span>
+<span class="sd">            file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">file</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="o">=</span> <span class="n">file</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># For internal use only--the keyword args passed to fitsopen /</span>
+        <span class="c1"># HDUList.fromfile/string when opening the file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_open_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_in_read_next_hdu</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># If we have read all the HDUs from the file or not</span>
+        <span class="c1"># The assumes that all HDUs have been written when we first opened the</span>
+        <span class="c1"># file; we do not currently support loading additional HDUs from a file</span>
+        <span class="c1"># while it is being streamed to.  In the future that might be supported</span>
+        <span class="c1"># but for now this is only used for the purpose of lazy-loading of</span>
+        <span class="c1"># existing HDUs.</span>
+        <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_read_all</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Should never attempt to read HDUs in ostream mode</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_read_all</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;ostream&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_read_all</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">hdus</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hdus</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># can take one HDU, as well as a list of HDU&#39;s as input</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdus</span><span class="p">,</span> <span class="n">_ValidHDU</span><span class="p">):</span>
+            <span class="n">hdus</span> <span class="o">=</span> <span class="p">[</span><span class="n">hdus</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdus</span><span class="p">,</span> <span class="p">(</span><span class="n">HDUList</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid input for HDUList.&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hdus</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">_BaseHDU</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Element </span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2"> in the HDUList input is not an HDU.&quot;</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">hdus</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Only do this when initializing from an existing list of HDUs</span>
+            <span class="c1"># When initializing from a file, this will be handled by the</span>
+            <span class="c1"># append method after the first HDU is read</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_extend</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_in_read_next_hdu</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">readall</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__len__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Special case: if the FITS file is located on a remote file system</span>
+        <span class="c1"># and has not been fully read yet, we return a simplified repr to</span>
+        <span class="c1"># avoid downloading the entire file</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_all</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">use_fsspec</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2"> (partially read)&quot;</span>
+
+        <span class="c1"># In order to correctly repr an HDUList we need to load all the</span>
+        <span class="c1"># HDUs as well</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">readall</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># While effectively this does the same as:</span>
+        <span class="c1"># for idx in range(len(self)):</span>
+        <span class="c1">#     yield self[idx]</span>
+        <span class="c1"># the more complicated structure is here to prevent the use of len(),</span>
+        <span class="c1"># which would break the lazy loading</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">count</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="bp">self</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                <span class="k">break</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get an HDU from the `HDUList`, indexed by number or name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># If the key is a slice we need to make sure the necessary HDUs</span>
+        <span class="c1"># have been loaded before passing the slice on to super.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="n">max_idx</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">stop</span>
+            <span class="c1"># Check for and handle the case when no maximum was</span>
+            <span class="c1"># specified (e.g. [1:]).</span>
+            <span class="k">if</span> <span class="n">max_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># We need all of the HDUs, so load them</span>
+                <span class="c1"># and reset the maximum to the actual length.</span>
+                <span class="n">max_idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+            <span class="c1"># Just in case the max_idx is negative...</span>
+            <span class="n">max_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_positive_index_of</span><span class="p">(</span><span class="n">max_idx</span><span class="p">)</span>
+
+            <span class="n">number_loaded</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__len__</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">max_idx</span> <span class="o">&gt;=</span> <span class="n">number_loaded</span><span class="p">:</span>
+                <span class="c1"># We need more than we have, try loading up to and including</span>
+                <span class="c1"># max_idx. Note we do not try to be clever about skipping HDUs</span>
+                <span class="c1"># even though key.step might conceivably allow it.</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_loaded</span><span class="p">,</span> <span class="n">max_idx</span><span class="p">):</span>
+                    <span class="c1"># Read until max_idx or to the end of the file, whichever</span>
+                    <span class="c1"># comes first.</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_next_hdu</span><span class="p">():</span>
+                        <span class="k">break</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">hdus</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="c1"># Raise a more helpful IndexError if the file was not fully read.</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_all</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">e</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;HDU not found, possibly because the index &#39;</span>
+                                     <span class="s1">&#39;is out of range, or because the file was &#39;</span>
+                                     <span class="s1">&#39;closed before all HDUs were read&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">HDUList</span><span class="p">(</span><span class="n">hdus</span><span class="p">)</span>
+
+        <span class="c1"># Originally this used recursion, but hypothetically an HDU with</span>
+        <span class="c1"># a very large number of HDUs could blow the stack, so use a loop</span>
+        <span class="c1"># instead</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_try_while_unread_hdus</span><span class="p">(</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">,</span>
+                                               <span class="bp">self</span><span class="o">.</span><span class="n">_positive_index_of</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># Raise a more helpful IndexError if the file was not fully read.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_all</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">e</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;HDU not found, possibly because the index &#39;</span>
+                                 <span class="s1">&#39;is out of range, or because the file was &#39;</span>
+                                 <span class="s1">&#39;closed before all HDUs were read&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns `True` if ``item`` is an ``HDU`` _in_ ``self`` or a valid</span>
+<span class="sd">        extension specification (e.g., integer extension number, extension</span>
+<span class="sd">        name, or a tuple of extension name and an extension version)</span>
+<span class="sd">        of a ``HDU`` in ``self``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_try_while_unread_hdus</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_of</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">hdu</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set an HDU to the `HDUList`, indexed by number or name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_positive_index_of</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="p">(</span><span class="nb">slice</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">_is_int</span><span class="p">(</span><span class="n">_key</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;An element in the HDUList must be an HDU.&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">hdu</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">_BaseHDU</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s1"> is not an HDU.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">_BaseHDU</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">hdu</span><span class="si">}</span><span class="s1"> is not an HDU.&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_try_while_unread_hdus</span><span class="p">(</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">,</span> <span class="n">_key</span><span class="p">,</span> <span class="n">hdu</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Extension </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> is out of bound or not found.&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_resize</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_truncate</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Delete an HDU from the `HDUList`, indexed by number or name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="n">end_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_positive_index_of</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">end_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_try_while_unread_hdus</span><span class="p">(</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">key</span> <span class="o">==</span> <span class="n">end_index</span> <span class="ow">or</span> <span class="n">key</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resize</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_truncate</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_truncate</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_resize</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># Support the &#39;with&#39; statement</span>
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">type</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="n">output_verify</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_open_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;output_verify&#39;</span><span class="p">,</span> <span class="s1">&#39;exception&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">output_verify</span><span class="o">=</span><span class="n">output_verify</span><span class="p">)</span>
+
+<div class="viewcode-block" id="HDUList.fromfile"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.fromfile">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">fromfile</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">save_backup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lazy_load_hdus</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">ignore_missing_simple</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">use_fsspec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">fsspec_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an `HDUList` instance from a file-like object.</span>
+
+<span class="sd">        The actual implementation of ``fitsopen()``, and generally shouldn&#39;t</span>
+<span class="sd">        be used directly.  Use :func:`open` instead (and see its</span>
+<span class="sd">        documentation for details of the parameters accepted by this method).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_readfrom</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="n">memmap</span><span class="p">,</span>
+                             <span class="n">save_backup</span><span class="o">=</span><span class="n">save_backup</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span>
+                             <span class="n">ignore_missing_simple</span><span class="o">=</span><span class="n">ignore_missing_simple</span><span class="p">,</span>
+                             <span class="n">lazy_load_hdus</span><span class="o">=</span><span class="n">lazy_load_hdus</span><span class="p">,</span> <span class="n">use_fsspec</span><span class="o">=</span><span class="n">use_fsspec</span><span class="p">,</span>
+                             <span class="n">fsspec_kwargs</span><span class="o">=</span><span class="n">fsspec_kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HDUList.fromstring"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.fromstring">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">fromstring</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an `HDUList` instance from a string or other in-memory data</span>
+<span class="sd">        buffer containing an entire FITS file.  Similar to</span>
+<span class="sd">        :meth:`HDUList.fromfile`, but does not accept the mode or memmap</span>
+<span class="sd">        arguments, as they are only relevant to reading from a file on disk.</span>
+
+<span class="sd">        This is useful for interfacing with other libraries such as CFITSIO,</span>
+<span class="sd">        and may also be useful for streaming applications.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : str, buffer-like, etc.</span>
+<span class="sd">            A string or other memory buffer containing an entire FITS file.</span>
+<span class="sd">            Buffer-like objects include :class:`~bytes`, :class:`~bytearray`,</span>
+<span class="sd">            :class:`~memoryview`, and :class:`~numpy.ndarray`.</span>
+<span class="sd">            It should be noted that if that memory is read-only (such as a</span>
+<span class="sd">            Python string) the returned :class:`HDUList`&#39;s data portions will</span>
+<span class="sd">            also be read-only.</span>
+<span class="sd">        **kwargs : dict</span>
+<span class="sd">            Optional keyword arguments.  See</span>
+<span class="sd">            :func:`astropy.io.fits.open` for details.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        hdul : HDUList</span>
+<span class="sd">            An :class:`HDUList` object representing the in-memory FITS file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Test that the given object supports the buffer interface by</span>
+            <span class="c1"># ensuring an ndarray can be created from it</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">((),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;ubyte&#39;</span><span class="p">,</span> <span class="n">buffer</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s1">&#39;The provided object </span><span class="si">{}</span><span class="s1"> does not contain an underlying &#39;</span>
+                <span class="s1">&#39;memory buffer.  fromstring() requires an object that &#39;</span>
+                <span class="s1">&#39;supports the buffer interface such as bytes, buffer, &#39;</span>
+                <span class="s1">&#39;memoryview, ndarray, etc.  This restriction is to ensure &#39;</span>
+                <span class="s1">&#39;that efficient access to the array/table data is possible.&#39;</span>
+                <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_readfrom</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HDUList.fileinfo"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.fileinfo">[docs]</a>    <span class="k">def</span> <span class="nf">fileinfo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a dictionary detailing information about the locations</span>
+<span class="sd">        of the indexed HDU within any associated file.  The values are</span>
+<span class="sd">        only valid after a read or write of the associated file with</span>
+<span class="sd">        no intervening changes to the `HDUList`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        index : int</span>
+<span class="sd">            Index of HDU for which info is to be returned.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fileinfo : dict or None</span>
+
+<span class="sd">            The dictionary details information about the locations of</span>
+<span class="sd">            the indexed HDU within an associated file.  Returns `None`</span>
+<span class="sd">            when the HDU is not associated with a file.</span>
+
+<span class="sd">            Dictionary contents:</span>
+
+<span class="sd">            ========== ========================================================</span>
+<span class="sd">            Key        Value</span>
+<span class="sd">            ========== ========================================================</span>
+<span class="sd">            file       File object associated with the HDU</span>
+<span class="sd">            filename   Name of associated file object</span>
+<span class="sd">            filemode   Mode in which the file was opened (readonly,</span>
+<span class="sd">                       update, append, denywrite, ostream)</span>
+<span class="sd">            resized    Flag that when `True` indicates that the data has been</span>
+<span class="sd">                       resized since the last read/write so the returned values</span>
+<span class="sd">                       may not be valid.</span>
+<span class="sd">            hdrLoc     Starting byte location of header in file</span>
+<span class="sd">            datLoc     Starting byte location of data block in file</span>
+<span class="sd">            datSpan    Data size including padding</span>
+<span class="sd">            ========== ========================================================</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">fileinfo</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">output</span><span class="p">:</span>
+                <span class="c1"># OK, the HDU associated with this index is not yet</span>
+                <span class="c1"># tied to the file associated with the HDUList.  The only way</span>
+                <span class="c1"># to get the file object is to check each of the HDU&#39;s in the</span>
+                <span class="c1"># list until we find the one associated with the file.</span>
+                <span class="n">f</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                    <span class="n">info</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">fileinfo</span><span class="p">()</span>
+
+                    <span class="k">if</span> <span class="n">info</span><span class="p">:</span>
+                        <span class="n">f</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
+                        <span class="n">fm</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;filemode&#39;</span><span class="p">]</span>
+                        <span class="k">break</span>
+
+                <span class="n">output</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;file&#39;</span><span class="p">:</span> <span class="n">f</span><span class="p">,</span> <span class="s1">&#39;filemode&#39;</span><span class="p">:</span> <span class="n">fm</span><span class="p">,</span> <span class="s1">&#39;hdrLoc&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                          <span class="s1">&#39;datLoc&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;datSpan&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+
+            <span class="n">output</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">output</span><span class="p">[</span><span class="s1">&#39;resized&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wasresized</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">output</span></div>
+
+    <span class="k">def</span> <span class="nf">__copy__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a shallow copy of an HDUList.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        copy : `HDUList`</span>
+<span class="sd">            A shallow copy of this `HDUList` object.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[:]</span>
+
+    <span class="c1"># Syntactic sugar for `__copy__()` magic method</span>
+    <span class="n">copy</span> <span class="o">=</span> <span class="n">__copy__</span>
+
+    <span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">HDUList</span><span class="p">([</span><span class="n">hdu</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">])</span>
+
+<div class="viewcode-block" id="HDUList.pop"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.pop">[docs]</a>    <span class="k">def</span> <span class="nf">pop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Remove an item from the list and return it.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        index : int, str, tuple of (string, int), optional</span>
+<span class="sd">            An integer value of ``index`` indicates the position from which</span>
+<span class="sd">            ``pop()`` removes and returns an HDU. A string value or a tuple</span>
+<span class="sd">            of ``(string, int)`` functions as a key for identifying the</span>
+<span class="sd">            HDU to be removed and returned. If ``key`` is a tuple, it is</span>
+<span class="sd">            of the form ``(key, ver)`` where ``ver`` is an ``EXTVER``</span>
+<span class="sd">            value that must match the HDU being searched for.</span>
+
+<span class="sd">            If the key is ambiguous (e.g. there are multiple &#39;SCI&#39; extensions)</span>
+<span class="sd">            the first match is returned.  For a more precise match use the</span>
+<span class="sd">            ``(name, ver)`` pair.</span>
+
+<span class="sd">            If even the ``(name, ver)`` pair is ambiguous the numeric index</span>
+<span class="sd">            must be used to index the duplicate HDU.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        hdu : BaseHDU</span>
+<span class="sd">            The HDU object at position indicated by ``index`` or having name</span>
+<span class="sd">            and version specified by ``index``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Make sure that HDUs are loaded before attempting to pop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">readall</span><span class="p">()</span>
+        <span class="n">list_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_of</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">list_index</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HDUList.insert"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.insert">[docs]</a>    <span class="k">def</span> <span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">hdu</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Insert an HDU into the `HDUList` at the given ``index``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        index : int</span>
+<span class="sd">            Index before which to insert the new HDU.</span>
+
+<span class="sd">        hdu : BaseHDU</span>
+<span class="sd">            The HDU object to insert</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">_BaseHDU</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">hdu</span><span class="si">}</span><span class="s1"> is not an HDU.&#39;</span><span class="p">)</span>
+
+        <span class="n">num_hdus</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">num_hdus</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">num_hdus</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># We are inserting a new Primary HDU so we need to</span>
+                <span class="c1"># make the current Primary HDU into an extension HDU.</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">GroupsHDU</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;The current Primary HDU is a GroupsHDU.  &quot;</span>
+                        <span class="s2">&quot;It can&#39;t be made into an extension HDU, &quot;</span>
+                        <span class="s2">&quot;so another HDU cannot be inserted before it.&quot;</span><span class="p">)</span>
+
+                <span class="n">hdu1</span> <span class="o">=</span> <span class="n">ImageHDU</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+
+                <span class="c1"># Insert it into position 1, then delete HDU at position 0.</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">hdu1</span><span class="p">)</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="p">(</span><span class="n">PrimaryHDU</span><span class="p">,</span> <span class="n">_NonstandardHDU</span><span class="p">)):</span>
+                <span class="c1"># You passed in an Extension HDU but we need a Primary HDU.</span>
+                <span class="c1"># If you provided an ImageHDU then we can convert it to</span>
+                <span class="c1"># a primary HDU and use that.</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">ImageHDU</span><span class="p">):</span>
+                    <span class="n">hdu</span> <span class="o">=</span> <span class="n">PrimaryHDU</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># You didn&#39;t provide an ImageHDU so we create a</span>
+                    <span class="c1"># simple Primary HDU and append that first before</span>
+                    <span class="c1"># we append the new Extension HDU.</span>
+                    <span class="n">phdu</span> <span class="o">=</span> <span class="n">PrimaryHDU</span><span class="p">()</span>
+
+                    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">phdu</span><span class="p">)</span>
+                    <span class="n">index</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">GroupsHDU</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A GroupsHDU must be inserted as a &#39;</span>
+                                 <span class="s1">&#39;Primary HDU.&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">PrimaryHDU</span><span class="p">):</span>
+                <span class="c1"># You passed a Primary HDU but we need an Extension HDU</span>
+                <span class="c1"># so create an Extension HDU from the input Primary HDU.</span>
+                <span class="n">hdu</span> <span class="o">=</span> <span class="n">ImageHDU</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">hdu</span><span class="p">)</span>
+        <span class="n">hdu</span><span class="o">.</span><span class="n">_new</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_resize</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_truncate</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># make sure the EXTEND keyword is in primary HDU if there is extension</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_extend</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="HDUList.append"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.append">[docs]</a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hdu</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Append a new HDU to the `HDUList`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hdu : BaseHDU</span>
+<span class="sd">            HDU to add to the `HDUList`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">_BaseHDU</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;HDUList can only append an HDU.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">GroupsHDU</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Can&#39;t append a GroupsHDU to a non-empty HDUList&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">PrimaryHDU</span><span class="p">):</span>
+                <span class="c1"># You passed a Primary HDU but we need an Extension HDU</span>
+                <span class="c1"># so create an Extension HDU from the input Primary HDU.</span>
+                <span class="c1"># TODO: This isn&#39;t necessarily sufficient to copy the HDU;</span>
+                <span class="c1"># _header_offset and friends need to be copied too.</span>
+                <span class="n">hdu</span> <span class="o">=</span> <span class="n">ImageHDU</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="p">(</span><span class="n">PrimaryHDU</span><span class="p">,</span> <span class="n">_NonstandardHDU</span><span class="p">)):</span>
+                <span class="c1"># You passed in an Extension HDU but we need a Primary</span>
+                <span class="c1"># HDU.</span>
+                <span class="c1"># If you provided an ImageHDU then we can convert it to</span>
+                <span class="c1"># a primary HDU and use that.</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">ImageHDU</span><span class="p">):</span>
+                    <span class="n">hdu</span> <span class="o">=</span> <span class="n">PrimaryHDU</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># You didn&#39;t provide an ImageHDU so we create a</span>
+                    <span class="c1"># simple Primary HDU and append that first before</span>
+                    <span class="c1"># we append the new Extension HDU.</span>
+                    <span class="n">phdu</span> <span class="o">=</span> <span class="n">PrimaryHDU</span><span class="p">()</span>
+                    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">phdu</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hdu</span><span class="p">)</span>
+        <span class="n">hdu</span><span class="o">.</span><span class="n">_new</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_resize</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_truncate</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># make sure the EXTEND keyword is in primary HDU if there is extension</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_extend</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="HDUList.index_of"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.index_of">[docs]</a>    <span class="k">def</span> <span class="nf">index_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the index of an HDU from the `HDUList`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : int, str, tuple of (string, int) or BaseHDU</span>
+<span class="sd">            The key identifying the HDU.  If ``key`` is a tuple, it is of the</span>
+<span class="sd">            form ``(name, ver)`` where ``ver`` is an ``EXTVER`` value that must</span>
+<span class="sd">            match the HDU being searched for.</span>
+
+<span class="sd">            If the key is ambiguous (e.g. there are multiple &#39;SCI&#39; extensions)</span>
+<span class="sd">            the first match is returned.  For a more precise match use the</span>
+<span class="sd">            ``(name, ver)`` pair.</span>
+
+<span class="sd">            If even the ``(name, ver)`` pair is ambiguous (it shouldn&#39;t be</span>
+<span class="sd">            but it&#39;s not impossible) the numeric index must be used to index</span>
+<span class="sd">            the duplicate HDU.</span>
+
+<span class="sd">            When ``key`` is an HDU object, this function returns the</span>
+<span class="sd">            index of that HDU object in the ``HDUList``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        index : int</span>
+<span class="sd">            The index of the HDU in the `HDUList`.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``key`` is an HDU object and it is not found in the ``HDUList``.</span>
+<span class="sd">        KeyError</span>
+<span class="sd">            If an HDU specified by the ``key`` that is an extension number,</span>
+<span class="sd">            extension name, or a tuple of extension name and version is not</span>
+<span class="sd">            found in the ``HDUList``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">_is_int</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">key</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">_key</span><span class="p">,</span> <span class="n">_ver</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">_BaseHDU</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_key</span> <span class="o">=</span> <span class="n">key</span>
+            <span class="n">_ver</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> indices must be integers, extension names as strings, &#39;</span>
+                <span class="s1">&#39;or (extname, version) tuples; got </span><span class="si">{}</span><span class="s1">&#39;</span>
+                <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">_key</span><span class="p">))</span>
+
+        <span class="n">_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">_key</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+        <span class="n">found</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="c1"># &#39;PRIMARY&#39; should always work as a reference to the first HDU</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">name</span> <span class="o">==</span> <span class="n">_key</span> <span class="ow">or</span> <span class="p">(</span><span class="n">_key</span> <span class="o">==</span> <span class="s1">&#39;PRIMARY&#39;</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">))</span> <span class="ow">and</span>
+                    <span class="p">(</span><span class="n">_ver</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">_ver</span> <span class="o">==</span> <span class="n">hdu</span><span class="o">.</span><span class="n">ver</span><span class="p">)):</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="n">idx</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">found</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Extension </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s1"> not found.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">found</span></div>
+
+    <span class="k">def</span> <span class="nf">_positive_index_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Same as index_of, but ensures always returning a positive index</span>
+<span class="sd">        or zero.</span>
+
+<span class="sd">        (Really this should be called non_negative_index_of but it felt</span>
+<span class="sd">        too long.)</span>
+
+<span class="sd">        This means that if the key is a negative integer, we have to</span>
+<span class="sd">        convert it to the corresponding positive index.  This means</span>
+<span class="sd">        knowing the length of the HDUList, which in turn means loading</span>
+<span class="sd">        all HDUs.  Therefore using negative indices on HDULists is inherently</span>
+<span class="sd">        inefficient.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_of</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">index</span>
+
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;Extension </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s1"> is out of bound or not found.&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">+</span> <span class="n">index</span>
+
+<div class="viewcode-block" id="HDUList.readall"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.readall">[docs]</a>    <span class="k">def</span> <span class="nf">readall</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read data of all HDUs into memory.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_next_hdu</span><span class="p">():</span>
+            <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="HDUList.flush"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.flush">[docs]</a>    <span class="nd">@ignore_sigint</span>
+    <span class="k">def</span> <span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_verify</span><span class="o">=</span><span class="s1">&#39;fix&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Force a write of the `HDUList` back to the file (for append and</span>
+<span class="sd">        update modes only).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_verify : str</span>
+<span class="sd">            Output verification option.  Must be one of ``&quot;fix&quot;``,</span>
+<span class="sd">            ``&quot;silentfix&quot;``, ``&quot;ignore&quot;``, ``&quot;warn&quot;``, or</span>
+<span class="sd">            ``&quot;exception&quot;``.  May also be any combination of ``&quot;fix&quot;`` or</span>
+<span class="sd">            ``&quot;silentfix&quot;`` with ``&quot;+ignore&quot;``, ``+warn``, or ``+exception&quot;</span>
+<span class="sd">            (e.g. ``&quot;fix+warn&quot;``).  See :ref:`astropy:verify` for more info.</span>
+
+<span class="sd">        verbose : bool</span>
+<span class="sd">            When `True`, print verbose messages</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;append&#39;</span><span class="p">,</span> <span class="s1">&#39;update&#39;</span><span class="p">,</span> <span class="s1">&#39;ostream&#39;</span><span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Flush for &#39;</span><span class="si">{}</span><span class="s2">&#39; mode is not supported.&quot;</span>
+                          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">mode</span><span class="p">),</span> <span class="n">AstropyUserWarning</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">save_backup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_open_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;save_backup&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">save_backup</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;append&#39;</span><span class="p">,</span> <span class="s1">&#39;update&#39;</span><span class="p">):</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+                <span class="c1"># The the file doesn&#39;t actually exist anymore for some reason</span>
+                <span class="c1"># then there&#39;s no point in trying to make a backup</span>
+                <span class="n">backup</span> <span class="o">=</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.bak&#39;</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">while</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">backup</span><span class="p">):</span>
+                    <span class="n">backup</span> <span class="o">=</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.bak.&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+                    <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Saving a backup of </span><span class="si">{}</span><span class="s1"> to </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">filename</span><span class="p">,</span> <span class="n">backup</span><span class="p">),</span> <span class="n">AstropyUserWarning</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">shutil</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">backup</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="s1">&#39;Failed to save backup to destination </span><span class="si">{}</span><span class="s1">: &#39;</span>
+                                  <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">exc</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">verify</span><span class="p">(</span><span class="n">option</span><span class="o">=</span><span class="n">output_verify</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;append&#39;</span><span class="p">,</span> <span class="s1">&#39;ostream&#39;</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">extver</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">_header</span><span class="p">[</span><span class="s1">&#39;extver&#39;</span><span class="p">])</span>
+                    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                        <span class="n">extver</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+                <span class="c1"># only append HDU&#39;s which are &quot;new&quot;</span>
+                <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">_new</span><span class="p">:</span>
+                    <span class="n">hdu</span><span class="o">.</span><span class="n">_prewriteto</span><span class="p">(</span><span class="n">checksum</span><span class="o">=</span><span class="n">hdu</span><span class="o">.</span><span class="n">_output_checksum</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="n">_free_space_check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                        <span class="n">hdu</span><span class="o">.</span><span class="n">_writeto</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;append HDU&#39;</span><span class="p">,</span> <span class="n">hdu</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">extver</span><span class="p">)</span>
+                        <span class="n">hdu</span><span class="o">.</span><span class="n">_new</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">hdu</span><span class="o">.</span><span class="n">_postwriteto</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;update&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_flush_update</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="HDUList.update_extend"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.update_extend">[docs]</a>    <span class="k">def</span> <span class="nf">update_extend</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Make sure that if the primary header needs the keyword ``EXTEND`` that</span>
+<span class="sd">        it has it and it is correct.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">PrimaryHDU</span><span class="p">):</span>
+            <span class="c1"># A PrimaryHDU will be automatically inserted at some point, but it</span>
+            <span class="c1"># might not have been added yet</span>
+            <span class="k">return</span>
+
+        <span class="n">hdr</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span>
+
+        <span class="k">def</span> <span class="nf">get_first_ext</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="s1">&#39;EXTEND&#39;</span> <span class="ow">in</span> <span class="n">hdr</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">hdr</span><span class="p">[</span><span class="s1">&#39;EXTEND&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">get_first_ext</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">hdr</span><span class="p">[</span><span class="s1">&#39;EXTEND&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">get_first_ext</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">hdr</span><span class="p">[</span><span class="s1">&#39;NAXIS&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">hdr</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;EXTEND&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">after</span><span class="o">=</span><span class="s1">&#39;NAXIS&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n</span> <span class="o">=</span> <span class="n">hdr</span><span class="p">[</span><span class="s1">&#39;NAXIS&#39;</span><span class="p">]</span>
+                <span class="n">hdr</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;EXTEND&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">after</span><span class="o">=</span><span class="s1">&#39;NAXIS&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="HDUList.writeto"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.writeto">[docs]</a>    <span class="k">def</span> <span class="nf">writeto</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="n">output_verify</span><span class="o">=</span><span class="s1">&#39;exception&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">checksum</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the `HDUList` to a new file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fileobj : str, file-like or `pathlib.Path`</span>
+<span class="sd">            File to write to.  If a file object, must be opened in a</span>
+<span class="sd">            writeable mode.</span>
+
+<span class="sd">        output_verify : str</span>
+<span class="sd">            Output verification option.  Must be one of ``&quot;fix&quot;``,</span>
+<span class="sd">            ``&quot;silentfix&quot;``, ``&quot;ignore&quot;``, ``&quot;warn&quot;``, or</span>
+<span class="sd">            ``&quot;exception&quot;``.  May also be any combination of ``&quot;fix&quot;`` or</span>
+<span class="sd">            ``&quot;silentfix&quot;`` with ``&quot;+ignore&quot;``, ``+warn``, or ``+exception&quot;</span>
+<span class="sd">            (e.g. ``&quot;fix+warn&quot;``).  See :ref:`astropy:verify` for more info.</span>
+
+<span class="sd">        overwrite : bool, optional</span>
+<span class="sd">            If ``True``, overwrite the output file if it exists. Raises an</span>
+<span class="sd">            ``OSError`` if ``False`` and the output file exists. Default is</span>
+<span class="sd">            ``False``.</span>
+
+<span class="sd">        checksum : bool</span>
+<span class="sd">            When `True` adds both ``DATASUM`` and ``CHECKSUM`` cards</span>
+<span class="sd">            to the headers of all HDU&#39;s written to the file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;There is nothing to write.&quot;</span><span class="p">,</span> <span class="n">AstropyUserWarning</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">verify</span><span class="p">(</span><span class="n">option</span><span class="o">=</span><span class="n">output_verify</span><span class="p">)</span>
+
+        <span class="c1"># make sure the EXTEND keyword is there if there is extension</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_extend</span><span class="p">()</span>
+
+        <span class="c1"># make note of whether the input file object is already open, in which</span>
+        <span class="c1"># case we should not close it after writing (that should be the job</span>
+        <span class="c1"># of the caller)</span>
+        <span class="n">closed</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">fileobj_closed</span><span class="p">(</span><span class="n">fileobj</span><span class="p">)</span>
+
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">FILE_MODES</span><span class="p">[</span><span class="n">fileobj_mode</span><span class="p">(</span><span class="n">fileobj</span><span class="p">)]</span> <span class="k">if</span> <span class="n">isfile</span><span class="p">(</span><span class="n">fileobj</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;ostream&#39;</span>
+
+        <span class="c1"># This can accept an open file object that&#39;s open to write only, or in</span>
+        <span class="c1"># append/update modes but only if the file doesn&#39;t exist.</span>
+        <span class="n">fileobj</span> <span class="o">=</span> <span class="n">_File</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">)</span>
+        <span class="n">hdulist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">fileobj</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">dirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+            <span class="n">dirname</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">with</span> <span class="n">_free_space_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dirname</span><span class="o">=</span><span class="n">dirname</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="n">hdu</span><span class="o">.</span><span class="n">_prewriteto</span><span class="p">(</span><span class="n">checksum</span><span class="o">=</span><span class="n">checksum</span><span class="p">)</span>
+                <span class="n">hdu</span><span class="o">.</span><span class="n">_writeto</span><span class="p">(</span><span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="p">)</span>
+                <span class="n">hdu</span><span class="o">.</span><span class="n">_postwriteto</span><span class="p">()</span>
+        <span class="n">hdulist</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">output_verify</span><span class="o">=</span><span class="n">output_verify</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="n">closed</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HDUList.close"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_verify</span><span class="o">=</span><span class="s1">&#39;exception&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Close the associated FITS file and memmap object, if any.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_verify : str</span>
+<span class="sd">            Output verification option.  Must be one of ``&quot;fix&quot;``,</span>
+<span class="sd">            ``&quot;silentfix&quot;``, ``&quot;ignore&quot;``, ``&quot;warn&quot;``, or</span>
+<span class="sd">            ``&quot;exception&quot;``.  May also be any combination of ``&quot;fix&quot;`` or</span>
+<span class="sd">            ``&quot;silentfix&quot;`` with ``&quot;+ignore&quot;``, ``+warn``, or ``+exception&quot;</span>
+<span class="sd">            (e.g. ``&quot;fix+warn&quot;``).  See :ref:`astropy:verify` for more info.</span>
+
+<span class="sd">        verbose : bool</span>
+<span class="sd">            When `True`, print out verbose messages.</span>
+
+<span class="sd">        closed : bool</span>
+<span class="sd">            When `True`, close the underlying file object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;append&#39;</span><span class="p">,</span> <span class="s1">&#39;update&#39;</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">closed</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">flush</span><span class="p">(</span><span class="n">output_verify</span><span class="o">=</span><span class="n">output_verify</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="ow">and</span> <span class="n">closed</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">,</span> <span class="s1">&#39;close&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+            <span class="c1"># Give individual HDUs an opportunity to do on-close cleanup</span>
+            <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="n">hdu</span><span class="o">.</span><span class="n">_close</span><span class="p">(</span><span class="n">closed</span><span class="o">=</span><span class="n">closed</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HDUList.info"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.info">[docs]</a>    <span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Summarize the info of the HDUs in this `HDUList`.</span>
+
+<span class="sd">        Note that this function prints its results to the console---it</span>
+<span class="sd">        does not return a value.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output : file-like or bool, optional</span>
+<span class="sd">            A file-like object to write the output to.  If `False`, does not</span>
+<span class="sd">            output to a file and instead returns a list of tuples representing</span>
+<span class="sd">            the HDU info.  Writes to ``sys.stdout`` by default.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">output</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;(No file associated with this HDUList)&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;Filename: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;No.    Name      Ver    Type      Cards   Dimensions   Format&#39;</span><span class="p">]</span>
+
+        <span class="nb">format</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:3d}</span><span class="s1">  </span><span class="si">{:10}</span><span class="s1">  </span><span class="si">{:3}</span><span class="s1"> </span><span class="si">{:11}</span><span class="s1">  </span><span class="si">{:5d}</span><span class="s1">   </span><span class="si">{}</span><span class="s1">   </span><span class="si">{}</span><span class="s1">   </span><span class="si">{}</span><span class="s1">&#39;</span>
+        <span class="n">default</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">summary</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">_summary</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">default</span><span class="p">):</span>
+                <span class="n">summary</span> <span class="o">+=</span> <span class="n">default</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">summary</span><span class="p">):]</span>
+            <span class="n">summary</span> <span class="o">=</span> <span class="p">(</span><span class="n">idx</span><span class="p">,)</span> <span class="o">+</span> <span class="n">summary</span>
+            <span class="k">if</span> <span class="n">output</span><span class="p">:</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">summary</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">output</span><span class="p">:</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">results</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span></div>
+
+<div class="viewcode-block" id="HDUList.filename"><a class="viewcode-back" href="../../../../../io/fits/api/hdulists.html#astropy.io.fits.HDUList.filename">[docs]</a>    <span class="k">def</span> <span class="nf">filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the file name associated with the HDUList object if one exists.</span>
+<span class="sd">        Otherwise returns None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            A string containing the file name associated with the HDUList</span>
+<span class="sd">            object if an association exists.  Otherwise returns None.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_readfrom</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">fileobj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lazy_load_hdus</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ignore_missing_simple</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">use_fsspec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fsspec_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Provides the implementations from HDUList.fromfile and</span>
+<span class="sd">        HDUList.fromstring, both of which wrap this method, as their</span>
+<span class="sd">        implementations are largely the same.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">fileobj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">_File</span><span class="p">):</span>
+                <span class="c1"># instantiate a FITS file object (ffo)</span>
+                <span class="n">fileobj</span> <span class="o">=</span> <span class="n">_File</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="n">memmap</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">cache</span><span class="p">,</span>
+                                <span class="n">use_fsspec</span><span class="o">=</span><span class="n">use_fsspec</span><span class="p">,</span> <span class="n">fsspec_kwargs</span><span class="o">=</span><span class="n">fsspec_kwargs</span><span class="p">)</span>
+            <span class="c1"># The Astropy mode is determined by the _File initializer if the</span>
+            <span class="c1"># supplied mode was None</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="n">fileobj</span><span class="o">.</span><span class="n">mode</span>
+            <span class="n">hdulist</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">fileobj</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># The default mode</span>
+                <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;readonly&#39;</span>
+
+            <span class="n">hdulist</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+            <span class="c1"># This method is currently only called from HDUList.fromstring and</span>
+            <span class="c1"># HDUList.fromfile.  If fileobj is None then this must be the</span>
+            <span class="c1"># fromstring case; the data type of ``data`` will be checked in the</span>
+            <span class="c1"># _BaseHDU.fromstring call.</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">ignore_missing_simple</span> <span class="ow">and</span>
+                <span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span> <span class="ow">and</span>
+                <span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">mode</span> <span class="o">!=</span> <span class="s1">&#39;ostream&#39;</span> <span class="ow">and</span>
+                <span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+            <span class="c1"># FITS signature is supposed to be in the first 30 bytes, but to</span>
+            <span class="c1"># allow reading various invalid files we will check in the first</span>
+            <span class="c1"># card (80 bytes).</span>
+            <span class="n">simple</span> <span class="o">=</span> <span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">80</span><span class="p">)</span>
+            <span class="n">match_sig</span> <span class="o">=</span> <span class="p">(</span><span class="n">simple</span><span class="p">[:</span><span class="mi">29</span><span class="p">]</span> <span class="o">==</span> <span class="n">FITS_SIGNATURE</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span>
+                         <span class="n">simple</span><span class="p">[</span><span class="mi">29</span><span class="p">:</span><span class="mi">30</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;T&#39;</span><span class="p">,</span> <span class="sa">b</span><span class="s1">&#39;F&#39;</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">match_sig</span><span class="p">:</span>
+                <span class="c1"># Check the SIMPLE card is there but not written correctly</span>
+                <span class="n">match_sig_relaxed</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">rb</span><span class="s2">&quot;SIMPLE\s*=\s*[T|F]&quot;</span><span class="p">,</span> <span class="n">simple</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">match_sig_relaxed</span><span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Found a SIMPLE card but its format doesn&#39;t&quot;</span>
+                                  <span class="s2">&quot; respect the FITS Standard&quot;</span><span class="p">,</span> <span class="n">VerifyWarning</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close_on_error</span><span class="p">:</span>
+                        <span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                    <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span>
+                        <span class="s1">&#39;No SIMPLE card found, this file does not appear to &#39;</span>
+                        <span class="s1">&#39;be a valid FITS file. If this is really a FITS file, &#39;</span>
+                        <span class="s1">&#39;try with ignore_missing_simple=True&#39;</span><span class="p">)</span>
+
+            <span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+
+        <span class="c1"># Store additional keyword args that were passed to fits.open</span>
+        <span class="n">hdulist</span><span class="o">.</span><span class="n">_open_kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
+
+        <span class="k">if</span> <span class="n">fileobj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fileobj</span><span class="o">.</span><span class="n">writeonly</span><span class="p">:</span>
+            <span class="c1"># Output stream--not interested in reading/parsing</span>
+            <span class="c1"># the HDUs--just writing to the output file</span>
+            <span class="k">return</span> <span class="n">hdulist</span>
+
+        <span class="c1"># Make sure at least the PRIMARY HDU can be read</span>
+        <span class="n">read_one</span> <span class="o">=</span> <span class="n">hdulist</span><span class="o">.</span><span class="n">_read_next_hdu</span><span class="p">()</span>
+
+        <span class="c1"># If we&#39;re trying to read only and no header units were found,</span>
+        <span class="c1"># raise an exception</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">read_one</span> <span class="ow">and</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;readonly&#39;</span><span class="p">,</span> <span class="s1">&#39;denywrite&#39;</span><span class="p">):</span>
+            <span class="c1"># Close the file if necessary (issue #6168)</span>
+            <span class="k">if</span> <span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close_on_error</span><span class="p">:</span>
+                <span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+            <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span><span class="s1">&#39;Empty or corrupt FITS file&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">lazy_load_hdus</span> <span class="ow">or</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;checksum&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># Go ahead and load all HDUs</span>
+            <span class="k">while</span> <span class="n">hdulist</span><span class="o">.</span><span class="n">_read_next_hdu</span><span class="p">():</span>
+                <span class="k">pass</span>
+
+        <span class="c1"># initialize/reset attributes to be used in &quot;update/append&quot; mode</span>
+        <span class="n">hdulist</span><span class="o">.</span><span class="n">_resize</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">hdulist</span><span class="o">.</span><span class="n">_truncate</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="n">hdulist</span>
+
+    <span class="k">def</span> <span class="nf">_try_while_unread_hdus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Attempt an operation that accesses an HDU by index/name</span>
+<span class="sd">        that can fail if not all HDUs have been read yet.  Keep</span>
+<span class="sd">        reading HDUs until the operation succeeds or there are no</span>
+<span class="sd">        more HDUs to read.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_next_hdu</span><span class="p">():</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+    <span class="k">def</span> <span class="nf">_read_next_hdu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Lazily load a single HDU from the fileobj or data string the `HDUList`</span>
+<span class="sd">        was opened from, unless no further HDUs are found.</span>
+
+<span class="sd">        Returns True if a new HDU was loaded, or False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_all</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">saved_compression_enabled</span> <span class="o">=</span> <span class="n">compressed</span><span class="o">.</span><span class="n">COMPRESSION_ENABLED</span>
+        <span class="n">fileobj</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_open_kwargs</span>
+
+        <span class="k">if</span> <span class="n">fileobj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fileobj</span><span class="o">.</span><span class="n">closed</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_in_read_next_hdu</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;disable_image_compression&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;disable_image_compression&#39;</span><span class="p">]):</span>
+                <span class="n">compressed</span><span class="o">.</span><span class="n">COMPRESSION_ENABLED</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># read all HDUs</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">fileobj</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="c1"># Make sure we&#39;re back to the end of the last read</span>
+                        <span class="c1"># HDU</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">last</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="n">last</span><span class="o">.</span><span class="n">_data_offset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="n">offset</span> <span class="o">=</span> <span class="n">last</span><span class="o">.</span><span class="n">_data_offset</span> <span class="o">+</span> <span class="n">last</span><span class="o">.</span><span class="n">_data_size</span>
+                                <span class="n">fileobj</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_SET</span><span class="p">)</span>
+
+                        <span class="n">hdu</span> <span class="o">=</span> <span class="n">_BaseHDU</span><span class="o">.</span><span class="n">readfrom</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">EOFError</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_read_all</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="k">return</span> <span class="kc">False</span>
+                    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                        <span class="c1"># Close the file: see</span>
+                        <span class="c1"># https://github.com/astropy/astropy/issues/6168</span>
+                        <span class="c1">#</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close_on_error</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+                        <span class="k">if</span> <span class="n">fileobj</span><span class="o">.</span><span class="n">writeonly</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_read_all</span> <span class="o">=</span> <span class="kc">True</span>
+                            <span class="k">return</span> <span class="kc">False</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_read_all</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="k">return</span> <span class="kc">False</span>
+                    <span class="n">hdu</span> <span class="o">=</span> <span class="n">_BaseHDU</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">hdu</span><span class="o">.</span><span class="n">_data_offset</span> <span class="o">+</span> <span class="n">hdu</span><span class="o">.</span><span class="n">_data_size</span><span class="p">:]</span>
+
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hdu</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="c1"># Check for an extension HDU and update the EXTEND</span>
+                    <span class="c1"># keyword of the primary HDU accordingly</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">update_extend</span><span class="p">()</span>
+
+                <span class="n">hdu</span><span class="o">.</span><span class="n">_new</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">if</span> <span class="s1">&#39;checksum&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="n">hdu</span><span class="o">.</span><span class="n">_output_checksum</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;checksum&#39;</span><span class="p">]</span>
+            <span class="c1"># check in the case there is extra space after the last HDU or</span>
+            <span class="c1"># corrupted HDU</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">VerifyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s1">&#39;Error validating header for HDU #</span><span class="si">{}</span><span class="s1"> (note: Astropy &#39;</span>
+                    <span class="s1">&#39;uses zero-based indexing).</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;There may be extra bytes after the last HDU or the &#39;</span>
+                    <span class="s1">&#39;file is corrupted.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">indent</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">))),</span> <span class="n">VerifyWarning</span><span class="p">)</span>
+                <span class="k">del</span> <span class="n">exc</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_read_all</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">compressed</span><span class="o">.</span><span class="n">COMPRESSION_ENABLED</span> <span class="o">=</span> <span class="n">saved_compression_enabled</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_in_read_next_hdu</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_verify</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">option</span><span class="o">=</span><span class="s1">&#39;warn&#39;</span><span class="p">):</span>
+        <span class="n">errs</span> <span class="o">=</span> <span class="n">_ErrList</span><span class="p">([],</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;HDU&#39;</span><span class="p">)</span>
+
+        <span class="c1"># the first (0th) element must be a primary HDU</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">PrimaryHDU</span><span class="p">))</span> <span class="ow">and</span> \
+                             <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">_NonstandardHDU</span><span class="p">)):</span>
+            <span class="n">err_text</span> <span class="o">=</span> <span class="s2">&quot;HDUList&#39;s 0th element is not a primary HDU.&quot;</span>
+            <span class="n">fix_text</span> <span class="o">=</span> <span class="s1">&#39;Fixed by inserting one as 0th HDU.&#39;</span>
+
+            <span class="k">def</span> <span class="nf">fix</span><span class="p">(</span><span class="bp">self</span><span class="o">=</span><span class="bp">self</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">PrimaryHDU</span><span class="p">())</span>
+
+            <span class="n">err</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_option</span><span class="p">(</span><span class="n">option</span><span class="p">,</span> <span class="n">err_text</span><span class="o">=</span><span class="n">err_text</span><span class="p">,</span>
+                                  <span class="n">fix_text</span><span class="o">=</span><span class="n">fix_text</span><span class="p">,</span> <span class="n">fix</span><span class="o">=</span><span class="n">fix</span><span class="p">)</span>
+            <span class="n">errs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="p">(</span><span class="s1">&#39;EXTEND&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span> <span class="ow">or</span>
+                              <span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;EXTEND&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="n">err_text</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Primary HDU does not contain an EXTEND keyword &#39;</span>
+                        <span class="s1">&#39;equal to T even though there are extension HDUs.&#39;</span><span class="p">)</span>
+            <span class="n">fix_text</span> <span class="o">=</span> <span class="s1">&#39;Fixed by inserting or updating the EXTEND keyword.&#39;</span>
+
+            <span class="k">def</span> <span class="nf">fix</span><span class="p">(</span><span class="n">header</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">):</span>
+                <span class="n">naxis</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s1">&#39;NAXIS&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">naxis</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">after</span> <span class="o">=</span> <span class="s1">&#39;NAXIS&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">after</span> <span class="o">=</span> <span class="s1">&#39;NAXIS&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">naxis</span><span class="p">)</span>
+                <span class="n">header</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;EXTEND&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">after</span><span class="o">=</span><span class="n">after</span><span class="p">)</span>
+
+            <span class="n">errs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run_option</span><span class="p">(</span><span class="n">option</span><span class="p">,</span> <span class="n">err_text</span><span class="o">=</span><span class="n">err_text</span><span class="p">,</span>
+                                        <span class="n">fix_text</span><span class="o">=</span><span class="n">fix_text</span><span class="p">,</span> <span class="n">fix</span><span class="o">=</span><span class="n">fix</span><span class="p">))</span>
+
+        <span class="c1"># each element calls their own verify</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">idx</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdu</span><span class="p">,</span> <span class="n">ExtensionHDU</span><span class="p">)):</span>
+                <span class="n">err_text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;HDUList&#39;s element </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span><span class="si">}</span><span class="s2"> is not an extension HDU.&quot;</span>
+
+                <span class="n">err</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_option</span><span class="p">(</span><span class="n">option</span><span class="p">,</span> <span class="n">err_text</span><span class="o">=</span><span class="n">err_text</span><span class="p">,</span> <span class="n">fixable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="n">errs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">_verify</span><span class="p">(</span><span class="n">option</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+                    <span class="n">errs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">errs</span>
+
+    <span class="k">def</span> <span class="nf">_flush_update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Implements flushing changes to a file in update mode.&quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="c1"># Need to all _prewriteto() for each HDU first to determine if</span>
+            <span class="c1"># resizing will be necessary</span>
+            <span class="n">hdu</span><span class="o">.</span><span class="n">_prewriteto</span><span class="p">(</span><span class="n">checksum</span><span class="o">=</span><span class="n">hdu</span><span class="o">.</span><span class="n">_output_checksum</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wasresized</span><span class="p">()</span>
+
+            <span class="c1"># if the HDUList is resized, need to write out the entire contents of</span>
+            <span class="c1"># the hdulist to the file.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resize</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">compression</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_flush_resize</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># if not resized, update in place</span>
+                <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                    <span class="n">hdu</span><span class="o">.</span><span class="n">_writeto</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># reset the modification attributes after updating</span>
+            <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="n">hdu</span><span class="o">.</span><span class="n">_header</span><span class="o">.</span><span class="n">_modified</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="n">hdu</span><span class="o">.</span><span class="n">_postwriteto</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_flush_resize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Implements flushing changes in update mode when parts of one or more HDU</span>
+<span class="sd">        need to be resized.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">old_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">old_memmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">memmap</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">_tmp_name</span><span class="p">(</span><span class="n">old_name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">file_like</span><span class="p">:</span>
+            <span class="n">old_mode</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">old_name</span><span class="p">)</span><span class="o">.</span><span class="n">st_mode</span>
+            <span class="c1"># The underlying file is an actual file object.  The HDUList is</span>
+            <span class="c1"># resized, so we need to write it to a tmp file, delete the</span>
+            <span class="c1"># original file, and rename the tmp file to the original file.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">compression</span> <span class="o">==</span> <span class="s1">&#39;gzip&#39;</span><span class="p">:</span>
+                <span class="n">new_file</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;ab+&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">compression</span> <span class="o">==</span> <span class="s1">&#39;bzip2&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_BZ2</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
+                        <span class="s2">&quot;This Python installation does not provide the bz2 module.&quot;</span><span class="p">)</span>
+                <span class="n">new_file</span> <span class="o">=</span> <span class="n">bz2</span><span class="o">.</span><span class="n">BZ2File</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_file</span> <span class="o">=</span> <span class="n">name</span>
+
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">new_file</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;append&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hdulist</span><span class="p">:</span>
+
+                <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                    <span class="n">hdu</span><span class="o">.</span><span class="n">_writeto</span><span class="p">(</span><span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;win&#39;</span><span class="p">):</span>
+                    <span class="c1"># Collect a list of open mmaps to the data; this well be</span>
+                    <span class="c1"># used later.  See below.</span>
+                    <span class="n">mmaps</span> <span class="o">=</span> <span class="p">[(</span><span class="n">idx</span><span class="p">,</span> <span class="n">_get_array_mmap</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+                             <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">_has_data</span><span class="p">]</span>
+
+                <span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;win&#39;</span><span class="p">):</span>
+                <span class="c1"># Close all open mmaps to the data.  This is only necessary on</span>
+                <span class="c1"># Windows, which will not allow a file to be renamed or deleted</span>
+                <span class="c1"># until all handles to that file have been closed.</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">mmap</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">mmaps</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">mmap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">mmap</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+            <span class="c1"># reopen the renamed new file with &quot;update&quot; mode</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">old_name</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="n">old_name</span><span class="p">,</span> <span class="n">old_mode</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_file</span><span class="p">,</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">):</span>
+                <span class="n">old_file</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">old_name</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;rb+&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">old_file</span> <span class="o">=</span> <span class="n">old_name</span>
+
+            <span class="n">ffo</span> <span class="o">=</span> <span class="n">_File</span><span class="p">(</span><span class="n">old_file</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;update&#39;</span><span class="p">,</span> <span class="n">memmap</span><span class="o">=</span><span class="n">old_memmap</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_file</span> <span class="o">=</span> <span class="n">ffo</span>
+
+            <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="c1"># Need to update the _file attribute and close any open mmaps</span>
+                <span class="c1"># on each HDU</span>
+                <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">_has_data</span> <span class="ow">and</span> <span class="n">_get_array_mmap</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span>
+                <span class="n">hdu</span><span class="o">.</span><span class="n">_file</span> <span class="o">=</span> <span class="n">ffo</span>
+
+            <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;win&#39;</span><span class="p">):</span>
+                <span class="c1"># On Windows, all the original data mmaps were closed above.</span>
+                <span class="c1"># However, it&#39;s possible that the user still has references to</span>
+                <span class="c1"># the old data which would no longer work (possibly even cause</span>
+                <span class="c1"># a segfault if they try to access it).  This replaces the</span>
+                <span class="c1"># buffers used by the original arrays with the buffers of mmap</span>
+                <span class="c1"># arrays created from the new file.  This seems to work, but</span>
+                <span class="c1"># it&#39;s a flaming hack and carries no guarantees that it won&#39;t</span>
+                <span class="c1"># lead to odd behavior in practice.  Better to just not keep</span>
+                <span class="c1"># references to data from files that had to be resized upon</span>
+                <span class="c1"># flushing (on Windows--again, this is no problem on Linux).</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">mmap</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">mmaps</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">mmap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="c1"># https://github.com/numpy/numpy/issues/8628</span>
+                        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+                            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">DeprecationWarning</span><span class="p">)</span>
+                            <span class="n">arr</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">data</span>
+                <span class="k">del</span> <span class="n">mmaps</span>  <span class="c1"># Just to be sure</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># The underlying file is not a file object, it is a file like</span>
+            <span class="c1"># object.  We can&#39;t write out to a file, we must update the file</span>
+            <span class="c1"># like object in place.  To do this, we write out to a temporary</span>
+            <span class="c1"># file, then delete the contents in our file like object, then</span>
+            <span class="c1"># write the contents of the temporary file to the now empty file</span>
+            <span class="c1"># like object.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">hdulist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">ffo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_file</span>
+
+            <span class="n">ffo</span><span class="o">.</span><span class="n">truncate</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">ffo</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="n">hdulist</span><span class="p">:</span>
+                <span class="n">hdu</span><span class="o">.</span><span class="n">_writeto</span><span class="p">(</span><span class="n">ffo</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># Close the temporary file and delete it.</span>
+            <span class="n">hdulist</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">hdulist</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="c1"># reset the resize attributes after updating</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_resize</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_truncate</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">hdu</span><span class="o">.</span><span class="n">_header</span><span class="o">.</span><span class="n">_modified</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">hdu</span><span class="o">.</span><span class="n">_new</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">hdu</span><span class="o">.</span><span class="n">_file</span> <span class="o">=</span> <span class="n">ffo</span>
+
+    <span class="k">def</span> <span class="nf">_wasresized</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine if any changes to the HDUList will require a file resize</span>
+<span class="sd">        when flushing the file.</span>
+
+<span class="sd">        Side effect of setting the objects _resize attribute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resize</span><span class="p">:</span>
+
+            <span class="c1"># determine if any of the HDU is resized</span>
+            <span class="k">for</span> <span class="n">hdu</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="c1"># Header:</span>
+                <span class="n">nbytes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">_header</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">nbytes</span> <span class="o">!=</span> <span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">_data_offset</span> <span class="o">-</span> <span class="n">hdu</span><span class="o">.</span><span class="n">_header_offset</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_resize</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_truncate</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;One or more header is resized.&#39;</span><span class="p">)</span>
+                    <span class="k">break</span>
+
+                <span class="c1"># Data:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">hdu</span><span class="o">.</span><span class="n">_has_data</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="n">nbytes</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">size</span>
+                <span class="n">nbytes</span> <span class="o">=</span> <span class="n">nbytes</span> <span class="o">+</span> <span class="n">_pad_length</span><span class="p">(</span><span class="n">nbytes</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">nbytes</span> <span class="o">!=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">_data_size</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_resize</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_truncate</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;One or more data area is resized.&#39;</span><span class="p">)</span>
+                    <span class="k">break</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_truncate</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_file</span><span class="o">.</span><span class="n">truncate</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">_data_offset</span> <span class="o">+</span> <span class="n">hdu</span><span class="o">.</span><span class="n">_data_size</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_resize</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_truncate</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resize</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

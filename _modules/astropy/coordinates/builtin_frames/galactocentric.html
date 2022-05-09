@@ -1,0 +1,693 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.coordinates.builtin_frames.galactocentric &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" >Module code</a> &#187;</li>
+      <li><a href="../builtin_frames.html" accesskey="U">astropy.coordinates.builtin_frames</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.coordinates.builtin_frames.galactocentric</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">MappingView</span>
+<span class="kn">from</span> <span class="nn">types</span> <span class="kn">import</span> <span class="n">MappingProxyType</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.state</span> <span class="kn">import</span> <span class="n">ScienceState</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.decorators</span> <span class="kn">import</span> <span class="n">format_doc</span><span class="p">,</span> <span class="n">classproperty</span><span class="p">,</span> <span class="n">deprecated</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.angles</span> <span class="kn">import</span> <span class="n">Angle</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.matrix_utilities</span> <span class="kn">import</span> <span class="n">rotation_matrix</span><span class="p">,</span> <span class="n">matrix_product</span><span class="p">,</span> <span class="n">matrix_transpose</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">representation</span> <span class="k">as</span> <span class="n">r</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.baseframe</span> <span class="kn">import</span> <span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">,</span>
+                                           <span class="n">frame_transform_graph</span><span class="p">,</span>
+                                           <span class="n">base_doc</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.attributes</span> <span class="kn">import</span> <span class="p">(</span><span class="n">CoordinateAttribute</span><span class="p">,</span>
+                                            <span class="n">QuantityAttribute</span><span class="p">,</span>
+                                            <span class="n">DifferentialAttribute</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.transformations</span> <span class="kn">import</span> <span class="n">AffineTransform</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.errors</span> <span class="kn">import</span> <span class="n">ConvertError</span>
+
+<span class="kn">from</span> <span class="nn">.icrs</span> <span class="kn">import</span> <span class="n">ICRS</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Galactocentric&#39;</span><span class="p">]</span>
+
+
+<span class="c1"># Measured by minimizing the difference between a plane of coordinates along</span>
+<span class="c1">#   l=0, b=[-90,90] and the Galactocentric x-z plane</span>
+<span class="c1"># This is not used directly, but accessed via `get_roll0`.  We define it here to</span>
+<span class="c1"># prevent having to create new Angle objects every time `get_roll0` is called.</span>
+<span class="n">_ROLL0</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="mf">58.5986320306</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_StateProxy</span><span class="p">(</span><span class="n">MappingView</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    `~collections.abc.MappingView` with a read-only ``getitem`` through</span>
+<span class="sd">    `~types.MappingProxyType`.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapping</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mappingproxy</span> <span class="o">=</span> <span class="n">MappingProxyType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="p">)</span>  <span class="c1"># read-only</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read-only ``getitem``.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mappingproxy</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="p">,</span> <span class="n">memo</span><span class="o">=</span><span class="n">memo</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="galactocentric_frame_defaults"><a class="viewcode-back" href="../../../../api/astropy.coordinates.galactocentric_frame_defaults.html#astropy.coordinates.galactocentric_frame_defaults">[docs]</a><span class="k">class</span> <span class="nc">galactocentric_frame_defaults</span><span class="p">(</span><span class="n">ScienceState</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This class controls the global setting of default values for the frame</span>
+<span class="sd">    attributes in the `~astropy.coordinates.Galactocentric` frame, which may be</span>
+<span class="sd">    updated in future versions of ``astropy``. Note that when using</span>
+<span class="sd">    `~astropy.coordinates.Galactocentric`, changing values here will not affect</span>
+<span class="sd">    any attributes that are set explicitly by passing values in to the</span>
+<span class="sd">    `~astropy.coordinates.Galactocentric` initializer. Modifying these defaults</span>
+<span class="sd">    will only affect the frame attribute values when using the frame as, e.g.,</span>
+<span class="sd">    ``Galactocentric`` or ``Galactocentric()`` with no explicit arguments.</span>
+
+<span class="sd">    This class controls the parameter settings by specifying a string name,</span>
+<span class="sd">    with the following pre-specified options:</span>
+
+<span class="sd">    - &#39;pre-v4.0&#39;: The current default value, which sets the default frame</span>
+<span class="sd">      attribute values to their original (pre-astropy-v4.0) values.</span>
+<span class="sd">    - &#39;v4.0&#39;: The attribute values as updated in Astropy version 4.0.</span>
+<span class="sd">    - &#39;latest&#39;: An alias of the most recent parameter set (currently: &#39;v4.0&#39;)</span>
+
+<span class="sd">    Alternatively, user-defined parameter settings may be registered, with</span>
+<span class="sd">    :meth:`~astropy.coordinates.galactocentric_frame_defaults.register`,</span>
+<span class="sd">    and used identically as pre-specified parameter sets. At minimum,</span>
+<span class="sd">    registrations must have unique names and a dictionary of parameters</span>
+<span class="sd">    with keys &quot;galcen_coord&quot;, &quot;galcen_distance&quot;, &quot;galcen_v_sun&quot;, &quot;z_sun&quot;,</span>
+<span class="sd">    &quot;roll&quot;. See examples below.</span>
+
+<span class="sd">    This class also tracks the references for all parameter values in the</span>
+<span class="sd">    attribute ``references``, as well as any further information the registry.</span>
+<span class="sd">    The pre-specified options can be extended to include similar</span>
+<span class="sd">    state information as user-defined parameter settings -- for example, to add</span>
+<span class="sd">    parameter uncertainties.</span>
+
+<span class="sd">    The preferred method for getting a parameter set and metadata, by name, is</span>
+<span class="sd">    :meth:`~galactocentric_frame_defaults.get_from_registry` since</span>
+<span class="sd">    it ensures the immutability of the registry.</span>
+
+<span class="sd">    See :ref:`astropy:astropy-coordinates-galactocentric-defaults` for more</span>
+<span class="sd">    information.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    The default `~astropy.coordinates.Galactocentric` frame parameters can be</span>
+<span class="sd">    modified globally::</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.coordinates import galactocentric_frame_defaults</span>
+<span class="sd">        &gt;&gt;&gt; _ = galactocentric_frame_defaults.set(&#39;v4.0&#39;) # doctest: +SKIP</span>
+<span class="sd">        &gt;&gt;&gt; Galactocentric() # doctest: +SKIP</span>
+<span class="sd">        &lt;Galactocentric Frame (galcen_coord=&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="sd">            (266.4051, -28.936175)&gt;, galcen_distance=8.122 kpc, galcen_v_sun=(12.9, 245.6, 7.78) km / s, z_sun=20.8 pc, roll=0.0 deg)&gt;</span>
+<span class="sd">        &gt;&gt;&gt; _ = galactocentric_frame_defaults.set(&#39;pre-v4.0&#39;) # doctest: +SKIP</span>
+<span class="sd">        &gt;&gt;&gt; Galactocentric() # doctest: +SKIP</span>
+<span class="sd">        &lt;Galactocentric Frame (galcen_coord=&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="sd">            (266.4051, -28.936175)&gt;, galcen_distance=8.3 kpc, galcen_v_sun=(11.1, 232.24, 7.25) km / s, z_sun=27.0 pc, roll=0.0 deg)&gt;</span>
+
+<span class="sd">    The default parameters can also be updated by using this class as a context</span>
+<span class="sd">    manager::</span>
+
+<span class="sd">        &gt;&gt;&gt; with galactocentric_frame_defaults.set(&#39;pre-v4.0&#39;):</span>
+<span class="sd">        ...     print(Galactocentric()) # doctest: +FLOAT_CMP</span>
+<span class="sd">        &lt;Galactocentric Frame (galcen_coord=&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="sd">            (266.4051, -28.936175)&gt;, galcen_distance=8.3 kpc, galcen_v_sun=(11.1, 232.24, 7.25) km / s, z_sun=27.0 pc, roll=0.0 deg)&gt;</span>
+
+<span class="sd">    Again, changing the default parameter values will not affect frame</span>
+<span class="sd">    attributes that are explicitly specified::</span>
+
+<span class="sd">        &gt;&gt;&gt; import astropy.units as u</span>
+<span class="sd">        &gt;&gt;&gt; with galactocentric_frame_defaults.set(&#39;pre-v4.0&#39;):</span>
+<span class="sd">        ...     print(Galactocentric(galcen_distance=8.0*u.kpc)) # doctest: +FLOAT_CMP</span>
+<span class="sd">        &lt;Galactocentric Frame (galcen_coord=&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="sd">            (266.4051, -28.936175)&gt;, galcen_distance=8.0 kpc, galcen_v_sun=(11.1, 232.24, 7.25) km / s, z_sun=27.0 pc, roll=0.0 deg)&gt;</span>
+
+<span class="sd">    Additional parameter sets may be registered, for instance to use the</span>
+<span class="sd">    Dehnen &amp; Binney (1998) measurements of the solar motion. We can also</span>
+<span class="sd">    add metadata, such as the 1-sigma errors. In this example we will modify</span>
+<span class="sd">    the required key &quot;parameters&quot;, change the recommended key &quot;references&quot; to</span>
+<span class="sd">    match &quot;parameters&quot;, and add the extra key &quot;error&quot; (any key can be added)::</span>
+
+<span class="sd">        &gt;&gt;&gt; state = galactocentric_frame_defaults.get_from_registry(&quot;v4.0&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; state[&quot;parameters&quot;][&quot;galcen_v_sun&quot;] = (10.00, 225.25, 7.17) * (u.km / u.s)</span>
+<span class="sd">        &gt;&gt;&gt; state[&quot;references&quot;][&quot;galcen_v_sun&quot;] = &quot;https://ui.adsabs.harvard.edu/full/1998MNRAS.298..387D&quot;</span>
+<span class="sd">        &gt;&gt;&gt; state[&quot;error&quot;] = {&quot;galcen_v_sun&quot;: (0.36, 0.62, 0.38) * (u.km / u.s)}</span>
+<span class="sd">        &gt;&gt;&gt; galactocentric_frame_defaults.register(name=&quot;DB1998&quot;, **state)</span>
+
+<span class="sd">    Just as in the previous examples, the new parameter set can be retrieved with::</span>
+
+<span class="sd">        &gt;&gt;&gt; state = galactocentric_frame_defaults.get_from_registry(&quot;DB1998&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; print(state[&quot;error&quot;][&quot;galcen_v_sun&quot;])  # doctest: +FLOAT_CMP</span>
+<span class="sd">        [0.36 0.62 0.38] km / s</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_latest_value</span> <span class="o">=</span> <span class="s1">&#39;v4.0&#39;</span>
+    <span class="n">_value</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_references</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_state</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>  <span class="c1"># all other data</span>
+
+    <span class="c1"># Note: _StateProxy() produces read-only view of enclosed mapping.</span>
+    <span class="n">_registry</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;v4.0&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="n">_StateProxy</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;galcen_coord&quot;</span><span class="p">:</span> <span class="n">ICRS</span><span class="p">(</span>
+                        <span class="n">ra</span><span class="o">=</span><span class="mf">266.4051</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">dec</span><span class="o">=-</span><span class="mf">28.936175</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span>
+                    <span class="p">),</span>
+                    <span class="s2">&quot;galcen_distance&quot;</span><span class="p">:</span> <span class="mf">8.122</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span>
+                    <span class="s2">&quot;galcen_v_sun&quot;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span><span class="p">(</span>
+                        <span class="p">[</span><span class="mf">12.9</span><span class="p">,</span> <span class="mf">245.6</span><span class="p">,</span> <span class="mf">7.78</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+                    <span class="p">),</span>
+                    <span class="s2">&quot;z_sun&quot;</span><span class="p">:</span> <span class="mf">20.8</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span>
+                    <span class="s2">&quot;roll&quot;</span><span class="p">:</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;references&quot;</span><span class="p">:</span> <span class="n">_StateProxy</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;galcen_coord&quot;</span><span class="p">:</span> <span class="s2">&quot;https://ui.adsabs.harvard.edu/abs/2004ApJ...616..872R&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;galcen_distance&quot;</span><span class="p">:</span> <span class="s2">&quot;https://ui.adsabs.harvard.edu/abs/2018A%26A...615L..15G&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;galcen_v_sun&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">&quot;https://ui.adsabs.harvard.edu/abs/2018RNAAS...2..210D&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;https://ui.adsabs.harvard.edu/abs/2018A%26A...615L..15G&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;https://ui.adsabs.harvard.edu/abs/2004ApJ...616..872R&quot;</span><span class="p">,</span>
+                    <span class="p">],</span>
+                    <span class="s2">&quot;z_sun&quot;</span><span class="p">:</span> <span class="s2">&quot;https://ui.adsabs.harvard.edu/abs/2019MNRAS.482.1417B&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;roll&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;pre-v4.0&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="n">_StateProxy</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;galcen_coord&quot;</span><span class="p">:</span> <span class="n">ICRS</span><span class="p">(</span>
+                        <span class="n">ra</span><span class="o">=</span><span class="mf">266.4051</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">dec</span><span class="o">=-</span><span class="mf">28.936175</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span>
+                    <span class="p">),</span>
+                    <span class="s2">&quot;galcen_distance&quot;</span><span class="p">:</span> <span class="mf">8.3</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span>
+                    <span class="s2">&quot;galcen_v_sun&quot;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span><span class="p">(</span>
+                        <span class="p">[</span><span class="mf">11.1</span><span class="p">,</span> <span class="mi">220</span> <span class="o">+</span> <span class="mf">12.24</span><span class="p">,</span> <span class="mf">7.25</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+                    <span class="p">),</span>
+                    <span class="s2">&quot;z_sun&quot;</span><span class="p">:</span> <span class="mf">27.0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span>
+                    <span class="s2">&quot;roll&quot;</span><span class="p">:</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;references&quot;</span><span class="p">:</span> <span class="n">_StateProxy</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;galcen_coord&quot;</span><span class="p">:</span> <span class="s2">&quot;https://ui.adsabs.harvard.edu/abs/2004ApJ...616..872R&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;galcen_distance&quot;</span><span class="p">:</span> <span class="s2">&quot;https://ui.adsabs.harvard.edu/#abs/2009ApJ...692.1075G&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;galcen_v_sun&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">&quot;https://ui.adsabs.harvard.edu/#abs/2010MNRAS.403.1829S&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;https://ui.adsabs.harvard.edu/#abs/2015ApJS..216...29B&quot;</span><span class="p">,</span>
+                    <span class="p">],</span>
+                    <span class="s2">&quot;z_sun&quot;</span><span class="p">:</span> <span class="s2">&quot;https://ui.adsabs.harvard.edu/#abs/2001ApJ...553..184C&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;roll&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+
+    <span class="nd">@classproperty</span>  <span class="c1"># read-only</span>
+    <span class="k">def</span> <span class="nf">parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_value</span>
+
+    <span class="nd">@classproperty</span>  <span class="c1"># read-only</span>
+    <span class="k">def</span> <span class="nf">references</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_references</span>
+
+<div class="viewcode-block" id="galactocentric_frame_defaults.get_from_registry"><a class="viewcode-back" href="../../../../api/astropy.coordinates.galactocentric_frame_defaults.html#astropy.coordinates.galactocentric_frame_defaults.get_from_registry">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_from_registry</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return Galactocentric solar parameters and metadata given string names</span>
+<span class="sd">        for the parameter sets. This method ensures the returned state is a</span>
+<span class="sd">        mutable copy, so any changes made do not affect the registry state.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        state : dict</span>
+<span class="sd">            Copy of the registry for the string name.</span>
+<span class="sd">            Should contain, at minimum:</span>
+
+<span class="sd">            - &quot;parameters&quot;: dict</span>
+<span class="sd">                Galactocentric solar parameters</span>
+<span class="sd">            - &quot;references&quot; : Dict[str, Union[str, Sequence[str]]]</span>
+<span class="sd">                References for &quot;parameters&quot;.</span>
+<span class="sd">                Fields are str or sequence of str.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        KeyError</span>
+<span class="sd">            If invalid string input to registry</span>
+<span class="sd">            to retrieve solar parameters for Galactocentric frame.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Resolve the meaning of &#39;latest&#39;: latest parameter set is from v4.0</span>
+        <span class="c1"># - update this as newer parameter choices are added</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;latest&#39;</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_latest_value</span>
+
+        <span class="c1"># Get the state from the registry.</span>
+        <span class="c1"># Copy to ensure registry is immutable to modifications of &quot;_value&quot;.</span>
+        <span class="c1"># Raises KeyError if `name` is invalid string input to registry</span>
+        <span class="c1"># to retrieve solar parameters for Galactocentric frame.</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_registry</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>  <span class="c1"># ensure mutable</span>
+
+        <span class="k">return</span> <span class="n">state</span></div>
+
+<div class="viewcode-block" id="galactocentric_frame_defaults.get_solar_params_from_string"><a class="viewcode-back" href="../../../../api/astropy.coordinates.galactocentric_frame_defaults.html#astropy.coordinates.galactocentric_frame_defaults.get_solar_params_from_string">[docs]</a>    <span class="nd">@deprecated</span><span class="p">(</span><span class="s2">&quot;v4.2&quot;</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="s2">&quot;`get_from_registry`&quot;</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_solar_params_from_string</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return Galactocentric solar parameters given string names</span>
+<span class="sd">        for the parameter sets.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        parameters : dict</span>
+<span class="sd">            Copy of Galactocentric solar parameters from registry</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        KeyError</span>
+<span class="sd">            If invalid string input to registry</span>
+<span class="sd">            to retrieve solar parameters for Galactocentric frame.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_from_registry</span><span class="p">(</span><span class="n">arg</span><span class="p">)[</span><span class="s2">&quot;parameters&quot;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="galactocentric_frame_defaults.validate"><a class="viewcode-back" href="../../../../api/astropy.coordinates.galactocentric_frame_defaults.html#astropy.coordinates.galactocentric_frame_defaults.validate">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_latest_value</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_from_registry</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_references</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;references&quot;</span><span class="p">]</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">state</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Galactocentric</span><span class="p">):</span>
+            <span class="c1"># turn the frame instance into a dict of frame attributes</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">frame_attributes</span><span class="p">:</span>
+                <span class="n">parameters</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_references</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">frame_attribute_references</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+                              <span class="n">references</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_references</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid input to retrieve solar parameters for &quot;</span>
+                             <span class="s2">&quot;Galactocentric frame: input must be a string, &quot;</span>
+                             <span class="s2">&quot;dict, or Galactocentric instance&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">parameters</span></div>
+
+<div class="viewcode-block" id="galactocentric_frame_defaults.register"><a class="viewcode-back" href="../../../../api/astropy.coordinates.galactocentric_frame_defaults.html#astropy.coordinates.galactocentric_frame_defaults.register">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">register</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">meta</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Register a set of parameters.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The registration name for the parameter and metadata set.</span>
+<span class="sd">        parameters : dict</span>
+<span class="sd">            The solar parameters for Galactocentric frame.</span>
+<span class="sd">        references : dict or None, optional</span>
+<span class="sd">            References for contents of `parameters`.</span>
+<span class="sd">            None becomes empty dict.</span>
+<span class="sd">        **meta : dict, optional</span>
+<span class="sd">            Any other properties to register.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># check on contents of `parameters`</span>
+        <span class="n">must_have</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;galcen_coord&quot;</span><span class="p">,</span> <span class="s2">&quot;galcen_distance&quot;</span><span class="p">,</span> <span class="s2">&quot;galcen_v_sun&quot;</span><span class="p">,</span>
+                     <span class="s2">&quot;z_sun&quot;</span><span class="p">,</span> <span class="s2">&quot;roll&quot;</span><span class="p">}</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="n">must_have</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing parameters: </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">references</span> <span class="o">=</span> <span class="n">references</span> <span class="ow">or</span> <span class="p">{}</span>  <span class="c1"># None -&gt; {}</span>
+
+        <span class="n">state</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="n">references</span><span class="p">)</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">meta</span><span class="p">)</span>  <span class="c1"># meta never has keys &quot;parameters&quot; or &quot;references&quot;</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_registry</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span></div></div>
+
+
+<span class="n">doc_components</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    x : `~astropy.units.Quantity`, optional</span>
+<span class="s2">        Cartesian, Galactocentric :math:`x` position component.</span>
+<span class="s2">    y : `~astropy.units.Quantity`, optional</span>
+<span class="s2">        Cartesian, Galactocentric :math:`y` position component.</span>
+<span class="s2">    z : `~astropy.units.Quantity`, optional</span>
+<span class="s2">        Cartesian, Galactocentric :math:`z` position component.</span>
+
+<span class="s2">    v_x : `~astropy.units.Quantity`, optional</span>
+<span class="s2">        Cartesian, Galactocentric :math:`v_x` velocity component.</span>
+<span class="s2">    v_y : `~astropy.units.Quantity`, optional</span>
+<span class="s2">        Cartesian, Galactocentric :math:`v_y` velocity component.</span>
+<span class="s2">    v_z : `~astropy.units.Quantity`, optional</span>
+<span class="s2">        Cartesian, Galactocentric :math:`v_z` velocity component.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="n">doc_footer</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Other parameters</span>
+<span class="s2">    ----------------</span>
+<span class="s2">    galcen_coord : `ICRS`, optional, keyword-only</span>
+<span class="s2">        The ICRS coordinates of the Galactic center.</span>
+<span class="s2">    galcen_distance : `~astropy.units.Quantity`, optional, keyword-only</span>
+<span class="s2">        The distance from the sun to the Galactic center.</span>
+<span class="s2">    galcen_v_sun : `~astropy.coordinates.representation.CartesianDifferential`, `~astropy.units.Quantity` [&#39;speed&#39;], optional, keyword-only</span>
+<span class="s2">        The velocity of the sun *in the Galactocentric frame* as Cartesian</span>
+<span class="s2">        velocity components.</span>
+<span class="s2">    z_sun : `~astropy.units.Quantity` [&#39;length&#39;], optional, keyword-only</span>
+<span class="s2">        The distance from the sun to the Galactic midplane.</span>
+<span class="s2">    roll : `~astropy.coordinates.Angle`, optional, keyword-only</span>
+<span class="s2">        The angle to rotate about the final x-axis, relative to the</span>
+<span class="s2">        orientation for Galactic. For example, if this roll angle is 0,</span>
+<span class="s2">        the final x-z plane will align with the Galactic coordinates x-z</span>
+<span class="s2">        plane. Unless you really know what this means, you probably should</span>
+<span class="s2">        not change this!</span>
+
+<span class="s2">    Examples</span>
+<span class="s2">    --------</span>
+
+<span class="s2">    To transform to the Galactocentric frame with the default</span>
+<span class="s2">    frame attributes, pass the uninstantiated class name to the</span>
+<span class="s2">    ``transform_to()`` method of a `~astropy.coordinates.SkyCoord` object::</span>
+
+<span class="s2">        &gt;&gt;&gt; import astropy.units as u</span>
+<span class="s2">        &gt;&gt;&gt; import astropy.coordinates as coord</span>
+<span class="s2">        &gt;&gt;&gt; c = coord.SkyCoord(ra=[158.3122, 24.5] * u.degree,</span>
+<span class="s2">        ...                    dec=[-17.3, 81.52] * u.degree,</span>
+<span class="s2">        ...                    distance=[11.5, 24.12] * u.kpc,</span>
+<span class="s2">        ...                    frame=&#39;icrs&#39;)</span>
+<span class="s2">        &gt;&gt;&gt; c.transform_to(coord.Galactocentric) # doctest: +FLOAT_CMP</span>
+<span class="s2">        &lt;SkyCoord (Galactocentric: galcen_coord=&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="s2">            (266.4051, -28.936175)&gt;, galcen_distance=8.122 kpc, galcen_v_sun=(12.9, 245.6, 7.78) km / s, z_sun=20.8 pc, roll=0.0 deg): (x, y, z) in kpc</span>
+<span class="s2">            [( -9.43489286, -9.40062188, 6.51345359),</span>
+<span class="s2">             (-21.11044918, 18.76334013, 7.83175149)]&gt;</span>
+
+
+<span class="s2">    To specify a custom set of parameters, you have to include extra keyword</span>
+<span class="s2">    arguments when initializing the Galactocentric frame object::</span>
+
+<span class="s2">        &gt;&gt;&gt; c.transform_to(coord.Galactocentric(galcen_distance=8.1*u.kpc)) # doctest: +FLOAT_CMP</span>
+<span class="s2">        &lt;SkyCoord (Galactocentric: galcen_coord=&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="s2">            (266.4051, -28.936175)&gt;, galcen_distance=8.1 kpc, galcen_v_sun=(12.9, 245.6, 7.78) km / s, z_sun=20.8 pc, roll=0.0 deg): (x, y, z) in kpc</span>
+<span class="s2">            [( -9.41284763, -9.40062188, 6.51346272),</span>
+<span class="s2">             (-21.08839478, 18.76334013, 7.83184184)]&gt;</span>
+
+<span class="s2">    Similarly, transforming from the Galactocentric frame to another coordinate frame::</span>
+
+<span class="s2">        &gt;&gt;&gt; c = coord.SkyCoord(x=[-8.3, 4.5] * u.kpc,</span>
+<span class="s2">        ...                    y=[0., 81.52] * u.kpc,</span>
+<span class="s2">        ...                    z=[0.027, 24.12] * u.kpc,</span>
+<span class="s2">        ...                    frame=coord.Galactocentric)</span>
+<span class="s2">        &gt;&gt;&gt; c.transform_to(coord.ICRS) # doctest: +FLOAT_CMP</span>
+<span class="s2">        &lt;SkyCoord (ICRS): (ra, dec, distance) in (deg, deg, kpc)</span>
+<span class="s2">            [( 88.22423301, 29.88672864,  0.17813456),</span>
+<span class="s2">             (289.72864549, 49.9865043 , 85.93949064)]&gt;</span>
+
+<span class="s2">    Or, with custom specification of the Galactic center::</span>
+
+<span class="s2">        &gt;&gt;&gt; c = coord.SkyCoord(x=[-8.0, 4.5] * u.kpc,</span>
+<span class="s2">        ...                    y=[0., 81.52] * u.kpc,</span>
+<span class="s2">        ...                    z=[21.0, 24120.0] * u.pc,</span>
+<span class="s2">        ...                    frame=coord.Galactocentric,</span>
+<span class="s2">        ...                    z_sun=21 * u.pc, galcen_distance=8. * u.kpc)</span>
+<span class="s2">        &gt;&gt;&gt; c.transform_to(coord.ICRS) # doctest: +FLOAT_CMP</span>
+<span class="s2">        &lt;SkyCoord (ICRS): (ra, dec, distance) in (deg, deg, kpc)</span>
+<span class="s2">            [( 86.2585249 , 28.85773187, 2.75625475e-05),</span>
+<span class="s2">             (289.77285255, 50.06290457, 8.59216010e+01)]&gt;</span>
+
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="Galactocentric"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.Galactocentric.html#astropy.coordinates.Galactocentric">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components</span><span class="p">,</span> <span class="n">footer</span><span class="o">=</span><span class="n">doc_footer</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">Galactocentric</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A coordinate or frame in the Galactocentric system.</span>
+
+<span class="sd">    This frame allows specifying the Sun-Galactic center distance, the height of</span>
+<span class="sd">    the Sun above the Galactic midplane, and the solar motion relative to the</span>
+<span class="sd">    Galactic center. However, as there is no modern standard definition of a</span>
+<span class="sd">    Galactocentric reference frame, it is important to pay attention to the</span>
+<span class="sd">    default values used in this class if precision is important in your code.</span>
+<span class="sd">    The default values of the parameters of this frame are taken from the</span>
+<span class="sd">    original definition of the frame in 2014. As such, the defaults are somewhat</span>
+<span class="sd">    out of date relative to recent measurements made possible by, e.g., Gaia.</span>
+<span class="sd">    The defaults can, however, be changed at runtime by setting the parameter</span>
+<span class="sd">    set name in `~astropy.coordinates.galactocentric_frame_defaults`.</span>
+
+<span class="sd">    The current default parameter set is ``&quot;pre-v4.0&quot;``, indicating that the</span>
+<span class="sd">    parameters were adopted before ``astropy`` version 4.0. A regularly-updated</span>
+<span class="sd">    parameter set can instead be used by setting</span>
+<span class="sd">    ``galactocentric_frame_defaults.set (&#39;latest&#39;)``, and other parameter set</span>
+<span class="sd">    names may be added in future versions. To find out the scientific papers</span>
+<span class="sd">    that the current default parameters are derived from, use</span>
+<span class="sd">    ``galcen.frame_attribute_references`` (where ``galcen`` is an instance of</span>
+<span class="sd">    this frame), which will update even if the default parameter set is changed.</span>
+
+<span class="sd">    The position of the Sun is assumed to be on the x axis of the final,</span>
+<span class="sd">    right-handed system. That is, the x axis points from the position of</span>
+<span class="sd">    the Sun projected to the Galactic midplane to the Galactic center --</span>
+<span class="sd">    roughly towards :math:`(l,b) = (0^\circ,0^\circ)`. For the default</span>
+<span class="sd">    transformation (:math:`{\rm roll}=0^\circ`), the y axis points roughly</span>
+<span class="sd">    towards Galactic longitude :math:`l=90^\circ`, and the z axis points</span>
+<span class="sd">    roughly towards the North Galactic Pole (:math:`b=90^\circ`).</span>
+
+<span class="sd">    For a more detailed look at the math behind this transformation, see</span>
+<span class="sd">    the document :ref:`astropy:coordinates-galactocentric`.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span>
+    <span class="n">default_differential</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span>
+
+    <span class="c1"># frame attributes</span>
+    <span class="n">galcen_coord</span> <span class="o">=</span> <span class="n">CoordinateAttribute</span><span class="p">(</span><span class="n">frame</span><span class="o">=</span><span class="n">ICRS</span><span class="p">)</span>
+    <span class="n">galcen_distance</span> <span class="o">=</span> <span class="n">QuantityAttribute</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">)</span>
+
+    <span class="n">galcen_v_sun</span> <span class="o">=</span> <span class="n">DifferentialAttribute</span><span class="p">(</span>
+        <span class="n">allowed_classes</span><span class="o">=</span><span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span><span class="p">])</span>
+
+    <span class="n">z_sun</span> <span class="o">=</span> <span class="n">QuantityAttribute</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">)</span>
+    <span class="n">roll</span> <span class="o">=</span> <span class="n">QuantityAttribute</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># Set default frame attribute values based on the ScienceState instance</span>
+        <span class="c1"># for the solar parameters defined above</span>
+        <span class="n">default_params</span> <span class="o">=</span> <span class="n">galactocentric_frame_defaults</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame_attribute_references</span> <span class="o">=</span> \
+            <span class="n">galactocentric_frame_defaults</span><span class="o">.</span><span class="n">references</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">default_params</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="c1"># If a frame attribute is set by the user, remove its reference</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">frame_attribute_references</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="c1"># Keep the frame attribute if it is set by the user, otherwise use</span>
+            <span class="c1"># the default value</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">default_params</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Galactocentric.get_roll0"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.Galactocentric.html#astropy.coordinates.Galactocentric.get_roll0">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_roll0</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The additional roll angle (about the final x axis) necessary to align</span>
+<span class="sd">        the final z axis to match the Galactic yz-plane.  Setting the ``roll``</span>
+<span class="sd">        frame attribute to  -this method&#39;s return value removes this rotation,</span>
+<span class="sd">        allowing the use of the `Galactocentric` frame in more general contexts.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># note that the actual value is defined at the module level.  We make at</span>
+        <span class="c1"># a property here because this module isn&#39;t actually part of the public</span>
+        <span class="c1"># API, so it&#39;s better for it to be accessible from Galactocentric</span>
+        <span class="k">return</span> <span class="n">_ROLL0</span></div></div>
+
+<span class="c1"># ICRS to/from Galactocentric -----------------------&gt;</span>
+
+
+<span class="k">def</span> <span class="nf">get_matrix_vectors</span><span class="p">(</span><span class="n">galactocentric_frame</span><span class="p">,</span> <span class="n">inverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Use the ``inverse`` argument to get the inverse transformation, matrix and</span>
+<span class="sd">    offsets to go from Galactocentric to ICRS.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># shorthand</span>
+    <span class="n">gcf</span> <span class="o">=</span> <span class="n">galactocentric_frame</span>
+
+    <span class="c1"># rotation matrix to align x(ICRS) with the vector to the Galactic center</span>
+    <span class="n">mat1</span> <span class="o">=</span> <span class="n">rotation_matrix</span><span class="p">(</span><span class="o">-</span><span class="n">gcf</span><span class="o">.</span><span class="n">galcen_coord</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span>
+    <span class="n">mat2</span> <span class="o">=</span> <span class="n">rotation_matrix</span><span class="p">(</span><span class="n">gcf</span><span class="o">.</span><span class="n">galcen_coord</span><span class="o">.</span><span class="n">ra</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">)</span>
+    <span class="c1"># extra roll away from the Galactic x-z plane</span>
+    <span class="n">mat0</span> <span class="o">=</span> <span class="n">rotation_matrix</span><span class="p">(</span><span class="n">gcf</span><span class="o">.</span><span class="n">get_roll0</span><span class="p">()</span> <span class="o">-</span> <span class="n">gcf</span><span class="o">.</span><span class="n">roll</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">)</span>
+
+    <span class="c1"># construct transformation matrix and use it</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">matrix_product</span><span class="p">(</span><span class="n">mat0</span><span class="p">,</span> <span class="n">mat1</span><span class="p">,</span> <span class="n">mat2</span><span class="p">)</span>
+
+    <span class="c1"># Now need to translate by Sun-Galactic center distance around x&#39; and</span>
+    <span class="c1"># rotate about y&#39; to account for tilt due to Sun&#39;s height above the plane</span>
+    <span class="n">translation</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">(</span><span class="n">gcf</span><span class="o">.</span><span class="n">galcen_distance</span> <span class="o">*</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">])</span>
+    <span class="n">z_d</span> <span class="o">=</span> <span class="n">gcf</span><span class="o">.</span><span class="n">z_sun</span> <span class="o">/</span> <span class="n">gcf</span><span class="o">.</span><span class="n">galcen_distance</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">rotation_matrix</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span><span class="n">z_d</span><span class="p">),</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span>
+
+    <span class="c1"># compute total matrices</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">matrix_product</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span>
+
+    <span class="c1"># Now we re-align the translation vector to account for the Sun&#39;s height</span>
+    <span class="c1"># above the midplane</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="o">-</span><span class="n">translation</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">H</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">inverse</span><span class="p">:</span>
+        <span class="c1"># the inverse of a rotation matrix is a transpose, which is much faster</span>
+        <span class="c1">#   and more stable to compute</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">matrix_transpose</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">offset</span><span class="p">)</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+        <span class="n">offset_v</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span><span class="o">.</span><span class="n">from_cartesian</span><span class="p">(</span>
+            <span class="p">(</span><span class="o">-</span><span class="n">gcf</span><span class="o">.</span><span class="n">galcen_v_sun</span><span class="p">)</span><span class="o">.</span><span class="n">to_cartesian</span><span class="p">()</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">A</span><span class="p">))</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span><span class="o">.</span><span class="n">with_differentials</span><span class="p">(</span><span class="n">offset_v</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span><span class="o">.</span><span class="n">with_differentials</span><span class="p">(</span><span class="n">gcf</span><span class="o">.</span><span class="n">galcen_v_sun</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">A</span><span class="p">,</span> <span class="n">offset</span>
+
+
+<span class="k">def</span> <span class="nf">_check_coord_repr_diff_types</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">UnitSphericalRepresentation</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">ConvertError</span><span class="p">(</span><span class="s2">&quot;Transforming to/from a Galactocentric frame &quot;</span>
+                           <span class="s2">&quot;requires a 3D coordinate, e.g. (angle, angle, &quot;</span>
+                           <span class="s2">&quot;distance) or (x, y, z).&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;s&#39;</span> <span class="ow">in</span> <span class="n">c</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">differentials</span> <span class="ow">and</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">differentials</span><span class="p">[</span><span class="s1">&#39;s&#39;</span><span class="p">],</span>
+                       <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">UnitSphericalDifferential</span><span class="p">,</span>
+                        <span class="n">r</span><span class="o">.</span><span class="n">UnitSphericalCosLatDifferential</span><span class="p">,</span>
+                        <span class="n">r</span><span class="o">.</span><span class="n">RadialDifferential</span><span class="p">))):</span>
+        <span class="k">raise</span> <span class="n">ConvertError</span><span class="p">(</span><span class="s2">&quot;Transforming to/from a Galactocentric frame &quot;</span>
+                           <span class="s2">&quot;requires a 3D velocity, e.g., proper motion &quot;</span>
+                           <span class="s2">&quot;components and radial velocity.&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">ICRS</span><span class="p">,</span> <span class="n">Galactocentric</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">icrs_to_galactocentric</span><span class="p">(</span><span class="n">icrs_coord</span><span class="p">,</span> <span class="n">galactocentric_frame</span><span class="p">):</span>
+    <span class="n">_check_coord_repr_diff_types</span><span class="p">(</span><span class="n">icrs_coord</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">get_matrix_vectors</span><span class="p">(</span><span class="n">galactocentric_frame</span><span class="p">)</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">Galactocentric</span><span class="p">,</span> <span class="n">ICRS</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">galactocentric_to_icrs</span><span class="p">(</span><span class="n">galactocentric_coord</span><span class="p">,</span> <span class="n">icrs_frame</span><span class="p">):</span>
+    <span class="n">_check_coord_repr_diff_types</span><span class="p">(</span><span class="n">galactocentric_coord</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">get_matrix_vectors</span><span class="p">(</span><span class="n">galactocentric_coord</span><span class="p">,</span> <span class="n">inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="c1"># Create loopback transformation</span>
+<span class="n">frame_transform_graph</span><span class="o">.</span><span class="n">_add_merged_transform</span><span class="p">(</span><span class="n">Galactocentric</span><span class="p">,</span> <span class="n">ICRS</span><span class="p">,</span> <span class="n">Galactocentric</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

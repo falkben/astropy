@@ -1,0 +1,1032 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.coordinates.earth &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.coordinates.earth</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">urllib.request</span>
+<span class="kn">import</span> <span class="nn">urllib.error</span>
+<span class="kn">import</span> <span class="nn">urllib.parse</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">erfa</span>
+
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">constants</span> <span class="k">as</span> <span class="n">consts</span>
+<span class="kn">from</span> <span class="nn">astropy.units.quantity</span> <span class="kn">import</span> <span class="n">QuantityInfoBase</span>
+<span class="kn">from</span> <span class="nn">astropy.utils</span> <span class="kn">import</span> <span class="n">data</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.decorators</span> <span class="kn">import</span> <span class="n">format_doc</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.exceptions</span> <span class="kn">import</span> <span class="n">AstropyUserWarning</span>
+
+<span class="kn">from</span> <span class="nn">.angles</span> <span class="kn">import</span> <span class="n">Angle</span><span class="p">,</span> <span class="n">Longitude</span><span class="p">,</span> <span class="n">Latitude</span>
+<span class="kn">from</span> <span class="nn">.representation</span> <span class="kn">import</span> <span class="p">(</span><span class="n">BaseRepresentation</span><span class="p">,</span> <span class="n">CartesianRepresentation</span><span class="p">,</span>
+                             <span class="n">CartesianDifferential</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.matrix_utilities</span> <span class="kn">import</span> <span class="n">matrix_transpose</span>
+<span class="kn">from</span> <span class="nn">.errors</span> <span class="kn">import</span> <span class="n">UnknownSiteException</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;EarthLocation&#39;</span><span class="p">,</span> <span class="s1">&#39;BaseGeodeticRepresentation&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;WGS84GeodeticRepresentation&#39;</span><span class="p">,</span> <span class="s1">&#39;WGS72GeodeticRepresentation&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;GRS80GeodeticRepresentation&#39;</span><span class="p">]</span>
+
+<span class="n">GeodeticLocation</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;GeodeticLocation&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span> <span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;height&#39;</span><span class="p">])</span>
+
+<span class="n">ELLIPSOIDS</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="sd">&quot;&quot;&quot;Available ellipsoids (defined in erfam.h, with numbers exposed in erfa).&quot;&quot;&quot;</span>
+<span class="c1"># Note: they get filled by the creation of the geodetic classes.</span>
+
+<span class="n">OMEGA_EARTH</span> <span class="o">=</span> <span class="p">((</span><span class="mf">1.002_737_811_911_354_48</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">cycle</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">day</span><span class="p">)</span>
+               <span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">dimensionless_angles</span><span class="p">()))</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Rotational velocity of Earth, following SOFA&#39;s pvtob.</span>
+
+<span class="sd">In UT1 seconds, this would be 2 pi / (24 * 3600), but we need the value</span>
+<span class="sd">in SI seconds, so multiply by the ratio of stellar to solar day.</span>
+<span class="sd">See Explanatory Supplement to the Astronomical Almanac, ed. P. Kenneth</span>
+<span class="sd">Seidelmann (1992), University Science Books. The constant is the</span>
+<span class="sd">conventional, exact one (IERS conventions 2003); see</span>
+<span class="sd">http://hpiers.obspm.fr/eop-pc/index.php?index=constants.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">_check_ellipsoid</span><span class="p">(</span><span class="n">ellipsoid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;WGS84&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">ellipsoid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ellipsoid</span> <span class="o">=</span> <span class="n">default</span>
+    <span class="k">if</span> <span class="n">ellipsoid</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ELLIPSOIDS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Ellipsoid </span><span class="si">{</span><span class="n">ellipsoid</span><span class="si">}</span><span class="s1"> not among known ones (</span><span class="si">{</span><span class="n">ELLIPSOIDS</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ellipsoid</span>
+
+
+<span class="k">def</span> <span class="nf">_get_json_result</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">err_str</span><span class="p">,</span> <span class="n">use_google</span><span class="p">):</span>
+
+    <span class="c1"># need to do this here to prevent a series of complicated circular imports</span>
+    <span class="kn">from</span> <span class="nn">.name_resolve</span> <span class="kn">import</span> <span class="n">NameResolveError</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Retrieve JSON response from Google maps API</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">remote_timeout</span><span class="p">)</span>
+        <span class="n">resp_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">))</span>
+
+    <span class="k">except</span> <span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">URLError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># This catches a timeout error, see:</span>
+        <span class="c1">#   http://stackoverflow.com/questions/2712524/handling-urllib2s-timeout-python</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">reason</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">timeout</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">NameResolveError</span><span class="p">(</span><span class="n">err_str</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;connection timed out&quot;</span><span class="p">))</span> <span class="kn">from</span> <span class="nn">e</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NameResolveError</span><span class="p">(</span><span class="n">err_str</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="n">e</span><span class="o">.</span><span class="n">reason</span><span class="p">))</span> <span class="kn">from</span> <span class="nn">e</span>
+
+    <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">timeout</span><span class="p">:</span>
+        <span class="c1"># There are some cases where urllib2 does not catch socket.timeout</span>
+        <span class="c1"># especially while receiving response data on an already previously</span>
+        <span class="c1"># working request</span>
+        <span class="k">raise</span> <span class="n">NameResolveError</span><span class="p">(</span><span class="n">err_str</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;connection timed out&quot;</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">use_google</span><span class="p">:</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">resp_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;results&#39;</span><span class="p">,</span> <span class="p">[])</span>
+
+        <span class="k">if</span> <span class="n">resp_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">!=</span> <span class="s1">&#39;OK&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NameResolveError</span><span class="p">(</span><span class="n">err_str</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;unknown failure with &quot;</span>
+                                                  <span class="s2">&quot;Google API&quot;</span><span class="p">))</span>
+
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># OpenStreetMap returns a list</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">resp_data</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">results</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NameResolveError</span><span class="p">(</span><span class="n">err_str</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s2">&quot;no results returned&quot;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">results</span>
+
+
+<span class="k">class</span> <span class="nc">EarthLocationInfo</span><span class="p">(</span><span class="n">QuantityInfoBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for meta information like name, description, format.  This is</span>
+<span class="sd">    required when the object is used as a mixin column within a table, but can</span>
+<span class="sd">    be used as a general way to store meta information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_represent_as_dict_attrs</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;ellipsoid&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_construct_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">map</span><span class="p">):</span>
+        <span class="c1"># Need to pop ellipsoid off and update post-instantiation.  This is</span>
+        <span class="c1"># on the to-fix list in #4261.</span>
+        <span class="n">ellipsoid</span> <span class="o">=</span> <span class="nb">map</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;ellipsoid&#39;</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent_cls</span><span class="p">(</span><span class="o">**</span><span class="nb">map</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">ellipsoid</span> <span class="o">=</span> <span class="n">ellipsoid</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">def</span> <span class="nf">new_like</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="o">=</span><span class="s1">&#39;warn&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a new EarthLocation instance which is consistent with the</span>
+<span class="sd">        input ``cols`` and has ``length`` rows.</span>
+
+<span class="sd">        This is intended for creating an empty column object whose elements can</span>
+<span class="sd">        be set in-place for table operations like join or vstack.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cols : list</span>
+<span class="sd">            List of input columns</span>
+<span class="sd">        length : int</span>
+<span class="sd">            Length of the output column object</span>
+<span class="sd">        metadata_conflicts : str (&#39;warn&#39;|&#39;error&#39;|&#39;silent&#39;)</span>
+<span class="sd">            How to handle metadata conflicts</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Output column name</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        col : EarthLocation (or subclass)</span>
+<span class="sd">            Empty instance of this class consistent with ``cols``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Very similar to QuantityInfo.new_like, but the creation of the</span>
+        <span class="c1"># map is different enough that this needs its own rouinte.</span>
+        <span class="c1"># Get merged info attributes shape, dtype, format, description.</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">merge_cols_attributes</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span>
+                                           <span class="p">(</span><span class="s1">&#39;meta&#39;</span><span class="p">,</span> <span class="s1">&#39;format&#39;</span><span class="p">,</span> <span class="s1">&#39;description&#39;</span><span class="p">))</span>
+        <span class="c1"># The above raises an error if the dtypes do not match, but returns</span>
+        <span class="c1"># just the string representation, which is not useful, so remove.</span>
+        <span class="n">attrs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;dtype&#39;</span><span class="p">)</span>
+        <span class="c1"># Make empty EarthLocation using the dtype and unit of the last column.</span>
+        <span class="c1"># Use zeros so we do not get problems for possible conversion to</span>
+        <span class="c1"># geodetic coordinates.</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">length</span><span class="p">,)</span> <span class="o">+</span> <span class="n">attrs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;shape&#39;</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                          <span class="n">unit</span><span class="o">=</span><span class="n">cols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># Get arguments needed to reconstruct class</span>
+        <span class="nb">map</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="s1">&#39;xyz&#39;</span> <span class="k">else</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cols</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">key</span><span class="p">))</span>
+               <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_represent_as_dict_attrs</span><span class="p">}</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_construct_from_dict</span><span class="p">(</span><span class="nb">map</span><span class="p">)</span>
+        <span class="c1"># Set remaining info attributes</span>
+        <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">info</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span>
+
+
+<div class="viewcode-block" id="EarthLocation"><a class="viewcode-back" href="../../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation">[docs]</a><span class="k">class</span> <span class="nc">EarthLocation</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Location on the Earth.</span>
+
+<span class="sd">    Initialization is first attempted assuming geocentric (x, y, z) coordinates</span>
+<span class="sd">    are given; if that fails, another attempt is made assuming geodetic</span>
+<span class="sd">    coordinates (longitude, latitude, height above a reference ellipsoid).</span>
+<span class="sd">    When using the geodetic forms, Longitudes are measured increasing to the</span>
+<span class="sd">    east, so west longitudes are negative. Internally, the coordinates are</span>
+<span class="sd">    stored as geocentric.</span>
+
+<span class="sd">    To ensure a specific type of coordinates is used, use the corresponding</span>
+<span class="sd">    class methods (`from_geocentric` and `from_geodetic`) or initialize the</span>
+<span class="sd">    arguments with names (``x``, ``y``, ``z`` for geocentric; ``lon``, ``lat``,</span>
+<span class="sd">    ``height`` for geodetic).  See the class methods for details.</span>
+
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This class fits into the coordinates transformation framework in that it</span>
+<span class="sd">    encodes a position on the `~astropy.coordinates.ITRS` frame.  To get a</span>
+<span class="sd">    proper `~astropy.coordinates.ITRS` object from this object, use the ``itrs``</span>
+<span class="sd">    property.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_ellipsoid</span> <span class="o">=</span> <span class="s1">&#39;WGS84&#39;</span>
+    <span class="n">_location_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">({</span><span class="s1">&#39;names&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">],</span>
+                                <span class="s1">&#39;formats&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span><span class="p">})</span>
+    <span class="n">_array_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,)))</span>
+
+    <span class="n">info</span> <span class="o">=</span> <span class="n">EarthLocationInfo</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># TODO: needs copy argument and better dealing with inputs.</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">EarthLocation</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_geocentric</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">UnitsError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc_geocentric</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_geodetic</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc_geodetic</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Coordinates could not be parsed as either &#39;</span>
+                                <span class="s1">&#39;geocentric or geodetic, with respective &#39;</span>
+                                <span class="s1">&#39;exceptions &quot;</span><span class="si">{}</span><span class="s1">&quot; and &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span>
+                                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">exc_geocentric</span><span class="p">,</span> <span class="n">exc_geodetic</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+<div class="viewcode-block" id="EarthLocation.from_geocentric"><a class="viewcode-back" href="../../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation.from_geocentric">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_geocentric</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Location on Earth, initialized from geocentric coordinates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x, y, z : `~astropy.units.Quantity` or array-like</span>
+<span class="sd">            Cartesian coordinates.  If not quantities, ``unit`` should be given.</span>
+<span class="sd">        unit : unit-like or None</span>
+<span class="sd">            Physical unit of the coordinate values.  If ``x``, ``y``, and/or</span>
+<span class="sd">            ``z`` are quantities, they will be converted to this unit.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        astropy.units.UnitsError</span>
+<span class="sd">            If the units on ``x``, ``y``, and ``z`` do not match or an invalid</span>
+<span class="sd">            unit is given.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the shapes of ``x``, ``y``, and ``z`` do not match.</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If ``x`` is not a `~astropy.units.Quantity` and no unit is given.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">unit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">unit</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">unit</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Geocentric coordinates should be Quantities &quot;</span>
+                                <span class="s2">&quot;unless an explicit unit is given.&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">unit</span><span class="o">.</span><span class="n">physical_type</span> <span class="o">!=</span> <span class="s1">&#39;length&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">u</span><span class="o">.</span><span class="n">UnitsError</span><span class="p">(</span><span class="s2">&quot;Geocentric coordinates should be in &quot;</span>
+                               <span class="s2">&quot;units of length.&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">u</span><span class="o">.</span><span class="n">UnitsError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">u</span><span class="o">.</span><span class="n">UnitsError</span><span class="p">(</span><span class="s2">&quot;Geocentric coordinate units should all be &quot;</span>
+                               <span class="s2">&quot;consistent.&quot;</span><span class="p">)</span>
+
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_arrays</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+        <span class="n">struc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_location_dtype</span><span class="p">)</span>
+        <span class="n">struc</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">],</span> <span class="n">struc</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">],</span> <span class="n">struc</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">struc</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EarthLocation.from_geodetic"><a class="viewcode-back" href="../../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation.from_geodetic">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_geodetic</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">ellipsoid</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Location on Earth, initialized from geodetic coordinates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        lon : `~astropy.coordinates.Longitude` or float</span>
+<span class="sd">            Earth East longitude.  Can be anything that initialises an</span>
+<span class="sd">            `~astropy.coordinates.Angle` object (if float, in degrees).</span>
+<span class="sd">        lat : `~astropy.coordinates.Latitude` or float</span>
+<span class="sd">            Earth latitude.  Can be anything that initialises an</span>
+<span class="sd">            `~astropy.coordinates.Latitude` object (if float, in degrees).</span>
+<span class="sd">        height : `~astropy.units.Quantity` [&#39;length&#39;] or float, optional</span>
+<span class="sd">            Height above reference ellipsoid (if float, in meters; default: 0).</span>
+<span class="sd">        ellipsoid : str, optional</span>
+<span class="sd">            Name of the reference ellipsoid to use (default: &#39;WGS84&#39;).</span>
+<span class="sd">            Available ellipsoids are:  &#39;WGS84&#39;, &#39;GRS80&#39;, &#39;WGS72&#39;.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        astropy.units.UnitsError</span>
+<span class="sd">            If the units on ``lon`` and ``lat`` are inconsistent with angular</span>
+<span class="sd">            ones, or that on ``height`` with a length.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``lon``, ``lat``, and ``height`` do not have the same shape, or</span>
+<span class="sd">            if ``ellipsoid`` is not recognized as among the ones implemented.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        For the conversion to geocentric coordinates, the ERFA routine</span>
+<span class="sd">        ``gd2gc`` is used.  See https://github.com/liberfa/erfa</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ellipsoid</span> <span class="o">=</span> <span class="n">_check_ellipsoid</span><span class="p">(</span><span class="n">ellipsoid</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_ellipsoid</span><span class="p">)</span>
+        <span class="c1"># As wrapping fails on readonly input, we do so manually</span>
+        <span class="n">lon</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">wrap_at</span><span class="p">(</span><span class="mi">180</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+        <span class="n">lat</span> <span class="o">=</span> <span class="n">Latitude</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># don&#39;t convert to m by default, so we can use the height unit below.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">):</span>
+            <span class="n">height</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">height</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># get geocentric coordinates.</span>
+        <span class="n">geodetic</span> <span class="o">=</span> <span class="n">ELLIPSOIDS</span><span class="p">[</span><span class="n">ellipsoid</span><span class="p">](</span><span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">xyz</span> <span class="o">=</span> <span class="n">geodetic</span><span class="o">.</span><span class="n">to_cartesian</span><span class="p">()</span><span class="o">.</span><span class="n">get_xyz</span><span class="p">(</span><span class="n">xyz_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">height</span><span class="o">.</span><span class="n">unit</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">xyz</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_location_dtype</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">geodetic</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ellipsoid</span> <span class="o">=</span> <span class="n">ellipsoid</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="EarthLocation.of_site"><a class="viewcode-back" href="../../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation.of_site">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">of_site</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">site_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return an object of this class for a known observatory/site by name.</span>
+
+<span class="sd">        This is intended as a quick convenience function to get basic site</span>
+<span class="sd">        information, not a fully-featured exhaustive registry of observatories</span>
+<span class="sd">        and all their properties.</span>
+
+<span class="sd">        Additional information about the site is stored in the ``.info.meta``</span>
+<span class="sd">        dictionary of sites obtained using this method (see the examples below).</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            When this function is called, it will attempt to download site</span>
+<span class="sd">            information from the astropy data server. If you would like a site</span>
+<span class="sd">            to be added, issue a pull request to the</span>
+<span class="sd">            `astropy-data repository &lt;https://github.com/astropy/astropy-data&gt;`_ .</span>
+<span class="sd">            If a site cannot be found in the registry (i.e., an internet</span>
+<span class="sd">            connection is not available), it will fall back on a built-in list,</span>
+<span class="sd">            In the future, this bundled list might include a version-controlled</span>
+<span class="sd">            list of canonical observatories extracted from the online version,</span>
+<span class="sd">            but it currently only contains the Greenwich Royal Observatory as an</span>
+<span class="sd">            example case.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        site_name : str</span>
+<span class="sd">            Name of the observatory (case-insensitive).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        site : `~astropy.coordinates.EarthLocation` (or subclass) instance</span>
+<span class="sd">            The location of the observatory. The returned class will be the same</span>
+<span class="sd">            as this class.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; from astropy.coordinates import EarthLocation</span>
+<span class="sd">        &gt;&gt;&gt; keck = EarthLocation.of_site(&#39;Keck Observatory&#39;)  # doctest: +REMOTE_DATA</span>
+<span class="sd">        &gt;&gt;&gt; keck.geodetic  # doctest: +REMOTE_DATA +FLOAT_CMP</span>
+<span class="sd">        GeodeticLocation(lon=&lt;Longitude -155.47833333 deg&gt;, lat=&lt;Latitude 19.82833333 deg&gt;, height=&lt;Quantity 4160. m&gt;)</span>
+<span class="sd">        &gt;&gt;&gt; keck.info  # doctest: +REMOTE_DATA</span>
+<span class="sd">        name = W. M. Keck Observatory</span>
+<span class="sd">        dtype = (float64, float64, float64)</span>
+<span class="sd">        unit = m</span>
+<span class="sd">        class = EarthLocation</span>
+<span class="sd">        n_bad = 0</span>
+<span class="sd">        &gt;&gt;&gt; keck.info.meta  # doctest: +REMOTE_DATA</span>
+<span class="sd">        {&#39;source&#39;: &#39;IRAF Observatory Database&#39;, &#39;timezone&#39;: &#39;US/Hawaii&#39;}</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        get_site_names : the list of sites that this function can access</span>
+<span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
+        <span class="n">registry</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_site_registry</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">el</span> <span class="o">=</span> <span class="n">registry</span><span class="p">[</span><span class="n">site_name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="n">UnknownSiteException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnknownSiteException</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">site</span><span class="p">,</span> <span class="s1">&#39;EarthLocation.get_site_names&#39;</span><span class="p">,</span>
+                                       <span class="n">close_names</span><span class="o">=</span><span class="n">e</span><span class="o">.</span><span class="n">close_names</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+
+        <span class="k">if</span> <span class="bp">cls</span> <span class="ow">is</span> <span class="n">el</span><span class="o">.</span><span class="vm">__class__</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">el</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">newel</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_geodetic</span><span class="p">(</span><span class="o">*</span><span class="n">el</span><span class="o">.</span><span class="n">to_geodetic</span><span class="p">())</span>
+            <span class="n">newel</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">el</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">return</span> <span class="n">newel</span></div>
+
+<div class="viewcode-block" id="EarthLocation.of_address"><a class="viewcode-back" href="../../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation.of_address">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">of_address</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">get_height</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">google_api_key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return an object of this class for a given address by querying either</span>
+<span class="sd">        the OpenStreetMap Nominatim tool [1]_ (default) or the Google geocoding</span>
+<span class="sd">        API [2]_, which requires a specified API key.</span>
+
+<span class="sd">        This is intended as a quick convenience function to get easy access to</span>
+<span class="sd">        locations. If you need to specify a precise location, you should use the</span>
+<span class="sd">        initializer directly and pass in a longitude, latitude, and elevation.</span>
+
+<span class="sd">        In the background, this just issues a web query to either of</span>
+<span class="sd">        the APIs noted above. This is not meant to be abused! Both</span>
+<span class="sd">        OpenStreetMap and Google use IP-based query limiting and will ban your</span>
+<span class="sd">        IP if you send more than a few thousand queries per hour [2]_.</span>
+
+<span class="sd">        .. warning::</span>
+<span class="sd">            If the query returns more than one location (e.g., searching on</span>
+<span class="sd">            ``address=&#39;springfield&#39;``), this function will use the **first**</span>
+<span class="sd">            returned location.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        address : str</span>
+<span class="sd">            The address to get the location for. As per the Google maps API,</span>
+<span class="sd">            this can be a fully specified street address (e.g., 123 Main St.,</span>
+<span class="sd">            New York, NY) or a city name (e.g., Danbury, CT), or etc.</span>
+<span class="sd">        get_height : bool, optional</span>
+<span class="sd">            This only works when using the Google API! See the ``google_api_key``</span>
+<span class="sd">            block below. Use the retrieved location to perform a second query to</span>
+<span class="sd">            the Google maps elevation API to retrieve the height of the input</span>
+<span class="sd">            address [3]_.</span>
+<span class="sd">        google_api_key : str, optional</span>
+<span class="sd">            A Google API key with the Geocoding API and (optionally) the</span>
+<span class="sd">            elevation API enabled. See [4]_ for more information.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        location : `~astropy.coordinates.EarthLocation` (or subclass) instance</span>
+<span class="sd">            The location of the input address.</span>
+<span class="sd">            Will be type(this class)</span>
+
+<span class="sd">        References</span>
+<span class="sd">        ----------</span>
+<span class="sd">        .. [1] https://nominatim.openstreetmap.org/</span>
+<span class="sd">        .. [2] https://developers.google.com/maps/documentation/geocoding/start</span>
+<span class="sd">        .. [3] https://developers.google.com/maps/documentation/elevation/start</span>
+<span class="sd">        .. [4] https://developers.google.com/maps/documentation/geocoding/get-api-key</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">use_google</span> <span class="o">=</span> <span class="n">google_api_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="c1"># Fail fast if invalid options are passed:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">use_google</span> <span class="ow">and</span> <span class="n">get_height</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Currently, `get_height` only works when using &#39;</span>
+                <span class="s1">&#39;the Google geocoding API, which requires passing &#39;</span>
+                <span class="s1">&#39;a Google API key with `google_api_key`. See: &#39;</span>
+                <span class="s1">&#39;https://developers.google.com/maps/documentation/geocoding/get-api-key &#39;</span>
+                <span class="s1">&#39;for information on obtaining an API key.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_google</span><span class="p">:</span>  <span class="c1"># Google</span>
+            <span class="n">pars</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">({</span><span class="s1">&#39;address&#39;</span><span class="p">:</span> <span class="n">address</span><span class="p">,</span>
+                                           <span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="n">google_api_key</span><span class="p">})</span>
+            <span class="n">geo_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;https://maps.googleapis.com/maps/api/geocode/json?</span><span class="si">{</span><span class="n">pars</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># OpenStreetMap</span>
+            <span class="n">pars</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">({</span><span class="s1">&#39;q&#39;</span><span class="p">:</span> <span class="n">address</span><span class="p">,</span>
+                                           <span class="s1">&#39;format&#39;</span><span class="p">:</span> <span class="s1">&#39;json&#39;</span><span class="p">})</span>
+            <span class="n">geo_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;https://nominatim.openstreetmap.org/search?</span><span class="si">{</span><span class="n">pars</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># get longitude and latitude location</span>
+        <span class="n">err_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Unable to retrieve coordinates for address &#39;</span><span class="si">{</span><span class="n">address</span><span class="si">}</span><span class="s2">&#39;; </span><span class="se">{{</span><span class="s2">msg</span><span class="se">}}</span><span class="s2">&quot;</span>
+        <span class="n">geo_result</span> <span class="o">=</span> <span class="n">_get_json_result</span><span class="p">(</span><span class="n">geo_url</span><span class="p">,</span> <span class="n">err_str</span><span class="o">=</span><span class="n">err_str</span><span class="p">,</span>
+                                      <span class="n">use_google</span><span class="o">=</span><span class="n">use_google</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_google</span><span class="p">:</span>
+            <span class="n">loc</span> <span class="o">=</span> <span class="n">geo_result</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;geometry&#39;</span><span class="p">][</span><span class="s1">&#39;location&#39;</span><span class="p">]</span>
+            <span class="n">lat</span> <span class="o">=</span> <span class="n">loc</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">]</span>
+            <span class="n">lon</span> <span class="o">=</span> <span class="n">loc</span><span class="p">[</span><span class="s1">&#39;lng&#39;</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loc</span> <span class="o">=</span> <span class="n">geo_result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">lat</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">loc</span><span class="p">[</span><span class="s1">&#39;lat&#39;</span><span class="p">])</span>  <span class="c1"># strings are returned by OpenStreetMap</span>
+            <span class="n">lon</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">loc</span><span class="p">[</span><span class="s1">&#39;lon&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">get_height</span><span class="p">:</span>
+            <span class="n">pars</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;locations&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">lat</span><span class="si">:</span><span class="s1">.8f</span><span class="si">}</span><span class="s1">,</span><span class="si">{</span><span class="n">lon</span><span class="si">:</span><span class="s1">.8f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="n">google_api_key</span><span class="p">}</span>
+            <span class="n">pars</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="n">pars</span><span class="p">)</span>
+            <span class="n">ele_url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;https://maps.googleapis.com/maps/api/elevation/json?</span><span class="si">{</span><span class="n">pars</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="n">err_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Unable to retrieve elevation for address &#39;</span><span class="si">{</span><span class="n">address</span><span class="si">}</span><span class="s2">&#39;; </span><span class="se">{{</span><span class="s2">msg</span><span class="se">}}</span><span class="s2">&quot;</span>
+            <span class="n">ele_result</span> <span class="o">=</span> <span class="n">_get_json_result</span><span class="p">(</span><span class="n">ele_url</span><span class="p">,</span> <span class="n">err_str</span><span class="o">=</span><span class="n">err_str</span><span class="p">,</span>
+                                          <span class="n">use_google</span><span class="o">=</span><span class="n">use_google</span><span class="p">)</span>
+            <span class="n">height</span> <span class="o">=</span> <span class="n">ele_result</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;elevation&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">meter</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">height</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_geodetic</span><span class="p">(</span><span class="n">lon</span><span class="o">=</span><span class="n">lon</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="n">lat</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EarthLocation.get_site_names"><a class="viewcode-back" href="../../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation.get_site_names">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_site_names</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get list of names of observatories for use with</span>
+<span class="sd">        `~astropy.coordinates.EarthLocation.of_site`.</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            When this function is called, it will first attempt to</span>
+<span class="sd">            download site information from the astropy data server.  If it</span>
+<span class="sd">            cannot (i.e., an internet connection is not available), it will fall</span>
+<span class="sd">            back on the list included with astropy (which is a limited and dated</span>
+<span class="sd">            set of sites).  If you think a site should be added, issue a pull</span>
+<span class="sd">            request to the</span>
+<span class="sd">            `astropy-data repository &lt;https://github.com/astropy/astropy-data&gt;`_ .</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        names : list of str</span>
+<span class="sd">            List of valid observatory names</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        of_site : Gets the actual location object for one of the sites names</span>
+<span class="sd">            this returns.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_site_registry</span><span class="p">()</span><span class="o">.</span><span class="n">names</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_get_site_registry</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">force_download</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">force_builtin</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the site registry.  The first time this either downloads or loads</span>
+<span class="sd">        from the data file packaged with astropy.  Subsequent calls will use the</span>
+<span class="sd">        cached version unless explicitly overridden.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        force_download : bool or str</span>
+<span class="sd">            If not False, force replacement of the cached registry with a</span>
+<span class="sd">            downloaded version. If a str, that will be used as the URL to</span>
+<span class="sd">            download from (if just True, the default URL will be used).</span>
+<span class="sd">        force_builtin : bool</span>
+<span class="sd">            If True, load from the data file bundled with astropy and set the</span>
+<span class="sd">            cache to that.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        reg : astropy.coordinates.sites.SiteRegistry</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># need to do this here at the bottom to avoid circular dependencies</span>
+        <span class="kn">from</span> <span class="nn">.sites</span> <span class="kn">import</span> <span class="n">get_builtin_sites</span><span class="p">,</span> <span class="n">get_downloaded_sites</span>
+
+        <span class="k">if</span> <span class="n">force_builtin</span> <span class="ow">and</span> <span class="n">force_download</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot have both force_builtin and force_download True&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">force_builtin</span><span class="p">:</span>
+            <span class="n">reg</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_site_registry</span> <span class="o">=</span> <span class="n">get_builtin_sites</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">reg</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;_site_registry&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">force_download</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">reg</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">force_download</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                        <span class="n">reg</span> <span class="o">=</span> <span class="n">get_downloaded_sites</span><span class="p">(</span><span class="n">force_download</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">reg</span> <span class="o">=</span> <span class="n">get_downloaded_sites</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">force_download</span><span class="p">:</span>
+                        <span class="k">raise</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Could not access the online site list. Falling &#39;</span>
+                           <span class="s1">&#39;back on the built-in version, which is rather &#39;</span>
+                           <span class="s1">&#39;limited. If you want to retry the download, do &#39;</span>
+                           <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">._get_site_registry(force_download=True)&#39;</span><span class="p">)</span>
+                    <span class="n">warn</span><span class="p">(</span><span class="n">AstropyUserWarning</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)))</span>
+                    <span class="n">reg</span> <span class="o">=</span> <span class="n">get_builtin_sites</span><span class="p">()</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">_site_registry</span> <span class="o">=</span> <span class="n">reg</span>
+
+        <span class="k">return</span> <span class="n">reg</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ellipsoid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The default ellipsoid used to convert to geodetic coordinates.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ellipsoid</span>
+
+    <span class="nd">@ellipsoid</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">ellipsoid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ellipsoid</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ellipsoid</span> <span class="o">=</span> <span class="n">_check_ellipsoid</span><span class="p">(</span><span class="n">ellipsoid</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">geodetic</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert to geodetic coordinates for the default ellipsoid.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_geodetic</span><span class="p">()</span>
+
+<div class="viewcode-block" id="EarthLocation.to_geodetic"><a class="viewcode-back" href="../../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation.to_geodetic">[docs]</a>    <span class="k">def</span> <span class="nf">to_geodetic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ellipsoid</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert to geodetic coordinates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ellipsoid : str, optional</span>
+<span class="sd">            Reference ellipsoid to use.  Default is the one the coordinates</span>
+<span class="sd">            were initialized with.  Available are: &#39;WGS84&#39;, &#39;GRS80&#39;, &#39;WGS72&#39;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        lon, lat, height : `~astropy.units.Quantity`</span>
+<span class="sd">            The tuple is a ``GeodeticLocation`` namedtuple and is comprised of</span>
+<span class="sd">            instances of `~astropy.coordinates.Longitude`,</span>
+<span class="sd">            `~astropy.coordinates.Latitude`, and `~astropy.units.Quantity`.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            if ``ellipsoid`` is not recognized as among the ones implemented.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        For the conversion to geodetic coordinates, the ERFA routine</span>
+<span class="sd">        ``gc2gd`` is used.  See https://github.com/liberfa/erfa</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ellipsoid</span> <span class="o">=</span> <span class="n">_check_ellipsoid</span><span class="p">(</span><span class="n">ellipsoid</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ellipsoid</span><span class="p">)</span>
+        <span class="n">xyz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_dtype</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">)</span>
+        <span class="n">llh</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span> <span class="n">xyz_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">represent_as</span><span class="p">(</span>
+                <span class="n">ELLIPSOIDS</span><span class="p">[</span><span class="n">ellipsoid</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">GeodeticLocation</span><span class="p">(</span>
+            <span class="n">Longitude</span><span class="p">(</span><span class="n">llh</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">wrap_angle</span><span class="o">=</span><span class="mi">180</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">llh</span><span class="o">.</span><span class="n">lat</span> <span class="o">&lt;&lt;</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">llh</span><span class="o">.</span><span class="n">height</span> <span class="o">&lt;&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lon</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Longitude of the location, for the default ellipsoid.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">geodetic</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">lat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Latitude of the location, for the default ellipsoid.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">geodetic</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">height</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Height of the location, for the default ellipsoid.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">geodetic</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="c1"># mostly for symmetry with geodetic and to_geodetic.</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">geocentric</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert to a tuple with X, Y, and Z as quantities&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_geocentric</span><span class="p">()</span>
+
+<div class="viewcode-block" id="EarthLocation.to_geocentric"><a class="viewcode-back" href="../../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation.to_geocentric">[docs]</a>    <span class="k">def</span> <span class="nf">to_geocentric</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert to a tuple with X, Y, and Z as quantities&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EarthLocation.get_itrs"><a class="viewcode-back" href="../../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation.get_itrs">[docs]</a>    <span class="k">def</span> <span class="nf">get_itrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates an `~astropy.coordinates.ITRS` object with the location of</span>
+<span class="sd">        this object at the requested ``obstime``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        obstime : `~astropy.time.Time` or None</span>
+<span class="sd">            The ``obstime`` to apply to the new `~astropy.coordinates.ITRS`, or</span>
+<span class="sd">            if None, the default ``obstime`` will be used.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        itrs : `~astropy.coordinates.ITRS`</span>
+<span class="sd">            The new object in the ITRS frame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Broadcast for a single position at multiple times, but don&#39;t attempt</span>
+        <span class="c1"># to be more general here.</span>
+        <span class="k">if</span> <span class="n">obstime</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">obstime</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="bp">self</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obstime</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">subok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># do this here to prevent a series of complicated circular imports</span>
+        <span class="kn">from</span> <span class="nn">.builtin_frames</span> <span class="kn">import</span> <span class="n">ITRS</span>
+        <span class="k">return</span> <span class="n">ITRS</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="n">obstime</span><span class="p">)</span></div>
+
+    <span class="n">itrs</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">get_itrs</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;An `~astropy.coordinates.ITRS` object  with</span>
+<span class="s2">                                     for the location of this object at the</span>
+<span class="s2">                                     default ``obstime``.&quot;&quot;&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EarthLocation.get_gcrs"><a class="viewcode-back" href="../../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation.get_gcrs">[docs]</a>    <span class="k">def</span> <span class="nf">get_gcrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obstime</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;GCRS position with velocity at ``obstime`` as a GCRS coordinate.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        obstime : `~astropy.time.Time`</span>
+<span class="sd">            The ``obstime`` to calculate the GCRS position/velocity at.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        gcrs : `~astropy.coordinates.GCRS` instance</span>
+<span class="sd">            With velocity included.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># do this here to prevent a series of complicated circular imports</span>
+        <span class="kn">from</span> <span class="nn">.builtin_frames</span> <span class="kn">import</span> <span class="n">GCRS</span>
+        <span class="n">loc</span><span class="p">,</span> <span class="n">vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_gcrs_posvel</span><span class="p">(</span><span class="n">obstime</span><span class="p">)</span>
+        <span class="n">loc</span><span class="o">.</span><span class="n">differentials</span><span class="p">[</span><span class="s1">&#39;s&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">CartesianDifferential</span><span class="o">.</span><span class="n">from_cartesian</span><span class="p">(</span><span class="n">vel</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">GCRS</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="n">obstime</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_gcrs_posvel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obstime</span><span class="p">,</span> <span class="n">ref_to_itrs</span><span class="p">,</span> <span class="n">gcrs_to_ref</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate GCRS position and velocity given transformation matrices.</span>
+
+<span class="sd">        The reference frame z axis must point to the Celestial Intermediate Pole</span>
+<span class="sd">        (as is the case for CIRS and TETE).</span>
+
+<span class="sd">        This private method is used in intermediate_rotation_transforms,</span>
+<span class="sd">        where some of the matrices are already available for the coordinate</span>
+<span class="sd">        transformation.</span>
+
+<span class="sd">        The method is faster by an order of magnitude than just adding a zero</span>
+<span class="sd">        velocity to ITRS and transforming to GCRS, because it avoids calculating</span>
+<span class="sd">        the velocity via finite differencing of the results of the transformation</span>
+<span class="sd">        at three separate times.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># The simplest route is to transform to the reference frame where the</span>
+        <span class="c1"># z axis is properly aligned with the Earth&#39;s rotation axis (CIRS or</span>
+        <span class="c1"># TETE), then calculate the velocity, and then transform this</span>
+        <span class="c1"># reference position and velocity to GCRS.  For speed, though, we</span>
+        <span class="c1"># transform the coordinates to GCRS in one step, and calculate the</span>
+        <span class="c1"># velocities by rotating around the earth&#39;s axis transformed to GCRS.</span>
+        <span class="n">ref_to_gcrs</span> <span class="o">=</span> <span class="n">matrix_transpose</span><span class="p">(</span><span class="n">gcrs_to_ref</span><span class="p">)</span>
+        <span class="n">itrs_to_gcrs</span> <span class="o">=</span> <span class="n">ref_to_gcrs</span> <span class="o">@</span> <span class="n">matrix_transpose</span><span class="p">(</span><span class="n">ref_to_itrs</span><span class="p">)</span>
+        <span class="c1"># Earth&#39;s rotation vector in the ref frame is rot_vec_ref = (0,0,OMEGA_EARTH),</span>
+        <span class="c1"># so in GCRS it is rot_vec_gcrs[..., 2] @ OMEGA_EARTH.</span>
+        <span class="n">rot_vec_gcrs</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="n">ref_to_gcrs</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">OMEGA_EARTH</span><span class="p">,</span>
+                                               <span class="n">xyz_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># Get the position in the GCRS frame.</span>
+        <span class="c1"># Since we just need the cartesian representation of ITRS, avoid get_itrs().</span>
+        <span class="n">itrs_cart</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">itrs_cart</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">itrs_to_gcrs</span><span class="p">)</span>
+        <span class="n">vel</span> <span class="o">=</span> <span class="n">rot_vec_gcrs</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pos</span><span class="p">,</span> <span class="n">vel</span>
+
+<div class="viewcode-block" id="EarthLocation.get_gcrs_posvel"><a class="viewcode-back" href="../../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation.get_gcrs_posvel">[docs]</a>    <span class="k">def</span> <span class="nf">get_gcrs_posvel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obstime</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the GCRS position and velocity of this object at the</span>
+<span class="sd">        requested ``obstime``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        obstime : `~astropy.time.Time`</span>
+<span class="sd">            The ``obstime`` to calculate the GCRS position/velocity at.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        obsgeoloc : `~astropy.coordinates.CartesianRepresentation`</span>
+<span class="sd">            The GCRS position of the object</span>
+<span class="sd">        obsgeovel : `~astropy.coordinates.CartesianRepresentation`</span>
+<span class="sd">            The GCRS velocity of the object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Local import to prevent circular imports.</span>
+        <span class="kn">from</span> <span class="nn">.builtin_frames.intermediate_rotation_transforms</span> <span class="kn">import</span> <span class="p">(</span>
+            <span class="n">cirs_to_itrs_mat</span><span class="p">,</span> <span class="n">gcrs_to_cirs_mat</span><span class="p">)</span>
+
+        <span class="c1"># Get gcrs_posvel by transforming via CIRS (slightly faster than TETE).</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_gcrs_posvel</span><span class="p">(</span><span class="n">obstime</span><span class="p">,</span>
+                                     <span class="n">cirs_to_itrs_mat</span><span class="p">(</span><span class="n">obstime</span><span class="p">),</span>
+                                     <span class="n">gcrs_to_cirs_mat</span><span class="p">(</span><span class="n">obstime</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="EarthLocation.gravitational_redshift"><a class="viewcode-back" href="../../../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation.gravitational_redshift">[docs]</a>    <span class="k">def</span> <span class="nf">gravitational_redshift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obstime</span><span class="p">,</span>
+                               <span class="n">bodies</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;sun&#39;</span><span class="p">,</span> <span class="s1">&#39;jupiter&#39;</span><span class="p">,</span> <span class="s1">&#39;moon&#39;</span><span class="p">],</span>
+                               <span class="n">masses</span><span class="o">=</span><span class="p">{}):</span>
+        <span class="sd">&quot;&quot;&quot;Return the gravitational redshift at this EarthLocation.</span>
+
+<span class="sd">        Calculates the gravitational redshift, of order 3 m/s, due to the</span>
+<span class="sd">        requested solar system bodies.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        obstime : `~astropy.time.Time`</span>
+<span class="sd">            The ``obstime`` to calculate the redshift at.</span>
+
+<span class="sd">        bodies : iterable, optional</span>
+<span class="sd">            The bodies (other than the Earth) to include in the redshift</span>
+<span class="sd">            calculation.  List elements should be any body name</span>
+<span class="sd">            `get_body_barycentric` accepts.  Defaults to Jupiter, the Sun, and</span>
+<span class="sd">            the Moon.  Earth is always included (because the class represents</span>
+<span class="sd">            an *Earth* location).</span>
+
+<span class="sd">        masses : dict[str, `~astropy.units.Quantity`], optional</span>
+<span class="sd">            The mass or gravitational parameters (G * mass) to assume for the</span>
+<span class="sd">            bodies requested in ``bodies``. Can be used to override the</span>
+<span class="sd">            defaults for the Sun, Jupiter, the Moon, and the Earth, or to</span>
+<span class="sd">            pass in masses for other bodies.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        redshift : `~astropy.units.Quantity`</span>
+<span class="sd">            Gravitational redshift in velocity units at given obstime.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># needs to be here to avoid circular imports</span>
+        <span class="kn">from</span> <span class="nn">.solar_system</span> <span class="kn">import</span> <span class="n">get_body_barycentric</span>
+
+        <span class="n">bodies</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">bodies</span><span class="p">)</span>
+        <span class="c1"># Ensure earth is included and last in the list.</span>
+        <span class="k">if</span> <span class="s1">&#39;earth&#39;</span> <span class="ow">in</span> <span class="n">bodies</span><span class="p">:</span>
+            <span class="n">bodies</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;earth&#39;</span><span class="p">)</span>
+        <span class="n">bodies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;earth&#39;</span><span class="p">)</span>
+        <span class="n">_masses</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;sun&#39;</span><span class="p">:</span> <span class="n">consts</span><span class="o">.</span><span class="n">GM_sun</span><span class="p">,</span>
+                   <span class="s1">&#39;jupiter&#39;</span><span class="p">:</span> <span class="n">consts</span><span class="o">.</span><span class="n">GM_jup</span><span class="p">,</span>
+                   <span class="s1">&#39;moon&#39;</span><span class="p">:</span> <span class="n">consts</span><span class="o">.</span><span class="n">G</span> <span class="o">*</span> <span class="mf">7.34767309e22</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kg</span><span class="p">,</span>
+                   <span class="s1">&#39;earth&#39;</span><span class="p">:</span> <span class="n">consts</span><span class="o">.</span><span class="n">GM_earth</span><span class="p">}</span>
+        <span class="n">_masses</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">masses</span><span class="p">)</span>
+        <span class="n">GMs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">M_GM_equivalency</span> <span class="o">=</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">kg</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">consts</span><span class="o">.</span><span class="n">G</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">kg</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">body</span> <span class="ow">in</span> <span class="n">bodies</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">GMs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_masses</span><span class="p">[</span><span class="n">body</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">3</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="p">[</span><span class="n">M_GM_equivalency</span><span class="p">]))</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;body &quot;</span><span class="si">{</span><span class="n">body</span><span class="si">}</span><span class="s1">&quot; does not have a mass.&#39;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+            <span class="k">except</span> <span class="n">u</span><span class="o">.</span><span class="n">UnitsError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                <span class="n">exc</span><span class="o">.</span><span class="n">args</span> <span class="o">+=</span> <span class="p">(</span><span class="s1">&#39;&quot;masses&quot; argument values must be masses or &#39;</span>
+                             <span class="s1">&#39;gravitational parameters.&#39;</span><span class="p">,)</span>
+                <span class="k">raise</span>
+
+        <span class="n">positions</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_body_barycentric</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">obstime</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">bodies</span><span class="p">]</span>
+        <span class="c1"># Calculate distances to objects other than earth.</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="p">[(</span><span class="n">pos</span> <span class="o">-</span> <span class="n">positions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">norm</span><span class="p">()</span> <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="n">positions</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="c1"># Append distance from Earth&#39;s center for Earth&#39;s contribution.</span>
+        <span class="n">distances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">CartesianRepresentation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geocentric</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">())</span>
+        <span class="c1"># Get redshifts due to all objects.</span>
+        <span class="n">redshifts</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="n">GM</span> <span class="o">/</span> <span class="n">consts</span><span class="o">.</span><span class="n">c</span> <span class="o">/</span> <span class="n">distance</span> <span class="k">for</span> <span class="p">(</span><span class="n">GM</span><span class="p">,</span> <span class="n">distance</span><span class="p">)</span> <span class="ow">in</span>
+                     <span class="nb">zip</span><span class="p">(</span><span class="n">GMs</span><span class="p">,</span> <span class="n">distances</span><span class="p">)]</span>
+        <span class="c1"># Reverse order of summing, to go from small to big, and to get</span>
+        <span class="c1"># &quot;earth&quot; first, which gives m/s as unit.</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">redshifts</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The X component of the geocentric coordinates.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">y</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The Y component of the geocentric coordinates.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">z</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The Z component of the geocentric coordinates.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__array_finalize__</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;_ellipsoid&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ellipsoid</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">_ellipsoid</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;0-d EarthLocation arrays cannot be indexed&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__len__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_to_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;Helper method for to and to_value.&quot;&quot;&quot;</span>
+        <span class="c1"># Conversion to another unit in both ``to`` and ``to_value`` goes</span>
+        <span class="c1"># via this routine. To make the regular quantity routines work, we</span>
+        <span class="c1"># temporarily turn the structured array into a regular one.</span>
+        <span class="n">array_view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_array_dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">equivalencies</span> <span class="o">==</span> <span class="p">[]:</span>
+            <span class="n">equivalencies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equivalencies</span>
+        <span class="n">new_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">array_view</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">equivalencies</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_array</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div>
+
+
+<span class="n">geodetic_base_doc</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span><span class="si">{__doc__}</span><span class="s2"></span>
+
+<span class="s2">    Parameters</span>
+<span class="s2">    ----------</span>
+<span class="s2">    lon, lat : angle-like</span>
+<span class="s2">        The longitude and latitude of the point(s), in angular units. The</span>
+<span class="s2">        latitude should be between -90 and 90 degrees, and the longitude will</span>
+<span class="s2">        be wrapped to an angle between 0 and 360 degrees. These can also be</span>
+<span class="s2">        instances of `~astropy.coordinates.Angle` and either</span>
+<span class="s2">        `~astropy.coordinates.Longitude` not `~astropy.coordinates.Latitude`,</span>
+<span class="s2">        depending on the parameter.</span>
+<span class="s2">    height : `~astropy.units.Quantity` [&#39;length&#39;]</span>
+<span class="s2">        The height to the point(s).</span>
+<span class="s2">    copy : bool, optional</span>
+<span class="s2">        If `True` (default), arrays will be copied. If `False`, arrays will</span>
+<span class="s2">        be references, though possibly broadcast to ensure matching shapes.</span>
+
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="BaseGeodeticRepresentation"><a class="viewcode-back" href="../../../api/astropy.coordinates.BaseGeodeticRepresentation.html#astropy.coordinates.BaseGeodeticRepresentation">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">geodetic_base_doc</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BaseGeodeticRepresentation</span><span class="p">(</span><span class="n">BaseRepresentation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base geodetic representation.&quot;&quot;&quot;</span>
+
+    <span class="n">attr_classes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;lon&#39;</span><span class="p">:</span> <span class="n">Longitude</span><span class="p">,</span>
+                    <span class="s1">&#39;lat&#39;</span><span class="p">:</span> <span class="n">Latitude</span><span class="p">,</span>
+                    <span class="s1">&#39;height&#39;</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init_subclass__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init_subclass__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;_ellipsoid&#39;</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="n">ELLIPSOIDS</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">_ellipsoid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">height</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
+            <span class="n">height</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">&lt;&lt;</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">u</span><span class="o">.</span><span class="n">UnitTypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> requires &quot;</span>
+                                  <span class="sa">f</span><span class="s2">&quot;height with units of length.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BaseGeodeticRepresentation.to_cartesian"><a class="viewcode-back" href="../../../api/astropy.coordinates.BaseGeodeticRepresentation.html#astropy.coordinates.BaseGeodeticRepresentation.to_cartesian">[docs]</a>    <span class="k">def</span> <span class="nf">to_cartesian</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Converts WGS84 geodetic coordinates to 3D rectangular (geocentric)</span>
+<span class="sd">        cartesian coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">xyz</span> <span class="o">=</span> <span class="n">erfa</span><span class="o">.</span><span class="n">gd2gc</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">erfa</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ellipsoid</span><span class="p">),</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">lon</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span> <span class="n">xyz_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseGeodeticRepresentation.from_cartesian"><a class="viewcode-back" href="../../../api/astropy.coordinates.BaseGeodeticRepresentation.html#astropy.coordinates.BaseGeodeticRepresentation.from_cartesian">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_cartesian</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cart</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Converts 3D rectangular cartesian coordinates (assumed geocentric) to</span>
+<span class="sd">        WGS84 geodetic coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">erfa</span><span class="o">.</span><span class="n">gc2gd</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">erfa</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_ellipsoid</span><span class="p">),</span>
+                                      <span class="n">cart</span><span class="o">.</span><span class="n">get_xyz</span><span class="p">(</span><span class="n">xyz_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">lon</span><span class="p">,</span> <span class="n">lat</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="WGS84GeodeticRepresentation"><a class="viewcode-back" href="../../../api/astropy.coordinates.WGS84GeodeticRepresentation.html#astropy.coordinates.WGS84GeodeticRepresentation">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">geodetic_base_doc</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">WGS84GeodeticRepresentation</span><span class="p">(</span><span class="n">BaseGeodeticRepresentation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Representation of points in WGS84 3D geodetic coordinates.&quot;&quot;&quot;</span>
+
+    <span class="n">_ellipsoid</span> <span class="o">=</span> <span class="s1">&#39;WGS84&#39;</span></div>
+
+
+<div class="viewcode-block" id="WGS72GeodeticRepresentation"><a class="viewcode-back" href="../../../api/astropy.coordinates.WGS72GeodeticRepresentation.html#astropy.coordinates.WGS72GeodeticRepresentation">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">geodetic_base_doc</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">WGS72GeodeticRepresentation</span><span class="p">(</span><span class="n">BaseGeodeticRepresentation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Representation of points in WGS72 3D geodetic coordinates.&quot;&quot;&quot;</span>
+
+    <span class="n">_ellipsoid</span> <span class="o">=</span> <span class="s1">&#39;WGS72&#39;</span></div>
+
+
+<div class="viewcode-block" id="GRS80GeodeticRepresentation"><a class="viewcode-back" href="../../../api/astropy.coordinates.GRS80GeodeticRepresentation.html#astropy.coordinates.GRS80GeodeticRepresentation">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">geodetic_base_doc</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">GRS80GeodeticRepresentation</span><span class="p">(</span><span class="n">BaseGeodeticRepresentation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Representation of points in GRS80 3D geodetic coordinates.&quot;&quot;&quot;</span>
+
+    <span class="n">_ellipsoid</span> <span class="o">=</span> <span class="s1">&#39;GRS80&#39;</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

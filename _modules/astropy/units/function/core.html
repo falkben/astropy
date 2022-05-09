@@ -1,0 +1,786 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.units.function.core &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.units.function.core</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;Function Units and Quantities.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Quantity</span><span class="p">,</span> <span class="n">Unit</span><span class="p">,</span> <span class="n">UnitBase</span><span class="p">,</span> <span class="n">UnitConversionError</span><span class="p">,</span> <span class="n">UnitsError</span><span class="p">,</span> <span class="n">UnitTypeError</span><span class="p">,</span>
+    <span class="n">dimensionless_unscaled</span><span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;FunctionUnitBase&#39;</span><span class="p">,</span> <span class="s1">&#39;FunctionQuantity&#39;</span><span class="p">]</span>
+
+<span class="n">SUPPORTED_UFUNCS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">umath</span><span class="p">,</span> <span class="n">ufunc</span><span class="p">)</span> <span class="k">for</span> <span class="n">ufunc</span> <span class="ow">in</span> <span class="p">(</span>
+    <span class="s1">&#39;isfinite&#39;</span><span class="p">,</span> <span class="s1">&#39;isinf&#39;</span><span class="p">,</span> <span class="s1">&#39;isnan&#39;</span><span class="p">,</span> <span class="s1">&#39;sign&#39;</span><span class="p">,</span> <span class="s1">&#39;signbit&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;rint&#39;</span><span class="p">,</span> <span class="s1">&#39;floor&#39;</span><span class="p">,</span> <span class="s1">&#39;ceil&#39;</span><span class="p">,</span> <span class="s1">&#39;trunc&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;_ones_like&#39;</span><span class="p">,</span> <span class="s1">&#39;ones_like&#39;</span><span class="p">,</span> <span class="s1">&#39;positive&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">umath</span><span class="p">,</span> <span class="n">ufunc</span><span class="p">))</span>
+
+<span class="c1"># TODO: the following could work if helper changed relative to Quantity:</span>
+<span class="c1"># - spacing should return dimensionless, not same unit</span>
+<span class="c1"># - negative should negate unit too,</span>
+<span class="c1"># - add, subtract, comparisons can work if units added/subtracted</span>
+
+<span class="n">SUPPORTED_FUNCTIONS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">np</span><span class="p">,</span> <span class="n">function</span><span class="p">)</span> <span class="k">for</span> <span class="n">function</span> <span class="ow">in</span>
+                          <span class="p">(</span><span class="s1">&#39;clip&#39;</span><span class="p">,</span> <span class="s1">&#39;trace&#39;</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="s1">&#39;round&#39;</span><span class="p">))</span>
+
+
+<span class="c1"># subclassing UnitBase or CompositeUnit was found to be problematic, requiring</span>
+<span class="c1"># a large number of overrides. Hence, define new class.</span>
+<div class="viewcode-block" id="FunctionUnitBase"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionUnitBase.html#astropy.units.FunctionUnitBase">[docs]</a><span class="k">class</span> <span class="nc">FunctionUnitBase</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Abstract base class for function units.</span>
+
+<span class="sd">    Function units are functions containing a physical unit, such as dB(mW).</span>
+<span class="sd">    Most of the arithmetic operations on function units are defined in this</span>
+<span class="sd">    base class.</span>
+
+<span class="sd">    While instantiation is defined, this class should not be used directly.</span>
+<span class="sd">    Rather, subclasses should be used that override the abstract properties</span>
+<span class="sd">    `_default_function_unit` and `_quantity_class`, and the abstract methods</span>
+<span class="sd">    `from_physical`, and `to_physical`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    physical_unit : `~astropy.units.Unit` or `string`</span>
+<span class="sd">        Unit that is encapsulated within the function unit.</span>
+<span class="sd">        If not given, dimensionless.</span>
+
+<span class="sd">    function_unit :  `~astropy.units.Unit` or `string`</span>
+<span class="sd">        By default, the same as the function unit set by the subclass.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># ↓↓↓ the following four need to be set by subclasses</span>
+    <span class="c1"># Make this a property so we can ensure subclasses define it.</span>
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_default_function_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Default function unit corresponding to the function.</span>
+
+<span class="sd">        This property should be overridden by subclasses, with, e.g.,</span>
+<span class="sd">        `~astropy.unit.MagUnit` returning `~astropy.unit.mag`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="c1"># This has to be a property because the function quantity will not be</span>
+    <span class="c1"># known at unit definition time, as it gets defined after.</span>
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_quantity_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Function quantity class corresponding to this function unit.</span>
+
+<span class="sd">        This property should be overridden by subclasses, with, e.g.,</span>
+<span class="sd">        `~astropy.unit.MagUnit` returning `~astropy.unit.Magnitude`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FunctionUnitBase.from_physical"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionUnitBase.html#astropy.units.FunctionUnitBase.from_physical">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">from_physical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Transformation from value in physical to value in function units.</span>
+
+<span class="sd">        This method should be overridden by subclasses.  It is used to</span>
+<span class="sd">        provide automatic transformations using an equivalency.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="FunctionUnitBase.to_physical"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionUnitBase.html#astropy.units.FunctionUnitBase.to_physical">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">to_physical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Transformation from value in function to value in physical units.</span>
+
+<span class="sd">        This method should be overridden by subclasses.  It is used to</span>
+<span class="sd">        provide automatic transformations using an equivalency.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+    <span class="c1"># ↑↑↑ the above four need to be set by subclasses</span>
+
+    <span class="c1"># have priority over arrays, regular units, and regular quantities</span>
+    <span class="n">__array_priority__</span> <span class="o">=</span> <span class="mi">30000</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">physical_unit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">function_unit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">physical_unit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_physical_unit</span> <span class="o">=</span> <span class="n">dimensionless_unscaled</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_physical_unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">physical_unit</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_physical_unit</span><span class="p">,</span> <span class="n">UnitBase</span><span class="p">)</span> <span class="ow">or</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_physical_unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_default_function_unit</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="n">UnitConversionError</span><span class="p">(</span><span class="s2">&quot;Unit </span><span class="si">{}</span><span class="s2"> is not a physical unit.&quot;</span>
+                                          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_physical_unit</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">function_unit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_function_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_function_unit</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># any function unit should be equivalent to subclass default</span>
+            <span class="n">function_unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">function_unit</span><span class="p">,</span> <span class="s1">&#39;function_unit&#39;</span><span class="p">,</span>
+                                         <span class="n">function_unit</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">function_unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_default_function_unit</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_function_unit</span> <span class="o">=</span> <span class="n">function_unit</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">UnitConversionError</span><span class="p">(</span>
+                    <span class="s2">&quot;Cannot initialize &#39;</span><span class="si">{}</span><span class="s2">&#39; instance with function unit &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span>
+                    <span class="s2">&quot;, as it is not equivalent to default function unit &#39;</span><span class="si">{}</span><span class="s2">&#39;.&quot;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">function_unit</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_default_function_unit</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">physical_unit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Copy oneself, possibly with a different physical unit.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">physical_unit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">physical_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">physical_unit</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">physical_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_physical_unit</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">function_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_function_unit</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">equivalencies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;List of equivalencies between function and physical units.</span>
+
+<span class="sd">        Uses the `from_physical` and `to_physical` methods.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="p">,</span>
+                 <span class="bp">self</span><span class="o">.</span><span class="n">to_physical</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_physical</span><span class="p">)]</span>
+
+    <span class="c1"># ↓↓↓ properties/methods required to behave like a unit</span>
+<div class="viewcode-block" id="FunctionUnitBase.decompose"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionUnitBase.html#astropy.units.FunctionUnitBase.decompose">[docs]</a>    <span class="k">def</span> <span class="nf">decompose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bases</span><span class="o">=</span><span class="nb">set</span><span class="p">()):</span>
+        <span class="sd">&quot;&quot;&quot;Copy the current unit with the physical unit decomposed.</span>
+
+<span class="sd">        For details, see `~astropy.units.UnitBase.decompose`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="o">.</span><span class="n">decompose</span><span class="p">(</span><span class="n">bases</span><span class="p">))</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">si</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Copy the current function unit with the physical unit in SI.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="o">.</span><span class="n">si</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Copy the current function unit with the physical unit in CGS.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="o">.</span><span class="n">cgs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_physical_type_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get physical type corresponding to physical unit.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="o">.</span><span class="n">_get_physical_type_id</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">physical_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the physical type of the physical unit (e.g., &#39;length&#39;).&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="o">.</span><span class="n">physical_type</span>
+
+<div class="viewcode-block" id="FunctionUnitBase.is_equivalent"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionUnitBase.html#astropy.units.FunctionUnitBase.is_equivalent">[docs]</a>    <span class="k">def</span> <span class="nf">is_equivalent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns `True` if this unit is equivalent to ``other``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : `~astropy.units.Unit`, string, or tuple</span>
+<span class="sd">            The unit to convert to. If a tuple of units is specified, this</span>
+<span class="sd">            method returns true if the unit matches any of those in the tuple.</span>
+
+<span class="sd">        equivalencies : list of tuple</span>
+<span class="sd">            A list of equivalence pairs to try if the units are not</span>
+<span class="sd">            directly convertible.  See :ref:`astropy:unit_equivalencies`.</span>
+<span class="sd">            This list is in addition to the built-in equivalencies between the</span>
+<span class="sd">            function unit and the physical one, as well as possible global</span>
+<span class="sd">            defaults set by, e.g., `~astropy.units.set_enabled_equivalencies`.</span>
+<span class="sd">            Use `None` to turn off any global equivalencies.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">equivalencies</span><span class="p">)</span>
+                       <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">other</span><span class="p">)</span>
+
+        <span class="n">other_physical_unit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s1">&#39;physical_unit&#39;</span><span class="p">,</span> <span class="p">(</span>
+            <span class="n">dimensionless_unscaled</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">other</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">other_physical_unit</span><span class="p">,</span>
+                                                <span class="n">equivalencies</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FunctionUnitBase.to"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionUnitBase.html#astropy.units.FunctionUnitBase.to">[docs]</a>    <span class="k">def</span> <span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the converted values in the specified unit.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : `~astropy.units.Unit`, `~astropy.units.function.FunctionUnitBase`, or str</span>
+<span class="sd">            The unit to convert to.</span>
+
+<span class="sd">        value : int, float, or scalar array-like, optional</span>
+<span class="sd">            Value(s) in the current unit to be converted to the specified unit.</span>
+<span class="sd">            If not provided, defaults to 1.0.</span>
+
+<span class="sd">        equivalencies : list of tuple</span>
+<span class="sd">            A list of equivalence pairs to try if the units are not</span>
+<span class="sd">            directly convertible.  See :ref:`astropy:unit_equivalencies`.</span>
+<span class="sd">            This list is in meant to treat only equivalencies between different</span>
+<span class="sd">            physical units; the built-in equivalency between the function</span>
+<span class="sd">            unit and the physical one is automatically taken into account.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        values : scalar or array</span>
+<span class="sd">            Converted value(s). Input value sequences are returned as</span>
+<span class="sd">            numpy arrays.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        `~astropy.units.UnitsError`</span>
+<span class="sd">            If units are inconsistent.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># conversion to one&#39;s own physical unit should be fastest</span>
+        <span class="k">if</span> <span class="n">other</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_physical</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">other_function_unit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s1">&#39;function_unit&#39;</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">other_function_unit</span><span class="p">):</span>
+            <span class="c1"># when other is an equivalent function unit:</span>
+            <span class="c1"># first convert physical units to other&#39;s physical units</span>
+            <span class="n">other_physical_unit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s1">&#39;physical_unit&#39;</span><span class="p">,</span>
+                                          <span class="n">dimensionless_unscaled</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span> <span class="o">!=</span> <span class="n">other_physical_unit</span><span class="p">:</span>
+                <span class="n">value_other_physical</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                    <span class="n">other_physical_unit</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_physical</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
+                    <span class="n">equivalencies</span><span class="p">)</span>
+                <span class="c1"># make function unit again, in own system</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_physical</span><span class="p">(</span><span class="n">value_other_physical</span><span class="p">)</span>
+
+            <span class="c1"># convert possible difference in function unit (e.g., dex-&gt;dB)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">other_function_unit</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># when other is not a function unit</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_physical</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
+                                             <span class="n">equivalencies</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">UnitConversionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span> <span class="o">==</span> <span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;mag&#39;</span><span class="p">):</span>
+                    <span class="c1"># One can get to raw magnitudes via math that strips the dimensions off.</span>
+                    <span class="c1"># Include extra information in the exception to remind users of this.</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Did you perhaps subtract magnitudes so the unit got lost?&quot;</span>
+                    <span class="n">e</span><span class="o">.</span><span class="n">args</span> <span class="o">+=</span> <span class="p">(</span><span class="n">msg</span><span class="p">,)</span>
+                    <span class="k">raise</span> <span class="n">e</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span></div>
+
+<div class="viewcode-block" id="FunctionUnitBase.is_unity"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionUnitBase.html#astropy.units.FunctionUnitBase.is_unity">[docs]</a>    <span class="k">def</span> <span class="nf">is_unity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span> <span class="o">==</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s1">&#39;physical_unit&#39;</span><span class="p">,</span>
+                                              <span class="n">dimensionless_unscaled</span><span class="p">)</span> <span class="ow">and</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span> <span class="o">==</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s1">&#39;function_unit&#39;</span><span class="p">,</span> <span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__rlshift__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Unit conversion operator ``&lt;&lt;``&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quantity_class</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">subok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">UnitBase</span><span class="p">,</span> <span class="n">FunctionUnitBase</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span> <span class="o">==</span> <span class="n">dimensionless_unscaled</span><span class="p">:</span>
+                <span class="c1"># If dimensionless, drop back to normal unit and retry.</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span> <span class="o">*</span> <span class="n">other</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">UnitsError</span><span class="p">(</span><span class="s2">&quot;Cannot multiply a function unit &quot;</span>
+                                 <span class="s2">&quot;with a physical dimension with any unit.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Anything not like a unit, try initialising as a function quantity.</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quantity_class</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="fm">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">UnitBase</span><span class="p">,</span> <span class="n">FunctionUnitBase</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span> <span class="o">==</span> <span class="n">dimensionless_unscaled</span><span class="p">:</span>
+                <span class="c1"># If dimensionless, drop back to normal unit and retry.</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span> <span class="o">/</span> <span class="n">other</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">UnitsError</span><span class="p">(</span><span class="s2">&quot;Cannot divide a function unit &quot;</span>
+                                 <span class="s2">&quot;with a physical dimension by any unit.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Anything not like a unit, try initialising as a function quantity.</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quantity_class</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="n">other</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="fm">__rtruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">UnitBase</span><span class="p">,</span> <span class="n">FunctionUnitBase</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span> <span class="o">==</span> <span class="n">dimensionless_unscaled</span><span class="p">:</span>
+                <span class="c1"># If dimensionless, drop back to normal unit and retry.</span>
+                <span class="k">return</span> <span class="n">other</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">UnitsError</span><span class="p">(</span><span class="s2">&quot;Cannot divide a function unit &quot;</span>
+                                 <span class="s2">&quot;with a physical dimension into any unit&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Don&#39;t know what to do with anything not like a unit.</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="fm">__pow__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">power</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">power</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dimensionless_unscaled</span>
+        <span class="k">elif</span> <span class="n">power</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span> <span class="o">==</span> <span class="n">dimensionless_unscaled</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span> <span class="o">**</span> <span class="n">power</span>
+
+        <span class="k">raise</span> <span class="n">UnitsError</span><span class="p">(</span><span class="s2">&quot;Cannot raise a function unit &quot;</span>
+                         <span class="s2">&quot;with a physical dimension to any power but 0 or 1.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__pos__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copy</span><span class="p">()</span>
+
+<div class="viewcode-block" id="FunctionUnitBase.to_string"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionUnitBase.html#astropy.units.FunctionUnitBase.to_string">[docs]</a>    <span class="k">def</span> <span class="nf">to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;generic&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Output the unit in the given format as a string.</span>
+
+<span class="sd">        The physical unit is appended, within parentheses, to the function</span>
+<span class="sd">        unit, as in &quot;dB(mW)&quot;, with both units set using the given format</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        format : `astropy.units.format.Base` instance or str</span>
+<span class="sd">            The name of a format or a formatter object.  If not</span>
+<span class="sd">            provided, defaults to the generic format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;generic&#39;</span><span class="p">,</span> <span class="s1">&#39;unscaled&#39;</span><span class="p">,</span> <span class="s1">&#39;latex&#39;</span><span class="p">,</span> <span class="s1">&#39;latex_inline&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Function units cannot be written in </span><span class="si">{</span><span class="nb">format</span><span class="si">}</span><span class="s2"> &quot;</span>
+                             <span class="s2">&quot;format. Only &#39;generic&#39;, &#39;unscaled&#39;, &#39;latex&#39; and &quot;</span>
+                             <span class="s2">&quot;&#39;latex_inline&#39; are supported.&quot;</span><span class="p">)</span>
+        <span class="n">self_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="nb">format</span><span class="p">)</span>
+        <span class="n">pu_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="nb">format</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pu_str</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">pu_str</span> <span class="o">=</span> <span class="s1">&#39;1&#39;</span>
+        <span class="k">if</span> <span class="nb">format</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">):</span>
+            <span class="n">self_str</span> <span class="o">+=</span> <span class="sa">r</span><span class="s1">&#39;$\mathrm{{\left( </span><span class="si">{0}</span><span class="s1"> \right)}}$&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">pu_str</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>   <span class="c1"># need to strip leading and trailing &quot;$&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">self_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;(</span><span class="si">{</span><span class="n">pu_str</span><span class="si">}</span><span class="s1">)&#39;</span>
+        <span class="k">return</span> <span class="n">self_str</span></div>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return string representation for unit.&quot;&quot;&quot;</span>
+        <span class="n">self_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span><span class="p">)</span>
+        <span class="n">pu_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pu_str</span><span class="p">:</span>
+            <span class="n">self_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;(</span><span class="si">{</span><span class="n">pu_str</span><span class="si">}</span><span class="s1">)&#39;</span>
+        <span class="k">return</span> <span class="n">self_str</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># By default, try to give a representation using `Unit(&lt;string&gt;)`,</span>
+        <span class="c1"># with string such that parsing it would give the correct FunctionUnit.</span>
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span><span class="p">):</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;Unit(&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span><span class="si">}</span><span class="s1">&quot;)&#39;</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">(&quot;</span><span class="si">{}</span><span class="s1">&quot;</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="p">,</span>
+                <span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_function_unit</span>
+                <span class="k">else</span> <span class="sa">f</span><span class="s1">&#39;, unit=&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_repr_latex_</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate latex representation of unit name.  This is used by</span>
+<span class="sd">        the IPython notebook to print a unit with a nice layout.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Latex string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="s1">&#39;latex&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">function_unit</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">physical_unit</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="FunctionQuantity"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionQuantity.html#astropy.units.FunctionQuantity">[docs]</a><span class="k">class</span> <span class="nc">FunctionQuantity</span><span class="p">(</span><span class="n">Quantity</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A representation of a (scaled) function of a number with a unit.</span>
+
+<span class="sd">    Function quantities are quantities whose units are functions containing a</span>
+<span class="sd">    physical unit, such as dB(mW).  Most of the arithmetic operations on</span>
+<span class="sd">    function quantities are defined in this base class.</span>
+
+<span class="sd">    While instantiation is also defined here, this class should not be</span>
+<span class="sd">    instantiated directly.  Rather, subclasses should be made which have</span>
+<span class="sd">    ``_unit_class`` pointing back to the corresponding function unit class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value : number, quantity-like, or sequence thereof</span>
+<span class="sd">        The numerical value of the function quantity. If a number or</span>
+<span class="sd">        a `~astropy.units.Quantity` with a function unit, it will be converted</span>
+<span class="sd">        to ``unit`` and the physical unit will be inferred from ``unit``.</span>
+<span class="sd">        If a `~astropy.units.Quantity` with just a physical unit, it will</span>
+<span class="sd">        converted to the function unit, after, if necessary, converting it to</span>
+<span class="sd">        the physical unit inferred from ``unit``.</span>
+
+<span class="sd">    unit : str, `~astropy.units.UnitBase`, or `~astropy.units.function.FunctionUnitBase`, optional</span>
+<span class="sd">        For an `~astropy.units.function.FunctionUnitBase` instance, the</span>
+<span class="sd">        physical unit will be taken from it; for other input, it will be</span>
+<span class="sd">        inferred from ``value``. By default, ``unit`` is set by the subclass.</span>
+
+<span class="sd">    dtype : `~numpy.dtype`, optional</span>
+<span class="sd">        The dtype of the resulting Numpy array or scalar that will</span>
+<span class="sd">        hold the value.  If not provided, it is determined from the input,</span>
+<span class="sd">        except that any input that cannot represent float (integer and bool)</span>
+<span class="sd">        is converted to float.</span>
+
+<span class="sd">    copy : bool, optional</span>
+<span class="sd">        If `True` (default), then the value is copied.  Otherwise, a copy will</span>
+<span class="sd">        only be made if ``__array__`` returns a copy, if value is a nested</span>
+<span class="sd">        sequence, or if a copy is needed to satisfy an explicitly given</span>
+<span class="sd">        ``dtype``.  (The `False` option is intended mostly for internal use,</span>
+<span class="sd">        to speed up initialization where a copy is known to have been made.</span>
+<span class="sd">        Use with care.)</span>
+
+<span class="sd">    order : {&#39;C&#39;, &#39;F&#39;, &#39;A&#39;}, optional</span>
+<span class="sd">        Specify the order of the array.  As in `~numpy.array`.  Ignored</span>
+<span class="sd">        if the input does not need to be converted and ``copy=False``.</span>
+
+<span class="sd">    subok : bool, optional</span>
+<span class="sd">        If `False` (default), the returned array will be forced to be of the</span>
+<span class="sd">        class used.  Otherwise, subclasses will be passed through.</span>
+
+<span class="sd">    ndmin : int, optional</span>
+<span class="sd">        Specifies the minimum number of dimensions that the resulting array</span>
+<span class="sd">        should have.  Ones will be pre-pended to the shape as needed to meet</span>
+<span class="sd">        this requirement.  This parameter is ignored if the input is a</span>
+<span class="sd">        `~astropy.units.Quantity` and ``copy=False``.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    TypeError</span>
+<span class="sd">        If the value provided is not a Python numeric type.</span>
+<span class="sd">    TypeError</span>
+<span class="sd">        If the unit provided is not a `~astropy.units.function.FunctionUnitBase`</span>
+<span class="sd">        or `~astropy.units.Unit` object, or a parseable string unit.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_unit_class</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;Default `~astropy.units.function.FunctionUnitBase` subclass.</span>
+
+<span class="sd">    This should be overridden by subclasses.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Ensure priority over ndarray, regular Unit &amp; Quantity, and FunctionUnit.</span>
+    <span class="n">__array_priority__</span> <span class="o">=</span> <span class="mi">40000</span>
+
+    <span class="c1"># Define functions that work on FunctionQuantity.</span>
+    <span class="n">_supported_ufuncs</span> <span class="o">=</span> <span class="n">SUPPORTED_UFUNCS</span>
+    <span class="n">_supported_functions</span> <span class="o">=</span> <span class="n">SUPPORTED_FUNCTIONS</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">subok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Convert possible string input to a (function) unit.</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">FunctionUnitBase</span><span class="p">):</span>
+            <span class="c1"># By default, use value&#39;s physical unit.</span>
+            <span class="n">value_unit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;unit&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">value_unit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># if iterable, see if first item has a unit</span>
+                <span class="c1"># (mixed lists fail in super call below).</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">value_unit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;unit&#39;</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="n">physical_unit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">value_unit</span><span class="p">,</span> <span class="s1">&#39;physical_unit&#39;</span><span class="p">,</span> <span class="n">value_unit</span><span class="p">)</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_unit_class</span><span class="p">(</span><span class="n">physical_unit</span><span class="p">,</span> <span class="n">function_unit</span><span class="o">=</span><span class="n">unit</span><span class="p">)</span>
+
+        <span class="c1"># initialise!</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">,</span>
+                               <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">subok</span><span class="o">=</span><span class="n">subok</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="n">ndmin</span><span class="p">)</span>
+
+    <span class="c1"># ↓↓↓ properties not found in Quantity</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">physical</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The physical quantity corresponding the function one.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_unit</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_function_view</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;View as Quantity with function unit, dropping the physical unit.</span>
+
+<span class="sd">        Use `~astropy.units.quantity.Quantity.value` for just the value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new_view</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">function_unit</span><span class="p">)</span>
+
+    <span class="c1"># ↓↓↓ methods overridden to change the behavior</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">si</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a copy with the physical unit in SI units.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">si</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a copy with the physical unit in CGS units.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">cgs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FunctionQuantity.decompose"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionQuantity.html#astropy.units.FunctionQuantity.decompose">[docs]</a>    <span class="k">def</span> <span class="nf">decompose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bases</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;Generate a new `FunctionQuantity` with the physical unit decomposed.</span>
+
+<span class="sd">        For details, see `~astropy.units.Quantity.decompose`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">decompose</span><span class="p">(</span><span class="n">bases</span><span class="p">))</span></div>
+
+    <span class="c1"># ↓↓↓ methods overridden to add additional behavior</span>
+    <span class="k">def</span> <span class="nf">__quantity_subclass__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">FunctionUnitBase</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__quantity_subclass__</span><span class="p">(</span><span class="n">unit</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_set_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unit_class</span><span class="p">):</span>
+            <span class="c1"># Have to take care of, e.g., (10*u.mag).view(u.Magnitude)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># &quot;or &#39;nonsense&#39;&quot; ensures `None` breaks, just in case.</span>
+                <span class="n">unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unit_class</span><span class="p">(</span><span class="n">function_unit</span><span class="o">=</span><span class="n">unit</span> <span class="ow">or</span> <span class="s1">&#39;nonsense&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">UnitTypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> instances require </span><span class="si">{}</span><span class="s2"> function units&quot;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unit_class</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span> <span class="o">+</span>
+                    <span class="sa">f</span><span class="s2">&quot;, so cannot set it to &#39;</span><span class="si">{</span><span class="n">unit</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unit</span> <span class="o">=</span> <span class="n">unit</span>
+
+    <span class="k">def</span> <span class="nf">__array_ufunc__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># TODO: it would be more logical to have this in Quantity already,</span>
+        <span class="c1"># instead of in UFUNC_HELPERS, where it cannot be overridden.</span>
+        <span class="c1"># And really it should just return NotImplemented, since possibly</span>
+        <span class="c1"># another argument might know what to do.</span>
+        <span class="k">if</span> <span class="n">function</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_supported_ufuncs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnitTypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Cannot use ufunc &#39;</span><span class="si">{</span><span class="n">function</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&#39; with function quantities&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__array_ufunc__</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># ↓↓↓ methods overridden to change behavior</span>
+    <span class="k">def</span> <span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_unit</span> <span class="o">==</span> <span class="n">dimensionless_unscaled</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_function_view</span> <span class="o">*</span> <span class="n">other</span>
+
+        <span class="k">raise</span> <span class="n">UnitTypeError</span><span class="p">(</span><span class="s2">&quot;Cannot multiply function quantities which &quot;</span>
+                            <span class="s2">&quot;are not dimensionless with anything.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_unit</span> <span class="o">==</span> <span class="n">dimensionless_unscaled</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_function_view</span> <span class="o">/</span> <span class="n">other</span>
+
+        <span class="k">raise</span> <span class="n">UnitTypeError</span><span class="p">(</span><span class="s2">&quot;Cannot divide function quantities which &quot;</span>
+                            <span class="s2">&quot;are not dimensionless by anything.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__rtruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_unit</span> <span class="o">==</span> <span class="n">dimensionless_unscaled</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_function_view</span><span class="o">.</span><span class="fm">__rtruediv__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="n">UnitTypeError</span><span class="p">(</span><span class="s2">&quot;Cannot divide function quantities which &quot;</span>
+                            <span class="s2">&quot;are not dimensionless into anything.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_comparison</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">comparison_func</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Do a comparison between self and other, raising UnitsError when</span>
+<span class="sd">        other cannot be converted to self because it has different physical</span>
+<span class="sd">        unit, and returning NotImplemented when there are other errors.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># will raise a UnitsError if physical units not equivalent</span>
+            <span class="n">other_in_own_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_own_unit</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">check_precision</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">UnitsError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_unit</span> <span class="o">!=</span> <span class="n">dimensionless_unscaled</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">exc</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">other_in_own_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_function_view</span><span class="o">.</span><span class="n">_to_own_unit</span><span class="p">(</span>
+                    <span class="n">other</span><span class="p">,</span> <span class="n">check_precision</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">exc</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+        <span class="k">return</span> <span class="n">comparison_func</span><span class="p">(</span><span class="n">other_in_own_unit</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comparison</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">UnitsError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comparison</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="fm">__ne__</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">UnitsError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="fm">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comparison</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="fm">__gt__</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__ge__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comparison</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="fm">__ge__</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comparison</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="fm">__lt__</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comparison</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="fm">__le__</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__lshift__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Unit conversion operator `&lt;&lt;`&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">other</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">parse_strict</span><span class="o">=</span><span class="s1">&#39;silent&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">UnitTypeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">subok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Ensure Quantity methods are used only if they make sense.</span>
+    <span class="k">def</span> <span class="nf">_wrap_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_supported_functions</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_wrap_function</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># For dimensionless, we can convert to regular quantities.</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_unit</span> <span class="o">==</span> <span class="n">dimensionless_unscaled</span>
+               <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="p">,)</span> <span class="o">+</span> <span class="n">args</span>
+               <span class="k">if</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="s1">&#39;unit&#39;</span><span class="p">)</span> <span class="ow">and</span>
+                   <span class="nb">hasattr</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="s1">&#39;physical_unit&#39;</span><span class="p">))):</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="s1">&#39;_function_view&#39;</span><span class="p">,</span> <span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_function_view</span><span class="o">.</span><span class="n">_wrap_function</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Cannot use method that uses function &#39;</span><span class="si">{}</span><span class="s2">&#39; with &quot;</span>
+                        <span class="s2">&quot;function quantities that are not dimensionless.&quot;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+
+    <span class="c1"># Override functions that are supported but do not use _wrap_function</span>
+    <span class="c1"># in Quantity.</span>
+<div class="viewcode-block" id="FunctionQuantity.max"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionQuantity.html#astropy.units.FunctionQuantity.max">[docs]</a>    <span class="k">def</span> <span class="nf">max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrap_function</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FunctionQuantity.min"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionQuantity.html#astropy.units.FunctionQuantity.min">[docs]</a>    <span class="k">def</span> <span class="nf">min</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrap_function</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FunctionQuantity.sum"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionQuantity.html#astropy.units.FunctionQuantity.sum">[docs]</a>    <span class="k">def</span> <span class="nf">sum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrap_function</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+                                   <span class="n">keepdims</span><span class="o">=</span><span class="n">keepdims</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FunctionQuantity.cumsum"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionQuantity.html#astropy.units.FunctionQuantity.cumsum">[docs]</a>    <span class="k">def</span> <span class="nf">cumsum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrap_function</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FunctionQuantity.clip"><a class="viewcode-back" href="../../../../api/astropy.units.function.FunctionQuantity.html#astropy.units.FunctionQuantity.clip">[docs]</a>    <span class="k">def</span> <span class="nf">clip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a_min</span><span class="p">,</span> <span class="n">a_max</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrap_function</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_to_own_unit</span><span class="p">(</span><span class="n">a_min</span><span class="p">),</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">_to_own_unit</span><span class="p">(</span><span class="n">a_max</span><span class="p">),</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

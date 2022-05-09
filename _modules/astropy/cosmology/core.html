@@ -1,0 +1,638 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.cosmology.core &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.cosmology.core</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">TypeVar</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy.io.registry</span> <span class="kn">import</span> <span class="n">UnifiedReadWriteMethod</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.decorators</span> <span class="kn">import</span> <span class="n">classproperty</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.metadata</span> <span class="kn">import</span> <span class="n">MetaData</span>
+
+<span class="kn">from</span> <span class="nn">.connect</span> <span class="kn">import</span> <span class="n">CosmologyFromFormat</span><span class="p">,</span> <span class="n">CosmologyRead</span><span class="p">,</span> <span class="n">CosmologyToFormat</span><span class="p">,</span> <span class="n">CosmologyWrite</span>
+<span class="kn">from</span> <span class="nn">.parameter</span> <span class="kn">import</span> <span class="n">Parameter</span>
+
+<span class="c1"># Originally authored by Andrew Becker (becker@astro.washington.edu),</span>
+<span class="c1"># and modified by Neil Crighton (neilcrighton@gmail.com), Roban Kramer</span>
+<span class="c1"># (robanhk@gmail.com), and Nathaniel Starkman (n.starkman@mail.utoronto.ca).</span>
+
+<span class="c1"># Many of these adapted from Hogg 1999, astro-ph/9905116</span>
+<span class="c1"># and Linder 2003, PRL 90, 91301</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Cosmology&quot;</span><span class="p">,</span> <span class="s2">&quot;CosmologyError&quot;</span><span class="p">,</span> <span class="s2">&quot;FlatCosmologyMixin&quot;</span><span class="p">]</span>
+
+<span class="n">__doctest_requires__</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># needed until __getattr__ removed</span>
+
+
+<span class="c1">##############################################################################</span>
+<span class="c1"># Parameters</span>
+
+<span class="c1"># registry of cosmology classes with {key=name : value=class}</span>
+<span class="n">_COSMOLOGY_CLASSES</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+<span class="c1"># typing</span>
+<span class="n">_CosmoT</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;_CosmoT&quot;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="s2">&quot;Cosmology&quot;</span><span class="p">)</span>
+<span class="n">_FlatCosmoT</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;_FlatCosmoT&quot;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="s2">&quot;FlatCosmologyMixin&quot;</span><span class="p">)</span>
+
+<span class="c1">##############################################################################</span>
+
+
+<div class="viewcode-block" id="CosmologyError"><a class="viewcode-back" href="../../../api/astropy.cosmology.CosmologyError.html#astropy.cosmology.CosmologyError">[docs]</a><span class="k">class</span> <span class="nc">CosmologyError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="Cosmology"><a class="viewcode-back" href="../../../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology">[docs]</a><span class="k">class</span> <span class="nc">Cosmology</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base-class for all Cosmologies.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    *args</span>
+<span class="sd">        Arguments into the cosmology; used by subclasses, not this base class.</span>
+<span class="sd">    name : str or None (optional, keyword-only)</span>
+<span class="sd">        The name of the cosmology.</span>
+<span class="sd">    meta : dict or None (optional, keyword-only)</span>
+<span class="sd">        Metadata for the cosmology, e.g., a reference.</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Arguments into the cosmology; used by subclasses, not this base class.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Class instances are static -- you cannot (and should not) change the values</span>
+<span class="sd">    of the parameters.  That is, all of the above attributes (except meta) are</span>
+<span class="sd">    read only.</span>
+
+<span class="sd">    For details on how to create performant custom subclasses, see the</span>
+<span class="sd">    documentation on :ref:`astropy-cosmology-fast-integrals`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">MetaData</span><span class="p">()</span>
+
+    <span class="c1"># Unified I/O object interchange methods</span>
+    <span class="n">from_format</span> <span class="o">=</span> <span class="n">UnifiedReadWriteMethod</span><span class="p">(</span><span class="n">CosmologyFromFormat</span><span class="p">)</span>
+    <span class="n">to_format</span> <span class="o">=</span> <span class="n">UnifiedReadWriteMethod</span><span class="p">(</span><span class="n">CosmologyToFormat</span><span class="p">)</span>
+
+    <span class="c1"># Unified I/O read and write methods</span>
+    <span class="n">read</span> <span class="o">=</span> <span class="n">UnifiedReadWriteMethod</span><span class="p">(</span><span class="n">CosmologyRead</span><span class="p">)</span>
+    <span class="n">write</span> <span class="o">=</span> <span class="n">UnifiedReadWriteMethod</span><span class="p">(</span><span class="n">CosmologyWrite</span><span class="p">)</span>
+
+    <span class="c1"># Parameters</span>
+    <span class="n">__parameters__</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">__all_parameters__</span> <span class="o">=</span> <span class="p">()</span>
+
+    <span class="c1"># ---------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">__init_subclass__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init_subclass__</span><span class="p">()</span>
+
+        <span class="c1"># -------------------</span>
+        <span class="c1"># Parameters</span>
+
+        <span class="c1"># Get parameters that are still Parameters, either in this class or above.</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">derived_parameters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__parameters__</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">):</span>
+                <span class="n">derived_parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">derived</span> <span class="k">else</span> <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+        <span class="c1"># Add new parameter definitions</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">parameters</span> <span class="ow">or</span> <span class="n">n</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">derived_parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">derived</span> <span class="k">else</span> <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+        <span class="c1"># reorder to match signature</span>
+        <span class="n">ordered</span> <span class="o">=</span> <span class="p">[</span><span class="n">parameters</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+                   <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_init_signature</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                   <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">]</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="n">ordered</span> <span class="o">+</span> <span class="n">parameters</span>  <span class="c1"># place &quot;unordered&quot; at the end</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__parameters__</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__all_parameters__</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__parameters__</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">derived_parameters</span><span class="p">)</span>
+
+        <span class="c1"># -------------------</span>
+        <span class="c1"># register as a Cosmology subclass</span>
+        <span class="n">_COSMOLOGY_CLASSES</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
+
+    <span class="nd">@classproperty</span><span class="p">(</span><span class="n">lazy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_init_signature</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialization signature (without &#39;self&#39;).&quot;&quot;&quot;</span>
+        <span class="c1"># get signature, dropping &quot;self&quot; by taking arguments [1:]</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">sig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">return</span> <span class="n">sig</span>
+
+    <span class="c1"># ---------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">meta</span> <span class="ow">or</span> <span class="p">{})</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The name of the Cosmology instance.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">is_flat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return bool; `True` if the cosmology is flat.</span>
+<span class="sd">        This is abstract and must be defined in subclasses.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;is_flat is not implemented&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Cosmology.clone"><a class="viewcode-back" href="../../../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.clone">[docs]</a>    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a copy of this object with updated parameters, as specified.</span>
+
+<span class="sd">        This cannot be used to change the type of the cosmology, so ``clone()``</span>
+<span class="sd">        cannot be used to change between flat and non-flat cosmologies.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        meta : mapping or None (optional, keyword-only)</span>
+<span class="sd">            Metadata that will update the current metadata.</span>
+<span class="sd">        **kwargs</span>
+<span class="sd">            Cosmology parameter (and name) modifications. If any parameter is</span>
+<span class="sd">            changed and a new name is not given, the name will be set to &quot;[old</span>
+<span class="sd">            name] (modified)&quot;.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        newcosmo : `~astropy.cosmology.Cosmology` subclass instance</span>
+<span class="sd">            A new instance of this class with updated parameters as specified.</span>
+<span class="sd">            If no arguments are given, then a reference to this object is</span>
+<span class="sd">            returned instead of copy.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        To make a copy of the ``Planck13`` cosmology with a different matter</span>
+<span class="sd">        density (``Om0``), and a new name:</span>
+
+<span class="sd">            &gt;&gt;&gt; from astropy.cosmology import Planck13</span>
+<span class="sd">            &gt;&gt;&gt; Planck13.clone(name=&quot;Modified Planck 2013&quot;, Om0=0.35)</span>
+<span class="sd">            FlatLambdaCDM(name=&quot;Modified Planck 2013&quot;, H0=67.77 km / (Mpc s),</span>
+<span class="sd">                          Om0=0.35, ...</span>
+
+<span class="sd">        If no name is specified, the new name will note the modification.</span>
+
+<span class="sd">            &gt;&gt;&gt; Planck13.clone(Om0=0.35).name</span>
+<span class="sd">            &#39;Planck13 (modified)&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Quick return check, taking advantage of the Cosmology immutability.</span>
+        <span class="k">if</span> <span class="n">meta</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="c1"># There are changed parameter or metadata values.</span>
+        <span class="c1"># The name needs to be changed accordingly, if it wasn&#39;t already.</span>
+        <span class="n">_modname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; (modified)&quot;</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">_modname</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">))</span>
+
+        <span class="c1"># mix new meta into existing, preferring the former.</span>
+        <span class="n">meta</span> <span class="o">=</span> <span class="n">meta</span> <span class="k">if</span> <span class="n">meta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{}</span>
+        <span class="n">new_meta</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">,</span> <span class="o">**</span><span class="n">meta</span><span class="p">}</span>
+        <span class="c1"># Mix kwargs into initial arguments, preferring the former.</span>
+        <span class="n">new_init</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_arguments</span><span class="p">,</span> <span class="s2">&quot;meta&quot;</span><span class="p">:</span> <span class="n">new_meta</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">}</span>
+        <span class="c1"># Create BoundArgument to handle args versus kwargs.</span>
+        <span class="c1"># This also handles all errors from mismatched arguments</span>
+        <span class="n">ba</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_signature</span><span class="o">.</span><span class="n">bind_partial</span><span class="p">(</span><span class="o">**</span><span class="n">new_init</span><span class="p">)</span>
+        <span class="c1"># Instantiate, respecting args vs kwargs</span>
+        <span class="n">cloned</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="o">*</span><span class="n">ba</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">ba</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Check if nothing has changed.</span>
+        <span class="c1"># TODO! or should return self?</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">cloned</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">_modname</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">meta</span> <span class="ow">and</span> <span class="n">cloned</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">cloned</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="k">return</span> <span class="n">cloned</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_init_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># parameters</span>
+        <span class="n">kw</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__parameters__</span><span class="p">}</span>
+
+        <span class="c1"># other info</span>
+        <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;meta&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span>
+
+        <span class="k">return</span> <span class="n">kw</span>
+
+    <span class="c1"># ---------------------------------------------------------------</span>
+    <span class="c1"># comparison methods</span>
+
+<div class="viewcode-block" id="Cosmology.is_equivalent"><a class="viewcode-back" href="../../../api/astropy.cosmology.Cosmology.html#astropy.cosmology.Cosmology.is_equivalent">[docs]</a>    <span class="k">def</span> <span class="nf">is_equivalent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Check equivalence between Cosmologies.</span>
+
+<span class="sd">        Two cosmologies may be equivalent even if not the same class.</span>
+<span class="sd">        For example, an instance of ``LambdaCDM`` might have :math:`\Omega_0=1`</span>
+<span class="sd">        and :math:`\Omega_k=0` and therefore be flat, like ``FlatLambdaCDM``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : `~astropy.cosmology.Cosmology` subclass instance</span>
+<span class="sd">            The object in which to compare.</span>
+<span class="sd">        format : bool or None or str, optional keyword-only</span>
+<span class="sd">            Whether to allow, before equivalence is checked, the object to be</span>
+<span class="sd">            converted to a |Cosmology|. This allows, e.g. a |Table| to be</span>
+<span class="sd">            equivalent to a Cosmology.</span>
+<span class="sd">            `False` (default) will not allow conversion. `True` or `None` will,</span>
+<span class="sd">            and will use the auto-identification to try to infer the correct</span>
+<span class="sd">            format. A `str` is assumed to be the correct format to use when</span>
+<span class="sd">            converting.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            True if cosmologies are equivalent, False otherwise.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        Two cosmologies may be equivalent even if not of the same class.</span>
+<span class="sd">        In this examples the ``LambdaCDM`` has ``Ode0`` set to the same value</span>
+<span class="sd">        calculated in ``FlatLambdaCDM``.</span>
+
+<span class="sd">            &gt;&gt;&gt; import astropy.units as u</span>
+<span class="sd">            &gt;&gt;&gt; from astropy.cosmology import LambdaCDM, FlatLambdaCDM</span>
+<span class="sd">            &gt;&gt;&gt; cosmo1 = LambdaCDM(70 * (u.km/u.s/u.Mpc), 0.3, 0.7)</span>
+<span class="sd">            &gt;&gt;&gt; cosmo2 = FlatLambdaCDM(70 * (u.km/u.s/u.Mpc), 0.3)</span>
+<span class="sd">            &gt;&gt;&gt; cosmo1.is_equivalent(cosmo2)</span>
+<span class="sd">            True</span>
+
+<span class="sd">        While in this example, the cosmologies are not equivalent.</span>
+
+<span class="sd">            &gt;&gt;&gt; cosmo3 = FlatLambdaCDM(70 * (u.km/u.s/u.Mpc), 0.3, Tcmb0=3 * u.K)</span>
+<span class="sd">            &gt;&gt;&gt; cosmo3.is_equivalent(cosmo2)</span>
+<span class="sd">            False</span>
+
+<span class="sd">        Also, using the keyword argument, the notion of equivalence is extended</span>
+<span class="sd">        to any Python object that can be converted to a |Cosmology|.</span>
+
+<span class="sd">            &gt;&gt;&gt; from astropy.cosmology import Planck18</span>
+<span class="sd">            &gt;&gt;&gt; tbl = Planck18.to_format(&quot;astropy.table&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; Planck18.is_equivalent(tbl, format=True)</span>
+<span class="sd">            True</span>
+
+<span class="sd">        The list of valid formats, e.g. the |Table| in this example, may be</span>
+<span class="sd">        checked with ``Cosmology.from_format.list_formats()``.</span>
+
+<span class="sd">        As can be seen in the list of formats, not all formats can be</span>
+<span class="sd">        auto-identified by ``Cosmology.from_format.registry``. Objects of</span>
+<span class="sd">        these kinds can still be checked for equivalence, but the correct</span>
+<span class="sd">        format string must be used.</span>
+
+<span class="sd">            &gt;&gt;&gt; tbl = Planck18.to_format(&quot;yaml&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; Planck18.is_equivalent(tbl, format=&quot;yaml&quot;)</span>
+<span class="sd">            True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Allow for different formats to be considered equivalent.</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="nb">format</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">format</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">else</span> <span class="nb">format</span>  <span class="c1"># str-&gt;str, None/True-&gt;None</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">other</span> <span class="o">=</span> <span class="n">Cosmology</span><span class="o">.</span><span class="n">from_format</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># TODO! should enforce only TypeError</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># The options are: 1) same class &amp; parameters; 2) same class, different</span>
+        <span class="c1"># parameters; 3) different classes, equivalent parameters; 4) different</span>
+        <span class="c1"># classes, different parameters. (1) &amp; (3) =&gt; True, (2) &amp; (4) =&gt; False.</span>
+        <span class="n">equiv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__equiv__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">equiv</span> <span class="ow">is</span> <span class="bp">NotImplemented</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s2">&quot;__equiv__&quot;</span><span class="p">):</span>
+            <span class="n">equiv</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">__equiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>  <span class="c1"># that failed, try from &#39;other&#39;</span>
+
+        <span class="k">return</span> <span class="n">equiv</span> <span class="k">if</span> <span class="n">equiv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">NotImplemented</span> <span class="k">else</span> <span class="kc">False</span></div>
+
+    <span class="k">def</span> <span class="nf">__equiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Cosmology equivalence. Use ``.is_equivalent()`` for actual check!</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : `~astropy.cosmology.Cosmology` subclass instance</span>
+<span class="sd">            The object in which to compare.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool or `NotImplemented`</span>
+<span class="sd">            `NotImplemented` if &#39;other&#39; is from a different class.</span>
+<span class="sd">            `True` if &#39;other&#39; is of the same class and has matching parameters</span>
+<span class="sd">            and parameter values. `False` otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="vm">__class__</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>  <span class="c1"># allows other.__equiv__</span>
+
+        <span class="c1"># check all parameters in &#39;other&#39; match those in &#39;self&#39; and &#39;other&#39; has</span>
+        <span class="c1"># no extra parameters (latter part should never happen b/c same class)</span>
+        <span class="n">params_eq</span> <span class="o">=</span> <span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__all_parameters__</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">__all_parameters__</span><span class="p">)</span>
+                     <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="o">==</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">k</span><span class="p">))</span>
+                             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__all_parameters__</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">params_eq</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check equality between Cosmologies.</span>
+
+<span class="sd">        Checks the Parameters and immutable fields (i.e. not &quot;meta&quot;).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : `~astropy.cosmology.Cosmology` subclass instance</span>
+<span class="sd">            The object in which to compare.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            `True` if Parameters and names are the same, `False` otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="vm">__class__</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>  <span class="c1"># allows other.__eq__</span>
+
+        <span class="c1"># check all parameters in &#39;other&#39; match those in &#39;self&#39;</span>
+        <span class="n">equivalent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__equiv__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="c1"># non-Parameter checks: name</span>
+        <span class="n">name_eq</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">equivalent</span> <span class="ow">and</span> <span class="n">name_eq</span>
+
+    <span class="c1"># ---------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">namelead</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__qualname__</span><span class="si">}</span><span class="s2">(&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">namelead</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;name=</span><span class="se">\&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2">, &quot;</span>
+        <span class="c1"># nicely formatted parameters</span>
+        <span class="n">fmtps</span> <span class="o">=</span> <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s1">=</span><span class="si">{</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__parameters__</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">namelead</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fmtps</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__astropy_table__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">copy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a `~astropy.table.Table` of type ``cls``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cls : type</span>
+<span class="sd">            Astropy ``Table`` class or subclass.</span>
+<span class="sd">        copy : bool</span>
+<span class="sd">            Ignored.</span>
+<span class="sd">        **kwargs : dict, optional</span>
+<span class="sd">            Additional keyword arguments. Passed to ``self.to_format()``.</span>
+<span class="sd">            See ``Cosmology.to_format.help(&quot;astropy.table&quot;)`` for allowed kwargs.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        `astropy.table.Table` or subclass instance</span>
+<span class="sd">            Instance of type ``cls``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_format</span><span class="p">(</span><span class="s2">&quot;astropy.table&quot;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FlatCosmologyMixin"><a class="viewcode-back" href="../../../api/astropy.cosmology.FlatCosmologyMixin.html#astropy.cosmology.FlatCosmologyMixin">[docs]</a><span class="k">class</span> <span class="nc">FlatCosmologyMixin</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Mixin class for flat cosmologies. Do NOT instantiate directly.</span>
+<span class="sd">    Note that all instances of ``FlatCosmologyMixin`` are flat, but not all</span>
+<span class="sd">    flat cosmologies are instances of ``FlatCosmologyMixin``. As example,</span>
+<span class="sd">    ``LambdaCDM`` **may** be flat (for the a specific set of parameter values),</span>
+<span class="sd">    but ``FlatLambdaCDM`` **will** be flat.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init_subclass__</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">_FlatCosmoT</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init_subclass__</span><span class="p">()</span>
+
+        <span class="c1"># Determine the non-flat class.</span>
+        <span class="c1"># This will raise a TypeError if the MRO is inconsistent.</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_nonflat_cls_</span>
+
+    <span class="c1"># ===============================================================</span>
+
+    <span class="nd">@classmethod</span>  <span class="c1"># TODO! make metaclass-method</span>
+    <span class="k">def</span> <span class="nf">_get_nonflat_cls</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">kls</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">_CosmoT</span><span class="p">]]</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">Cosmology</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Find the corresponding non-flat class.</span>
+
+<span class="sd">        The class&#39; bases are searched recursively.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kls : :class:`astropy.cosmology.Cosmology` class or None, optional</span>
+<span class="sd">            If `None` (default) this class is searched instead of `kls`.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If more than one non-flat class is found at the same level of the</span>
+<span class="sd">            inheritance. This is similar to the error normally raised by Python</span>
+<span class="sd">            for an inconsistent method resolution order.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        type</span>
+<span class="sd">            A :class:`Cosmology` subclass this class inherits from that is not a</span>
+<span class="sd">            :class:`FlatCosmologyMixin` subclass.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_kls</span> <span class="o">=</span> <span class="bp">cls</span> <span class="k">if</span> <span class="n">kls</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">kls</span>
+
+        <span class="c1"># Find non-flat classes</span>
+        <span class="n">nonflat</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">Cosmology</span><span class="p">]]</span>
+        <span class="n">nonflat</span> <span class="o">=</span> <span class="p">{</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">_kls</span><span class="o">.</span><span class="vm">__bases__</span>
+                   <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">Cosmology</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">FlatCosmologyMixin</span><span class="p">)}</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">nonflat</span><span class="p">:</span>  <span class="c1"># e.g. subclassing FlatLambdaCDM</span>
+            <span class="n">nonflat</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">_kls</span><span class="o">.</span><span class="vm">__bases__</span> <span class="k">if</span> <span class="p">(</span><span class="n">k</span> <span class="o">:=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_nonflat_cls</span><span class="p">(</span><span class="n">b</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nonflat</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;cannot create a consistent non-flat class resolution order &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;for </span><span class="si">{</span><span class="n">_kls</span><span class="si">}</span><span class="s2"> with bases </span><span class="si">{</span><span class="n">nonflat</span><span class="si">}</span><span class="s2"> at the same inheritance level.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">nonflat</span><span class="p">:</span>  <span class="c1"># e.g. FlatFLRWMixin(FlatCosmologyMixin)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">nonflat</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+    <span class="n">_nonflat_cls_</span> <span class="o">=</span> <span class="n">classproperty</span><span class="p">(</span><span class="n">_get_nonflat_cls</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                  <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;Return the corresponding non-flat class.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># ===============================================================</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_flat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return `True`, the cosmology is flat.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="FlatCosmologyMixin.nonflat"><a class="viewcode-back" href="../../../api/astropy.cosmology.FlatCosmologyMixin.html#astropy.cosmology.FlatCosmologyMixin.nonflat">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">nonflat</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">_FlatCosmoT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_CosmoT</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return the equivalent non-flat-class instance of this cosmology.&quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="FlatCosmologyMixin.clone"><a class="viewcode-back" href="../../../api/astropy.cosmology.FlatCosmologyMixin.html#astropy.cosmology.FlatCosmologyMixin.clone">[docs]</a>    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">meta</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Mapping</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">to_nonflat</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a copy of this object with updated parameters, as specified.</span>
+
+<span class="sd">        This cannot be used to change the type of the cosmology, except for</span>
+<span class="sd">        changing to the non-flat version of this cosmology.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        meta : mapping or None (optional, keyword-only)</span>
+<span class="sd">            Metadata that will update the current metadata.</span>
+<span class="sd">        to_nonflat : bool, optional keyword-only</span>
+<span class="sd">            Whether to change to the non-flat version of this cosmology.</span>
+<span class="sd">        **kwargs</span>
+<span class="sd">            Cosmology parameter (and name) modifications. If any parameter is</span>
+<span class="sd">            changed and a new name is not given, the name will be set to &quot;[old</span>
+<span class="sd">            name] (modified)&quot;.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        newcosmo : `~astropy.cosmology.Cosmology` subclass instance</span>
+<span class="sd">            A new instance of this class with updated parameters as specified.</span>
+<span class="sd">            If no arguments are given, then a reference to this object is</span>
+<span class="sd">            returned instead of copy.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        To make a copy of the ``Planck13`` cosmology with a different matter</span>
+<span class="sd">        density (``Om0``), and a new name:</span>
+
+<span class="sd">            &gt;&gt;&gt; from astropy.cosmology import Planck13</span>
+<span class="sd">            &gt;&gt;&gt; Planck13.clone(name=&quot;Modified Planck 2013&quot;, Om0=0.35)</span>
+<span class="sd">            FlatLambdaCDM(name=&quot;Modified Planck 2013&quot;, H0=67.77 km / (Mpc s),</span>
+<span class="sd">                          Om0=0.35, ...</span>
+
+<span class="sd">        If no name is specified, the new name will note the modification.</span>
+
+<span class="sd">            &gt;&gt;&gt; Planck13.clone(Om0=0.35).name</span>
+<span class="sd">            &#39;Planck13 (modified)&#39;</span>
+
+<span class="sd">        The keyword &#39;to_nonflat&#39; can be used to clone on the non-flat equivalent</span>
+<span class="sd">        cosmology.</span>
+
+<span class="sd">            &gt;&gt;&gt; Planck13.clone(to_nonflat=True)</span>
+<span class="sd">            LambdaCDM(name=&quot;Planck13&quot;, ...</span>
+
+<span class="sd">            &gt;&gt;&gt; Planck13.clone(H0=70, to_nonflat=True)</span>
+<span class="sd">            LambdaCDM(name=&quot;Planck13 (modified)&quot;, H0=70.0 km / (Mpc s), ...</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">to_nonflat</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nonflat</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">meta</span><span class="o">=</span><span class="n">meta</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">meta</span><span class="o">=</span><span class="n">meta</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+
+<span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="n">attr</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">flrw</span>
+
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">flrw</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span> <span class="ow">and</span> <span class="n">attr</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;__path__&quot;</span><span class="p">,</span> <span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">warnings</span>
+
+        <span class="kn">from</span> <span class="nn">astropy.utils.exceptions</span> <span class="kn">import</span> <span class="n">AstropyDeprecationWarning</span>
+
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;`astropy.cosmology.core.</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2">` has been moved (since v5.0) and &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;should be imported as ``from astropy.cosmology import </span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2">``.&quot;</span>
+            <span class="s2">&quot; In future this will raise an exception.&quot;</span><span class="p">,</span>
+            <span class="n">AstropyDeprecationWarning</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">flrw</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+
+    <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;module </span><span class="si">{</span><span class="vm">__name__</span><span class="si">!r}</span><span class="s2"> has no attribute </span><span class="si">{</span><span class="n">attr</span><span class="si">!r}</span><span class="s2">.&quot;</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

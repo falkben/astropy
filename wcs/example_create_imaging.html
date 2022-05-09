@@ -1,0 +1,193 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>First Example &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Second Example" href="example_cube_wcs.html" />
+    <link rel="prev" title="Supported projections" href="supported_projections.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="example_cube_wcs.html" title="Second Example">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="supported_projections.html" title="Supported projections">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">World Coordinate System (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.wcs</span></code>)</a> &#187;</li>
+      
+      <li>First Example</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="first-example">
+<span id="example-create-imaging"></span><h1>First Example<a class="headerlink" href="#first-example" title="Permalink to this headline">¶</a></h1>
+<p>This example, rather than starting from a FITS header, sets WCS values
+programmatically, uses those settings to transform some points, and then
+saves those settings to a new FITS header.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set the WCS information manually by setting properties of the WCS</span>
+<span class="c1"># object.</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">wcs</span>
+<span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+
+<span class="c1"># Create a new WCS object.  The number of axes must be set</span>
+<span class="c1"># from the start</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">WCS</span><span class="p">(</span><span class="n">naxis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="c1"># Set up an &quot;Airy&#39;s zenithal&quot; projection</span>
+<span class="c1"># Vector properties may be set with Python lists, or Numpy arrays</span>
+<span class="n">w</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">crpix</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">234.75</span><span class="p">,</span> <span class="mf">8.3393</span><span class="p">]</span>
+<span class="n">w</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">cdelt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">0.066667</span><span class="p">,</span> <span class="mf">0.066667</span><span class="p">])</span>
+<span class="n">w</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">crval</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">90</span><span class="p">]</span>
+<span class="n">w</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">ctype</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;RA---AIR&quot;</span><span class="p">,</span> <span class="s2">&quot;DEC--AIR&quot;</span><span class="p">]</span>
+<span class="n">w</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">set_pv</span><span class="p">([(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">45.0</span><span class="p">)])</span>
+
+<span class="c1"># Three pixel coordinates of interest.</span>
+<span class="c1"># The pixel coordinates are pairs of [X, Y].</span>
+<span class="c1"># The &quot;origin&quot; argument indicates whether the input coordinates</span>
+<span class="c1"># are 0-based (as in Numpy arrays) or</span>
+<span class="c1"># 1-based (as in the FITS convention, for example coordinates</span>
+<span class="c1"># coming from DS9).</span>
+<span class="n">pixcrd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">24</span><span class="p">,</span> <span class="mi">38</span><span class="p">],</span> <span class="p">[</span><span class="mi">45</span><span class="p">,</span> <span class="mi">98</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+<span class="c1"># Convert pixel coordinates to world coordinates.</span>
+<span class="c1"># The second argument is &quot;origin&quot; -- in this case we&#39;re declaring we</span>
+<span class="c1"># have 0-based (Numpy-like) coordinates.</span>
+<span class="n">world</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">wcs_pix2world</span><span class="p">(</span><span class="n">pixcrd</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">world</span><span class="p">)</span>
+
+<span class="c1"># Convert the same coordinates back to pixel coordinates.</span>
+<span class="n">pixcrd2</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">wcs_world2pix</span><span class="p">(</span><span class="n">world</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">pixcrd2</span><span class="p">)</span>
+
+<span class="c1"># These should be the same as the original pixel coordinates, modulo</span>
+<span class="c1"># some floating-point error.</span>
+<span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">pixcrd</span> <span class="o">-</span> <span class="n">pixcrd2</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">1e-6</span>
+
+<span class="c1"># The example below illustrates the use of &quot;origin&quot; to convert between</span>
+<span class="c1"># 0- and 1- based coordinates when executing the forward and backward</span>
+<span class="c1"># WCS transform.</span>
+<span class="n">x</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">y</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">origin</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">wcs_pix2world</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">origin</span><span class="p">)</span> <span class="o">==</span>
+        <span class="n">w</span><span class="o">.</span><span class="n">wcs_pix2world</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">origin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="c1"># Now, write out the WCS object as a FITS header</span>
+<span class="n">header</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">to_header</span><span class="p">()</span>
+
+<span class="c1"># header is an astropy.io.fits.Header object.  We can use it to create a new</span>
+<span class="c1"># PrimaryHDU and write it to a file.</span>
+<span class="n">hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">PrimaryHDU</span><span class="p">(</span><span class="n">header</span><span class="o">=</span><span class="n">header</span><span class="p">)</span>
+<span class="c1"># Save to FITS file</span>
+<span class="c1"># hdu.writeto(&#39;test.fits&#39;)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The members of the WCS object correspond roughly to the key/value
+pairs in the FITS header.  However, they are adjusted and
+normalized in a number of ways that make performing the WCS
+transformation easier.  Therefore, they can not be relied upon to
+get the original values in the header.  To build up a FITS header
+directly and specifically, use <a class="reference internal" href="../io/fits/api/headers.html#astropy.io.fits.Header" title="astropy.io.fits.Header"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.fits.Header</span></code></a> directly.</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">First Example</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/wcs/example_create_imaging.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

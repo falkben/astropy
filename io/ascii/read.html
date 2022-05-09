@@ -1,0 +1,1042 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reading Tables &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Writing Tables" href="write.html" />
+    <link rel="prev" title="ASCII Tables (astropy.io.ascii)" href="index.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="write.html" title="Writing Tables">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="index.html" title="ASCII Tables (astropy.io.ascii)">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">ASCII Tables (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code>)</a> &#187;</li>
+      
+      <li>Reading Tables</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="reading-tables">
+<span id="astropy-io-ascii-read"></span><h1>Reading Tables<a class="headerlink" href="#reading-tables" title="Permalink to this headline">¶</a></h1>
+<p>The majority of commonly encountered ASCII tables can be read with the <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a>
+function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">ascii</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>Here <code class="docutils literal notranslate"><span class="pre">table</span></code> is the name of a file, a string representation of a table, or a
+list of table lines. The return value (<code class="docutils literal notranslate"><span class="pre">data</span></code> in this case) is a <a class="reference internal" href="../../table/index.html#astropy-table"><span class="std std-ref">Table</span></a> object.</p>
+<p>By default, <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> will try to <a class="reference external" href="#guess-table-format">guess the table format</a>
+by trying all of the supported formats.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Guessing the file format is often slow for large files because the reader
+tries parsing the file with every allowed format until one succeeds.
+For large files it is recommended to disable guessing with <code class="docutils literal notranslate"><span class="pre">guess=False</span></code>.</p>
+</div>
+<p>For unusually formatted tables where guessing does not work, give additional
+hints about the format:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;objID                   &amp; osrcid            &amp; xsrcid       &#39;</span><span class="p">,</span>
+<span class="gp">... </span>         <span class="s1">&#39;----------------------- &amp; ----------------- &amp; -------------&#39;</span><span class="p">,</span>
+<span class="gp">... </span>         <span class="s1">&#39;              277955213 &amp; S000.7044P00.7513 &amp; XS04861B6_005&#39;</span><span class="p">,</span>
+<span class="gp">... </span>         <span class="s1">&#39;              889974380 &amp; S002.9051P14.7003 &amp; XS03957B7_004&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">data_start</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;&amp;&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="go">  objID         osrcid          xsrcid</span>
+<span class="go">--------- ----------------- -------------</span>
+<span class="go">277955213 S000.7044P00.7513 XS04861B6_005</span>
+<span class="go">889974380 S002.9051P14.7003 XS03957B7_004</span>
+</pre></div>
+</div>
+<p>Other examples are as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;data/nls1_stackinfo.dbout&#39;</span><span class="p">,</span> <span class="n">data_start</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;|&#39;</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;data/simple.txt&#39;</span><span class="p">,</span> <span class="n">quotechar</span><span class="o">=</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;data/simple4.txt&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;no_header&#39;</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;|&#39;</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;data/tab_and_space.txt&#39;</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;\s&#39;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>If the format of a file is known (e.g., it is a fixed-width table or an IPAC
+table), then it is more efficient and reliable to provide a value for the
+<code class="docutils literal notranslate"><span class="pre">format</span></code> argument from one of the values in the <a class="reference internal" href="index.html#supported-formats"><span class="std std-ref">Supported Formats</span></a>. For
+example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;fixed_width_two_line&#39;</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;&amp;&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>See the <a class="reference internal" href="#guess-formats"><span class="std std-ref">Guess Table Format</span></a> section for additional details on format guessing.</p>
+<p>For simpler formats such as CSV, <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> will automatically try reading with the
+Cython/C parsing engine, which is significantly faster than the ordinary Python
+implementation (described in <a class="reference internal" href="fast_ascii_io.html#fast-ascii-io"><span class="std std-ref">Fast ASCII I/O</span></a>). If the fast engine fails,
+<a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> will fall back on the Python reader by default. The argument
+<code class="docutils literal notranslate"><span class="pre">fast_reader</span></code> can be specified to control this behavior. For example, to
+disable the fast engine:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;csv&#39;</span><span class="p">,</span> <span class="n">fast_reader</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For reading very large tables see the section on <a class="reference internal" href="#chunk-reading"><span class="std std-ref">Reading Large Tables in Chunks</span></a> or
+use <a class="reference external" href="https://pandas.pydata.org/">pandas</a> (see Note below).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Reading a table which contains unicode characters is supported with the
+pure Python readers by specifying the <code class="docutils literal notranslate"><span class="pre">encoding</span></code> parameter. The fast
+C-readers do not support unicode. For large data files containing unicode,
+we recommend reading the file using <a class="reference external" href="https://pandas.pydata.org/">pandas</a>
+and converting to a <a class="reference internal" href="../../table/index.html#astropy-table"><span class="std std-ref">Table</span></a> via the <a class="reference internal" href="../../table/pandas.html#pandas"><span class="std std-ref">Table -
+Pandas interface</span></a>.</p>
+</div>
+<p>The <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> function accepts a number of parameters that specify the detailed
+table format. Different formats can define different defaults, so the
+descriptions below sometimes mention “typical” default values. This refers to
+the <a class="reference internal" href="../../api/astropy.io.ascii.Basic.html#astropy.io.ascii.Basic" title="astropy.io.ascii.Basic"><code class="xref py py-class docutils literal notranslate"><span class="pre">Basic</span></code></a> format reader and other similar character-separated formats.</p>
+<div class="section" id="parameters-for-read">
+<span id="io-ascii-read-parameters"></span><h2>Parameters for <code class="docutils literal notranslate"><span class="pre">read()</span></code><a class="headerlink" href="#parameters-for-read" title="Permalink to this headline">¶</a></h2>
+<dl>
+<dt><strong>table</strong><span class="classifier">input table</span></dt><dd><p>There are four ways to specify the table to be read:</p>
+<ul class="simple">
+<li><p>Path to a file (string)</p></li>
+<li><p>Single string containing all table lines separated by newlines</p></li>
+<li><p>File-like object with a callable read() method</p></li>
+<li><p>List of strings where each list element is a table line</p></li>
+</ul>
+<p>The first two options are distinguished by the presence of a newline in the
+string. This assumes that valid file names will not normally contain a
+newline, and a valid table input will at least contain two rows.
+Note that a table read in <code class="docutils literal notranslate"><span class="pre">no_header</span></code> format can legitimately consist
+of a single row; in this case passing the string as a list with a single
+item will ensure that it is not interpreted as a file name.</p>
+</dd>
+<dt><strong>format</strong><span class="classifier">file format (default=’basic’)</span></dt><dd><p>This specifies the top-level format of the ASCII table; for example,
+if it is a basic character delimited table, fixed format table, or
+a CDS-compatible table, etc. The value of this parameter must
+be one of the <a class="reference internal" href="index.html#supported-formats"><span class="std std-ref">Supported Formats</span></a>.</p>
+</dd>
+<dt><strong>guess</strong><span class="classifier">try to guess table format (default=None)</span></dt><dd><p>If set to True, then <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> will try to guess the table format by cycling
+through a number of possible table format permutations and attempting to read
+the table in each case. See the <a class="reference internal" href="#guess-table-format">Guess table format</a> section for further details.</p>
+</dd>
+<dt><strong>delimiter</strong><span class="classifier">column delimiter string</span></dt><dd><p>A one-character string used to separate fields which typically defaults to
+the space character. Other common values might be “\s” (whitespace), “,” or
+“|” or “\t” (tab). A value of “\s” allows any combination of the tab and
+space characters to delimit columns.</p>
+</dd>
+<dt><strong>comment</strong><span class="classifier">regular expression defining a comment line in table</span></dt><dd><p>If the <code class="docutils literal notranslate"><span class="pre">comment</span></code> regular expression matches the beginning of a table line
+then that line will be discarded from header or data processing.  For the
+<code class="docutils literal notranslate"><span class="pre">basic</span></code> format this defaults to “\s*#” (any whitespace followed by #).</p>
+</dd>
+<dt><strong>quotechar</strong><span class="classifier">one-character string to quote fields containing special characters</span></dt><dd><p>This specifies the quote character and will typically be either the single or
+double quote character. This is can be useful for reading text fields with
+spaces in a space-delimited table. The default is typically the double quote.</p>
+</dd>
+<dt><strong>header_start</strong><span class="classifier">line index for the header line</span></dt><dd><p>This includes only significant non-comment lines and counting starts at 0. If
+set to None this indicates that there is no header line and the column names
+will be auto-generated. See <a class="reference internal" href="#specifying-header-and-data-location">Specifying header and data location</a> for more
+details.</p>
+</dd>
+<dt><strong>data_start</strong><span class="classifier">line index for the start of data counting</span></dt><dd><p>This includes only significant non-comment lines and counting starts at 0.
+See <a class="reference internal" href="#specifying-header-and-data-location">Specifying header and data location</a> for more details.</p>
+</dd>
+<dt><strong>data_end</strong><span class="classifier">line index for the end of data</span></dt><dd><p>This includes only significant non-comment lines and can be negative to count
+from end. See <a class="reference internal" href="#specifying-header-and-data-location">Specifying header and data location</a> for more details.</p>
+</dd>
+<dt><strong>encoding</strong>: encoding to read the file (<code class="docutils literal notranslate"><span class="pre">default=None</span></code>)</dt><dd><p>When <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> use <a class="reference external" href="https://docs.python.org/3/library/locale.html#locale.getpreferredencoding" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">locale.getpreferredencoding</span></code></a> as an encoding. This matches
+the default behavior of the built-in <a class="reference external" href="https://docs.python.org/3/library/functions.html#open" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open</span></code></a> when no <code class="docutils literal notranslate"><span class="pre">mode</span></code> argument is
+provided.</p>
+</dd>
+<dt><strong>converters</strong><span class="classifier"><code class="docutils literal notranslate"><span class="pre">dict</span></code> specifying output data types</span></dt><dd><p>See the <a class="reference internal" href="#io-ascii-read-converters"><span class="std std-ref">Converters for Specifying Dtype</span></a> section for examples. Each key in the
+dictionary is a column name or else a name matching pattern including
+wildcards. The value is one of:</p>
+<ul class="simple">
+<li><p>Python data type or numpy dtype such as <code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">np.float32</span></code></p></li>
+<li><p>list of such types which is tried in order until conversion is successful</p></li>
+<li><p>list of converter tuples (this is not common, but see the
+<a class="reference internal" href="../../api/astropy.io.ascii.convert_numpy.html#astropy.io.ascii.convert_numpy" title="astropy.io.ascii.convert_numpy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">convert_numpy</span></code></a> function for an example).</p></li>
+</ul>
+</dd>
+<dt><strong>names</strong><span class="classifier">list of names corresponding to each data column</span></dt><dd><p>Define the complete list of names for each data column. This will override
+names found in the header (if it exists). If not supplied then
+use names from the header or auto-generated names if there is no header.</p>
+</dd>
+<dt><strong>include_names</strong><span class="classifier">list of names to include in output</span></dt><dd><p>From the list of column names found from the header or the <code class="docutils literal notranslate"><span class="pre">names</span></code>
+parameter, select for output only columns within this list. If not supplied,
+then include all names.</p>
+</dd>
+<dt><strong>exclude_names</strong><span class="classifier">list of names to exclude from output</span></dt><dd><p>Exclude these names from the list of output columns. This is applied <em>after</em>
+the <code class="docutils literal notranslate"><span class="pre">include_names</span></code> filtering. If not specified then no columns are excluded.</p>
+</dd>
+<dt><strong>fill_values</strong><span class="classifier">list of fill value specifiers</span></dt><dd><p>Specify input table entries which should be masked in the output table
+because they are bad or missing. See the <a class="reference internal" href="#bad-or-missing-values">Bad or missing values</a> section
+for more information and examples. The default is that any blank table
+values are treated as missing.</p>
+</dd>
+<dt><strong>fill_include_names</strong><span class="classifier">list of column names affected by <code class="docutils literal notranslate"><span class="pre">fill_values</span></code></span></dt><dd><p>This is a list of column names (found from the header or the <code class="docutils literal notranslate"><span class="pre">names</span></code>
+parameter) for all columns where values will be filled. <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> (the default) will
+apply <code class="docutils literal notranslate"><span class="pre">fill_values</span></code> to all columns.</p>
+</dd>
+<dt><strong>fill_exclude_names</strong><span class="classifier">list of column names not affected by <code class="docutils literal notranslate"><span class="pre">fill_values</span></code></span></dt><dd><p>This is a list of column names (found from the header or the <code class="docutils literal notranslate"><span class="pre">names</span></code>
+parameter) for all columns where values will be <strong>not</strong> be filled.
+This parameter takes precedence over <code class="docutils literal notranslate"><span class="pre">fill_include_names</span></code>.  A value
+of <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> (default) does not exclude any columns.</p>
+</dd>
+<dt><strong>Outputter</strong><span class="classifier">Outputter class</span></dt><dd><p>This converts the raw data tables value into the
+output object that gets returned by <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a>. The default is
+<a class="reference internal" href="../../api/astropy.io.ascii.TableOutputter.html#astropy.io.ascii.TableOutputter" title="astropy.io.ascii.TableOutputter"><code class="xref py py-class docutils literal notranslate"><span class="pre">TableOutputter</span></code></a>, which returns a
+<a class="reference internal" href="../../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> object (see <a class="reference internal" href="../../table/index.html#astropy-table"><span class="std std-ref">Data Tables</span></a>).</p>
+</dd>
+<dt><strong>Inputter</strong><span class="classifier">Inputter class</span></dt><dd><p>This is generally not specified.</p>
+</dd>
+</dl>
+<p><strong>data_Splitter</strong> : Splitter class to split data columns</p>
+<p><strong>header_Splitter</strong> : Splitter class to split header columns</p>
+<dl>
+<dt><strong>fast_reader</strong><span class="classifier">whether to use the C engine</span></dt><dd><p>This can be <code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code>, and also be a <code class="docutils literal notranslate"><span class="pre">dict</span></code> with options.
+(see <a class="reference internal" href="fast_ascii_io.html#fast-ascii-io"><span class="std std-ref">Fast ASCII I/O</span></a>)</p>
+</dd>
+<dt><strong>Reader</strong><span class="classifier">Reader class (<em>deprecated</em> in favor of <code class="docutils literal notranslate"><span class="pre">format</span></code>)</span></dt><dd><p>This specifies the top-level format of the ASCII table; for example,
+if it is a basic character delimited table, fixed format table, or
+a CDS-compatible table, etc. The value of this parameter must
+be a Reader class. For basic usage this means one of the
+built-in <a class="reference internal" href="extension_classes.html#extension-reader-classes"><span class="std std-ref">Extension Reader Classes</span></a>.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="specifying-header-and-data-location">
+<h2>Specifying Header and Data Location<a class="headerlink" href="#specifying-header-and-data-location" title="Permalink to this headline">¶</a></h2>
+<p>The three parameters <code class="docutils literal notranslate"><span class="pre">header_start</span></code>, <code class="docutils literal notranslate"><span class="pre">data_start</span></code>, and <code class="docutils literal notranslate"><span class="pre">data_end</span></code> make it
+possible to read a table file that has extraneous non-table data included.
+This is a case where you need to help out <a class="reference internal" href="index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code></a> and tell it where
+to find the header and data.</p>
+<p>When a file is processed into a header and data components, any blank lines
+(which might have whitespace characters) and commented lines (starting with the
+comment character, typically <code class="docutils literal notranslate"><span class="pre">#</span></code>) are stripped out <em>before</em> the header and
+data parsing code sees the table content.</p>
+<div class="section" id="example">
+<h3>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h3>
+<p>To use the parameters <code class="docutils literal notranslate"><span class="pre">header_start</span></code>, <code class="docutils literal notranslate"><span class="pre">data_start</span></code>, and <code class="docutils literal notranslate"><span class="pre">data_end</span></code>
+to read a table with non-table data included, take the file below. The column
+on the left is not part of the file but instead shows how <a class="reference internal" href="index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code></a> is
+viewing each line and the line count index.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Index</span>    <span class="n">Table</span> <span class="n">content</span>
+<span class="o">------</span> <span class="o">----------------------------------------------------------------</span>
+   <span class="o">-</span>  <span class="o">|</span> <span class="c1"># This is the start of my data file</span>
+   <span class="o">-</span>  <span class="o">|</span>
+   <span class="mi">0</span>  <span class="o">|</span> <span class="n">Automatically</span> <span class="n">generated</span> <span class="n">by</span> <span class="n">my_script</span><span class="o">.</span><span class="n">py</span> <span class="n">at</span> <span class="mi">2012</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span><span class="n">T12</span><span class="p">:</span><span class="mi">13</span><span class="p">:</span><span class="mi">14</span>
+   <span class="mi">1</span>  <span class="o">|</span> <span class="n">Run</span> <span class="n">parameters</span><span class="p">:</span> <span class="kc">None</span>
+   <span class="mi">2</span>  <span class="o">|</span> <span class="n">Column</span> <span class="n">header</span> <span class="n">line</span><span class="p">:</span>
+   <span class="o">-</span>  <span class="o">|</span>
+   <span class="mi">3</span>  <span class="o">|</span> <span class="n">x</span> <span class="n">y</span> <span class="n">z</span>
+   <span class="o">-</span>  <span class="o">|</span>
+   <span class="mi">4</span>  <span class="o">|</span> <span class="n">Data</span> <span class="n">values</span> <span class="n">section</span><span class="p">:</span>
+   <span class="o">-</span>  <span class="o">|</span>
+   <span class="mi">5</span>  <span class="o">|</span> <span class="mi">1</span> <span class="mi">2</span> <span class="mi">3</span>
+   <span class="mi">6</span>  <span class="o">|</span> <span class="mi">4</span> <span class="mi">5</span> <span class="mi">6</span>
+   <span class="o">-</span>  <span class="o">|</span>
+   <span class="mi">7</span>  <span class="o">|</span> <span class="n">Run</span> <span class="n">completed</span> <span class="n">at</span> <span class="mi">2012</span><span class="p">:</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span><span class="n">T12</span><span class="p">:</span><span class="mi">14</span><span class="p">:</span><span class="mi">01</span>
+</pre></div>
+</div>
+<p>In this case you would have <code class="docutils literal notranslate"><span class="pre">header_start=3</span></code>, <code class="docutils literal notranslate"><span class="pre">data_start=5</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">data_end=7</span></code>. The convention for <code class="docutils literal notranslate"><span class="pre">data_end</span></code> follows the normal Python
+slicing convention where to select data rows 5 and 6 you would do
+<code class="docutils literal notranslate"><span class="pre">rows[5:7]</span></code>. For <code class="docutils literal notranslate"><span class="pre">data_end</span></code> you can also supply a negative index to
+count backward from the end, so <code class="docutils literal notranslate"><span class="pre">data_end=-1</span></code> (like <code class="docutils literal notranslate"><span class="pre">rows[5:-1]</span></code>) would
+work in this case.</p>
+</div>
+</div>
+<div class="section" id="bad-or-missing-values">
+<span id="replace-bad-or-missing-values"></span><h2>Bad or Missing Values<a class="headerlink" href="#bad-or-missing-values" title="Permalink to this headline">¶</a></h2>
+<p>ASCII data tables can contain bad or missing values. A common case is when a
+table contains blank entries with no available data.</p>
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+<p>Take this example of a table with blank entries:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">weather_data</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="gp">... </span><span class="s2">  day,precip,type</span>
+<span class="gp">... </span><span class="s2">  Mon,1.5,rain</span>
+<span class="gp">... </span><span class="s2">  Tues,,</span>
+<span class="gp">... </span><span class="s2">  Wed,1.1,snow</span>
+<span class="gp">... </span><span class="s2">  &quot;&quot;&quot;</span>
+</pre></div>
+</div>
+<p>By default, <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> will interpret blank entries as being bad/missing and output
+a masked Table with those entries masked out by setting the corresponding mask
+value set to <code class="docutils literal notranslate"><span class="pre">True</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dat</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">weather_data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">dat</span><span class="p">)</span>
+<span class="go">day  precip type</span>
+<span class="go">---- ------ ----</span>
+<span class="go"> Mon    1.5 rain</span>
+<span class="go">Tues     --   --</span>
+<span class="go"> Wed    1.1 snow</span>
+</pre></div>
+</div>
+<p>If you want to replace the masked (missing) values with particular values, set
+the masked column <code class="docutils literal notranslate"><span class="pre">fill_value</span></code> attribute and then get the “filled” version of
+the table. This looks like the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dat</span><span class="p">[</span><span class="s1">&#39;precip&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">fill_value</span> <span class="o">=</span> <span class="o">-</span><span class="mi">999</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dat</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">fill_value</span> <span class="o">=</span> <span class="s1">&#39;N/A&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">dat</span><span class="o">.</span><span class="n">filled</span><span class="p">())</span>
+<span class="go">day  precip type</span>
+<span class="go">---- ------ ----</span>
+<span class="go"> Mon    1.5 rain</span>
+<span class="go">Tues -999.0  N/A</span>
+<span class="go"> Wed    1.1 snow</span>
+</pre></div>
+</div>
+<p>ASCII tables may have other indicators of bad or missing data as well. For
+example, a table may contain string values that are not a valid representation
+of a number (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;...&quot;</span></code>), or a table may have special values like <code class="docutils literal notranslate"><span class="pre">-999</span></code>
+that are chosen to indicate missing data. The <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> function has a flexible
+system to accommodate these cases by marking specified character sequences in
+the input data as “missing data” during the conversion process. Whenever
+missing data is found the output will be a masked table.</p>
+<p>This is done with the <code class="docutils literal notranslate"><span class="pre">fill_values</span></code> keyword argument, which can be set to a
+single missing-value specification <code class="docutils literal notranslate"><span class="pre">&lt;missing_spec&gt;</span></code> or a list of <code class="docutils literal notranslate"><span class="pre">&lt;missing_spec&gt;</span></code> tuples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fill_values</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">missing_spec</span><span class="o">&gt;</span> <span class="o">|</span> <span class="p">[</span><span class="o">&lt;</span><span class="n">missing_spec1</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">missing_spec2</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+<span class="o">&lt;</span><span class="n">missing_spec</span><span class="o">&gt;</span> <span class="o">=</span> <span class="p">(</span><span class="o">&lt;</span><span class="n">match_string</span><span class="o">&gt;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">optional</span> <span class="n">col</span> <span class="n">name</span> <span class="mi">1</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">optional</span> <span class="n">col</span> <span class="n">name</span> <span class="mi">2</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>When reading a table, the second element of a <code class="docutils literal notranslate"><span class="pre">&lt;missing_spec&gt;</span></code> should always
+be the string <code class="docutils literal notranslate"><span class="pre">'0'</span></code>, otherwise you may get unexpected behavior <a class="footnote-reference brackets" href="#f1" id="id2">1</a>. By
+default, the <code class="docutils literal notranslate"><span class="pre">&lt;missing_spec&gt;</span></code> is applied to all columns unless column name
+strings are supplied. An alternate way to limit the columns is via the
+<code class="docutils literal notranslate"><span class="pre">fill_include_names</span></code> and <code class="docutils literal notranslate"><span class="pre">fill_exclude_names</span></code> keyword arguments in <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a>.</p>
+<p>In the example below we read back the weather table after filling the missing
+values in with typical placeholders:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">table</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;day   precip  type&#39;</span><span class="p">,</span>
+<span class="gp">... </span>         <span class="s1">&#39; Mon     1.5  rain&#39;</span><span class="p">,</span>
+<span class="gp">... </span>         <span class="s1">&#39;Tues  -999.0   N/A&#39;</span><span class="p">,</span>
+<span class="gp">... </span>         <span class="s1">&#39; Wed     1.1  snow&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">fill_values</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;-999.0&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s1">&#39;precip&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;N/A&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go">day  precip type</span>
+<span class="go">---- ------ ----</span>
+<span class="go"> Mon    1.5 rain</span>
+<span class="go">Tues     --   --</span>
+<span class="go"> Wed    1.1 snow</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The default in <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> is <code class="docutils literal notranslate"><span class="pre">fill_values=('','0')</span></code>. This marks blank entries as being
+missing for any data type (int, float, or string). If <code class="docutils literal notranslate"><span class="pre">fill_values</span></code> is explicitly
+set in the call to <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> then the default behavior of marking blank entries as missing
+no longer applies. For instance setting <code class="docutils literal notranslate"><span class="pre">fill_values=None</span></code> will disable this
+auto-masking without setting any other fill values. This can be useful for a string
+column where one of values happens to be <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>.</p>
+</div>
+<dl class="footnote brackets">
+<dt class="label" id="f1"><span class="brackets"><a class="fn-backref" href="#id2">1</a></span></dt>
+<dd><p>The requirement to put the <code class="docutils literal notranslate"><span class="pre">'0'</span></code> there is the legacy of an old
+interface which is maintained for backward compatibility and also to
+match the format of <code class="docutils literal notranslate"><span class="pre">fill_value</span></code> for reading with the format of
+<code class="docutils literal notranslate"><span class="pre">fill_value</span></code> used for writing tables. On reading, the second
+element of the <code class="docutils literal notranslate"><span class="pre">&lt;missing_spec&gt;</span></code> tuple can actually be an arbitrary
+string value which replaces occurrences of the <code class="docutils literal notranslate"><span class="pre">&lt;match_string&gt;</span></code>
+string in the input stream prior to type conversion. This ends up
+being the value “behind the mask”, which should never be directly
+accessed. Only the value <code class="docutils literal notranslate"><span class="pre">'0'</span></code> is neutral when attempting to detect
+the column data type and perform type conversion. For instance if you
+used <code class="docutils literal notranslate"><span class="pre">'nan'</span></code> for the <code class="docutils literal notranslate"><span class="pre">&lt;match_string&gt;</span></code> value then integer columns
+would wind up as float.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="selecting-columns-for-masking">
+<h3>Selecting columns for masking<a class="headerlink" href="#selecting-columns-for-masking" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> function provides the parameters <code class="docutils literal notranslate"><span class="pre">fill_include_names</span></code> and <code class="docutils literal notranslate"><span class="pre">fill_exclude_names</span></code>
+to select which columns will be used in the <code class="docutils literal notranslate"><span class="pre">fill_values</span></code> masking process described above.</p>
+<p>The use of these parameters is not common but in some cases can considerably simplify
+the code required to read a table. The following gives a simple example to illustrate how
+<code class="docutils literal notranslate"><span class="pre">fill_include_names</span></code> and <code class="docutils literal notranslate"><span class="pre">fill_exclude_names</span></code> can be used
+in the most basic and typical cases:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">ascii</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;a,b,c,d&#39;</span><span class="p">,</span> <span class="s1">&#39;1.0,2.0,3.0,4.0&#39;</span><span class="p">,</span> <span class="s1">&#39;,,,&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+<span class="go">&lt;Table length=2&gt;</span>
+<span class="go">   a       b       c       d</span>
+<span class="go">float64 float64 float64 float64</span>
+<span class="go">------- ------- ------- -------</span>
+<span class="go">    1.0     2.0     3.0     4.0</span>
+<span class="go">     --      --      --      --</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">fill_include_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">])</span>
+<span class="go">&lt;Table length=2&gt;</span>
+<span class="go">   a     b      c     d</span>
+<span class="go">float64 str3 float64 str3</span>
+<span class="go">------- ---- ------- ----</span>
+<span class="go">    1.0  2.0     3.0  4.0</span>
+<span class="go">     --           --</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">fill_exclude_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">])</span>
+<span class="go">&lt;Table length=2&gt;</span>
+<span class="go"> a      b     c      d</span>
+<span class="go">str3 float64 str3 float64</span>
+<span class="go">---- ------- ---- -------</span>
+<span class="go"> 1.0     2.0  3.0     4.0</span>
+<span class="go">          --           --</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="guess-table-format">
+<span id="guess-formats"></span><h2>Guess Table Format<a class="headerlink" href="#guess-table-format" title="Permalink to this headline">¶</a></h2>
+<p>If the <code class="docutils literal notranslate"><span class="pre">guess</span></code> parameter in <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> is set to True, then
+<a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> will try to guess the table format by cycling through a number of
+possible table format permutations and attempting to read the table in each
+case. The first format which succeeds and will be used to read the table. To
+succeed, the table must be successfully parsed by the Reader and satisfy the
+following column requirements:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>At least two table columns.</p></li>
+<li><p>No column names are a float or int number.</p></li>
+<li><p>No column names begin or end with space, comma, tab, single quote, double
+quote, or a vertical bar (|).</p></li>
+</ul>
+</div></blockquote>
+<p>These requirements reduce the chance for a false positive where a table is
+successfully parsed with the wrong format. A common situation is a table
+with numeric columns but no header row, and in this case <a class="reference internal" href="index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code></a> will
+auto-assign column names because of the restriction on column names that
+look like a number.</p>
+<div class="section" id="guess-order">
+<h3>Guess Order<a class="headerlink" href="#guess-order" title="Permalink to this headline">¶</a></h3>
+<p>The order of guessing is shown by this Python code, where <code class="docutils literal notranslate"><span class="pre">Reader</span></code> is the
+class which actually implements reading the different file formats:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">Reader</span> <span class="ow">in</span> <span class="p">(</span><span class="n">Ecsv</span><span class="p">,</span> <span class="n">FixedWidthTwoLine</span><span class="p">,</span> <span class="n">Rst</span><span class="p">,</span> <span class="n">FastBasic</span><span class="p">,</span> <span class="n">Basic</span><span class="p">,</span>
+               <span class="n">FastRdb</span><span class="p">,</span> <span class="n">Rdb</span><span class="p">,</span> <span class="n">FastTab</span><span class="p">,</span> <span class="n">Tab</span><span class="p">,</span> <span class="n">Cds</span><span class="p">,</span> <span class="n">Daophot</span><span class="p">,</span> <span class="n">SExtractor</span><span class="p">,</span>
+               <span class="n">Ipac</span><span class="p">,</span> <span class="n">Latex</span><span class="p">,</span> <span class="n">AASTex</span><span class="p">):</span>
+    <span class="n">read</span><span class="p">(</span><span class="n">Reader</span><span class="o">=</span><span class="n">Reader</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">Reader</span> <span class="ow">in</span> <span class="p">(</span><span class="n">CommentedHeader</span><span class="p">,</span> <span class="n">FastBasic</span><span class="p">,</span> <span class="n">Basic</span><span class="p">,</span> <span class="n">FastNoHeader</span><span class="p">,</span> <span class="n">NoHeader</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">delimiter</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;|&quot;</span><span class="p">,</span> <span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">s&quot;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">quotechar</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">):</span>
+            <span class="n">read</span><span class="p">(</span><span class="n">Reader</span><span class="o">=</span><span class="n">Reader</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">,</span> <span class="n">quotechar</span><span class="o">=</span><span class="n">quotechar</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that the <a class="reference internal" href="../../api/astropy.io.ascii.FixedWidth.html#astropy.io.ascii.FixedWidth" title="astropy.io.ascii.FixedWidth"><code class="xref py py-class docutils literal notranslate"><span class="pre">FixedWidth</span></code></a> derived-readers are not
+included in the default guess sequence (this causes problems), so to read such
+tables you must explicitly specify the format with the <code class="docutils literal notranslate"><span class="pre">format</span></code> keyword. Also
+notice that formats compatible with the fast reading engine attempt to use the
+fast engine before the ordinary reading engine.</p>
+<p>If none of the guesses succeed in reading the table (subject to the column
+requirements), a final try is made using just the user-supplied parameters but
+without checking the column requirements. In this way, a table with only one
+column or column names that look like a number can still be successfully read.</p>
+<p>The guessing process respects any values of the Reader, delimiter, and
+quotechar parameters as well as options for the fast reader that were
+supplied to the read() function. Any guesses that would conflict are
+skipped. For example, the call:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">Reader</span><span class="o">=</span><span class="n">ascii</span><span class="o">.</span><span class="n">NoHeader</span><span class="p">,</span> <span class="n">quotechar</span><span class="o">=</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>would only try the four delimiter possibilities, skipping all the conflicting
+Reader and quotechar combinations. Similarly, with any setting of
+<code class="docutils literal notranslate"><span class="pre">fast_reader</span></code> that requires use of the fast engine, only the fast
+variants in the Reader list above will be tried.</p>
+</div>
+<div class="section" id="disabling">
+<h3>Disabling<a class="headerlink" href="#disabling" title="Permalink to this headline">¶</a></h3>
+<p>Guessing can be disabled in two ways:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">astropy.io.ascii</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>               <span class="c1"># guessing enabled by default</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">guess</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># disable for this call</span>
+<span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">ascii</span><span class="o">.</span><span class="n">set_guess</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>                 <span class="c1"># set default to False globally</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>               <span class="c1"># guessing disabled</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="debugging">
+<h3>Debugging<a class="headerlink" href="#debugging" title="Permalink to this headline">¶</a></h3>
+<p>In order to get more insight into the guessing process and possibly debug if
+something is not working as expected, use the
+<a class="reference internal" href="../../api/astropy.io.ascii.get_read_trace.html#astropy.io.ascii.get_read_trace" title="astropy.io.ascii.get_read_trace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_read_trace()</span></code></a> function. This returns a traceback of the
+attempted read formats for the last call to <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read()</span></code></a>.</p>
+</div>
+</div>
+<div class="section" id="comments-and-metadata">
+<h2>Comments and Metadata<a class="headerlink" href="#comments-and-metadata" title="Permalink to this headline">¶</a></h2>
+<p>Any comment lines detected during reading are inserted into the output table
+via the <code class="docutils literal notranslate"><span class="pre">comments</span></code> key in the table’s <code class="docutils literal notranslate"><span class="pre">.meta</span></code> dictionary.</p>
+<div class="section" id="id3">
+<h3>Example<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>Comment lines detected during reading are inserted into the output table as
+such:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">table</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;# TELESCOPE = 30 inch</span>
+<span class="gp">... </span><span class="s1">         # TARGET = PV Ceph</span>
+<span class="gp">... </span><span class="s1">         # BAND = V</span>
+<span class="gp">... </span><span class="s1">         MJD mag</span>
+<span class="gp">... </span><span class="s1">         55555 12.3</span>
+<span class="gp">... </span><span class="s1">         55556 12.4&#39;&#39;&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dat</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">dat</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;comments&#39;</span><span class="p">])</span>
+<span class="go">[&#39;TELESCOPE = 30 inch&#39;, &#39;TARGET = PV Ceph&#39;, &#39;BAND = V&#39;]</span>
+</pre></div>
+</div>
+<p>While <a class="reference internal" href="index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-mod docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code></a> will not do any post-processing on comment lines,
+custom post-processing can be accomplished by rereading with the metadata line
+comments. Here is one example, where comments are of the form “# KEY = VALUE”:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">header</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">dat</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;comments&#39;</span><span class="p">],</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;=&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                    <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;no_header&#39;</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="s1">&#39;val&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+<span class="go">   key      val</span>
+<span class="go">--------- -------</span>
+<span class="go">TELESCOPE 30 inch</span>
+<span class="go">   TARGET PV Ceph</span>
+<span class="go">     BAND       V</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="converters-for-specifying-dtype">
+<span id="io-ascii-read-converters"></span><h2>Converters for Specifying Dtype<a class="headerlink" href="#converters-for-specifying-dtype" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-mod docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code></a> converts the raw string values from the table into
+numeric data types by using converter functions such as the Python <code class="docutils literal notranslate"><span class="pre">int</span></code> and
+<code class="docutils literal notranslate"><span class="pre">float</span></code> functions or numpy dtype types such as <code class="docutils literal notranslate"><span class="pre">np.float64</span></code>.</p>
+<p>The default converters are:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">default_converters</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The default converters for each column can be overridden with the
+<code class="docutils literal notranslate"><span class="pre">converters</span></code> keyword:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">converters</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;col1&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">uint</span><span class="p">,</span>
+<span class="gp">... </span>              <span class="s1">&#39;col2&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;file.dat&#39;</span><span class="p">,</span> <span class="n">converters</span><span class="o">=</span><span class="n">converters</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>In addition to single column names you can use wildcards via <a class="reference external" href="https://docs.python.org/3/library/fnmatch.html#module-fnmatch" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fnmatch</span></code></a> to
+select multiple columns. For example, we can set the format for all columns
+with a name starting with “col” to an unsigned integer while applying default
+converters to all other columns in the table:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">converters</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;col*&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">uint</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;file.dat&#39;</span><span class="p">,</span> <span class="n">converters</span><span class="o">=</span><span class="n">converters</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>The value in the converters <code class="docutils literal notranslate"><span class="pre">dict</span></code> can also be a list of types, in which case
+these will be tried in order. This allows for flexible type conversions. For
+example, imagine you get read the following table:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">txt</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="gp">... </span><span class="s2">  a   b    c</span>
+<span class="gp">... </span><span class="s2">--- --- -----</span>
+<span class="gp">... </span><span class="s2">  1 3.5  True</span>
+<span class="gp">... </span><span class="s2">  2 4.0 False&quot;&quot;&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;fixed_width_two_line&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>By default the <code class="docutils literal notranslate"><span class="pre">True</span></code> and <code class="docutils literal notranslate"><span class="pre">False</span></code> values will be interpreted as strings.
+However, if you want those values to be read as booleans you can do the
+following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">converters</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;*&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;fixed_width_two_line&#39;</span><span class="p">,</span> <span class="n">converters</span><span class="o">=</span><span class="n">converters</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+<span class="go">bool</span>
+</pre></div>
+</div>
+<div class="section" id="advanced-usage">
+<h3>Advanced usage<a class="headerlink" href="#advanced-usage" title="Permalink to this headline">¶</a></h3>
+<p>Internally type conversion uses the <a class="reference internal" href="../../api/astropy.io.ascii.convert_numpy.html#astropy.io.ascii.convert_numpy" title="astropy.io.ascii.convert_numpy"><code class="xref py py-func docutils literal notranslate"><span class="pre">convert_numpy()</span></code></a>
+function which returns a two-element tuple <code class="docutils literal notranslate"><span class="pre">(converter_func,</span> <span class="pre">converter_type)</span></code>.
+This two-element tuple can be used as the value in a <code class="docutils literal notranslate"><span class="pre">converters</span></code> dict.
+The type provided to
+<a class="reference internal" href="../../api/astropy.io.ascii.convert_numpy.html#astropy.io.ascii.convert_numpy" title="astropy.io.ascii.convert_numpy"><code class="xref py py-func docutils literal notranslate"><span class="pre">convert_numpy()</span></code></a> must be a valid <a class="reference external" href="https://numpy.org/doc/stable/user/basics.types.html">NumPy type</a> such as
+<code class="docutils literal notranslate"><span class="pre">numpy.int</span></code>, <code class="docutils literal notranslate"><span class="pre">numpy.uint</span></code>, <code class="docutils literal notranslate"><span class="pre">numpy.int8</span></code>, <code class="docutils literal notranslate"><span class="pre">numpy.int64</span></code>,
+<code class="docutils literal notranslate"><span class="pre">numpy.float</span></code>, <code class="docutils literal notranslate"><span class="pre">numpy.float64</span></code>, or <code class="docutils literal notranslate"><span class="pre">numpy.str</span></code>.</p>
+<p>It is also possible to directly pass an arbitary conversion function as the
+<code class="docutils literal notranslate"><span class="pre">converter_func</span></code> element of the two-element tuple.</p>
+</div>
+</div>
+<div class="section" id="fortran-style-exponents">
+<span id="id4"></span><h2>Fortran-Style Exponents<a class="headerlink" href="#fortran-style-exponents" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="fast_ascii_io.html#fast-conversion-opts"><span class="std std-ref">fast converter</span></a> available with the C
+input parser provides an <code class="docutils literal notranslate"><span class="pre">exponent_style</span></code> option to define a custom
+character instead of the standard <code class="docutils literal notranslate"><span class="pre">'e'</span></code> for exponential formats in
+the input file, to read, for example, Fortran-style double precision
+numbers like <code class="docutils literal notranslate"><span class="pre">'1.495978707D+13'</span></code>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;double.dat&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;basic&#39;</span><span class="p">,</span> <span class="n">guess</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="gp">... </span>           <span class="n">fast_reader</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;exponent_style&#39;</span><span class="p">:</span> <span class="s1">&#39;D&#39;</span><span class="p">})</span>  
+</pre></div>
+</div>
+<p>The special setting <code class="docutils literal notranslate"><span class="pre">'fortran'</span></code> is provided to allow for the
+auto-detection of any valid Fortran exponent character (<code class="docutils literal notranslate"><span class="pre">'E'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'D'</span></code>, <code class="docutils literal notranslate"><span class="pre">'Q'</span></code>), as well as of triple-digit exponents prefixed with no
+character at all (e.g., <code class="docutils literal notranslate"><span class="pre">'2.1127123261674622-107'</span></code>).
+All values and exponent characters in the input data are
+case-insensitive; any value other than the default <code class="docutils literal notranslate"><span class="pre">'E'</span></code> implies the
+automatic setting of <code class="docutils literal notranslate"><span class="pre">'use_fast_converter':</span> <span class="pre">True</span></code>.</p>
+</div>
+<div class="section" id="advanced-customization">
+<span id="id5"></span><h2>Advanced Customization<a class="headerlink" href="#advanced-customization" title="Permalink to this headline">¶</a></h2>
+<p>Here we provide a few examples that demonstrate how to extend the base
+functionality to handle special cases. To go beyond these examples, the
+best reference is to read the code for the existing
+<a class="reference internal" href="extension_classes.html#extension-reader-classes"><span class="std std-ref">Extension Reader Classes</span></a>.</p>
+<div class="section" id="id6">
+<h3>Examples<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<p>For special cases, these examples demonstrate how to extend the base
+functionality of <a class="reference internal" href="index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code></a>.</p>
+<p><strong>Define custom readers by class inheritance</strong></p>
+<p>The most useful way to define a new reader class is by inheritance.
+This is the way all of the built-in readers are defined, so there are plenty
+of examples in the code.</p>
+<p>In most cases, you will define one class to handle the header,
+one class that handles the data, and a reader class that ties it all together.
+Here is an example from the code that defines a reader that is just like
+the basic reader, but header and data start in different lines of the file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Note: NoHeader is already included in astropy.io.ascii for convenience.</span>
+<span class="k">class</span> <span class="nc">NoHeaderHeader</span><span class="p">(</span><span class="n">BasicHeader</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Reader for table header without a header</span>
+
+<span class="sd">    Set the start of header line number to `None`, which tells the basic</span>
+<span class="sd">    reader there is no header line.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">start_line</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="k">class</span> <span class="nc">NoHeaderData</span><span class="p">(</span><span class="n">BasicData</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Reader for table data without a header</span>
+
+<span class="sd">    Data starts at first uncommented line since there is no header line.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">start_line</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="k">class</span> <span class="nc">NoHeader</span><span class="p">(</span><span class="n">Basic</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read a table with no header line.  Columns are autonamed using</span>
+<span class="sd">    header.auto_format which defaults to &quot;col%d&quot;.  Otherwise this reader</span>
+<span class="sd">    the same as the :class:`Basic` class from which it is derived.  Example::</span>
+
+<span class="sd">      # Table data</span>
+<span class="sd">      1 2 &quot;hello there&quot;</span>
+<span class="sd">      3 4 world</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_format_name</span> <span class="o">=</span> <span class="s1">&#39;no_header&#39;</span>
+    <span class="n">_description</span> <span class="o">=</span> <span class="s1">&#39;Basic table with no headers&#39;</span>
+    <span class="n">header_class</span> <span class="o">=</span> <span class="n">NoHeaderHeader</span>
+    <span class="n">data_class</span> <span class="o">=</span> <span class="n">NoHeaderData</span>
+</pre></div>
+</div>
+<p>In a slightly more involved case, the implementation can also override some of
+the methods in the base class:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Note: CommentedHeader is already included in astropy.io.ascii for convenience.</span>
+<span class="k">class</span> <span class="nc">CommentedHeaderHeader</span><span class="p">(</span><span class="n">BasicHeader</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Header class for which the column definition line starts with the</span>
+<span class="sd">    comment character.  See the :class:`CommentedHeader` class  for an example.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">process_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return only lines that start with the comment regexp.  For these</span>
+<span class="sd">        lines strip out the matching characters.&quot;&quot;&quot;</span>
+        <span class="n">re_comment</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comment</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">re_comment</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">line</span><span class="p">[</span><span class="n">match</span><span class="o">.</span><span class="n">end</span><span class="p">():]</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lines</span><span class="p">):</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">write_comment</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">splitter</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">colnames</span><span class="p">))</span>
+
+
+<span class="k">class</span> <span class="nc">CommentedHeader</span><span class="p">(</span><span class="n">Basic</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read a file where the column names are given in a line that begins with</span>
+<span class="sd">    the header comment character. ``header_start`` can be used to specify the</span>
+<span class="sd">    line index of column names, and it can be a negative index (for example -1</span>
+<span class="sd">    for the last commented line).  The default delimiter is the &lt;space&gt;</span>
+<span class="sd">    character.::</span>
+
+<span class="sd">      # col1 col2 col3</span>
+<span class="sd">      # Comment line</span>
+<span class="sd">      1 2 3</span>
+<span class="sd">      4 5 6</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_format_name</span> <span class="o">=</span> <span class="s1">&#39;commented_header&#39;</span>
+    <span class="n">_description</span> <span class="o">=</span> <span class="s1">&#39;Column names in a commented line&#39;</span>
+
+    <span class="n">header_class</span> <span class="o">=</span> <span class="n">CommentedHeaderHeader</span>
+    <span class="n">data_class</span> <span class="o">=</span> <span class="n">NoHeaderData</span>
+</pre></div>
+</div>
+<p><strong>Define a custom reader functionally</strong></p>
+<p>Instead of defining a new class, it is also possible to obtain an instance
+of a reader, and then to modify the properties of this one reader instance
+in a function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">read_rdb_table</span><span class="p">(</span><span class="n">table</span><span class="p">):</span>
+    <span class="n">reader</span> <span class="o">=</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">ascii</span><span class="o">.</span><span class="n">Basic</span><span class="p">()</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">splitter</span><span class="o">.</span><span class="n">delimiter</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">splitter</span><span class="o">.</span><span class="n">delimiter</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">splitter</span><span class="o">.</span><span class="n">process_line</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">splitter</span><span class="o">.</span><span class="n">process_line</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">start_line</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="k">return</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Create a custom splitter.process_val function</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># The default process_val() normally just strips whitespace.</span>
+<span class="c1"># In addition have it replace empty fields with -999.</span>
+<span class="k">def</span> <span class="nf">process_val</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Custom splitter process_val function: Remove whitespace at the beginning</span>
+<span class="sd">    or end of value and substitute -999 for any blank entries.&quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="s1">&#39;-999&#39;</span>
+    <span class="k">return</span> <span class="n">x</span>
+
+<span class="c1"># Create an RDB reader and override the splitter.process_val function</span>
+<span class="n">rdb_reader</span> <span class="o">=</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">ascii</span><span class="o">.</span><span class="n">get_reader</span><span class="p">(</span><span class="n">Reader</span><span class="o">=</span><span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">ascii</span><span class="o">.</span><span class="n">Rdb</span><span class="p">)</span>
+<span class="n">rdb_reader</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">splitter</span><span class="o">.</span><span class="n">process_val</span> <span class="o">=</span> <span class="n">process_val</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="reading-large-tables-in-chunks">
+<span id="chunk-reading"></span><h2>Reading Large Tables in Chunks<a class="headerlink" href="#reading-large-tables-in-chunks" title="Permalink to this headline">¶</a></h2>
+<p>The default process for reading ASCII tables is not memory efficient and may
+temporarily require much more memory than the size of the file (up to a factor
+of 5 to 10). In cases where the temporary memory requirement exceeds available
+memory this can cause significant slowdown when disk cache gets used.</p>
+<p>In this situation, there is a way to read the table in smaller chunks which are
+limited in size. There are two possible ways to do this:</p>
+<ul class="simple">
+<li><p>Read the table in chunks and aggregate the final table along the way. This
+uses only somewhat more memory than the final table requires.</p></li>
+<li><p>Use a Python generator function to return a <a class="reference internal" href="../../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table</span></code></a> object for
+each chunk of the input table. This allows for scanning through arbitrarily
+large tables since it never returns the final aggregate table.</p></li>
+</ul>
+<p>The chunk reading functionality is most useful for very large tables, so this is
+available only for the <a class="reference internal" href="fast_ascii_io.html#fast-ascii-io"><span class="std std-ref">Fast ASCII I/O</span></a> readers. The following formats are
+supported: <code class="docutils literal notranslate"><span class="pre">tab</span></code>, <code class="docutils literal notranslate"><span class="pre">csv</span></code>, <code class="docutils literal notranslate"><span class="pre">no_header</span></code>, <code class="docutils literal notranslate"><span class="pre">rdb</span></code>, and <code class="docutils literal notranslate"><span class="pre">basic</span></code>. The
+<code class="docutils literal notranslate"><span class="pre">commented_header</span></code> format is not directly supported, but as a workaround one
+can read using the <code class="docutils literal notranslate"><span class="pre">no_header</span></code> format and explicitly supply the column names
+using the <code class="docutils literal notranslate"><span class="pre">names</span></code> argument.</p>
+<p>In order to read a table in chunks you must provide the <code class="docutils literal notranslate"><span class="pre">fast_reader</span></code> keyword
+argument with a <code class="docutils literal notranslate"><span class="pre">dict</span></code> that includes the <code class="docutils literal notranslate"><span class="pre">chunk_size</span></code> key with the value
+being the approximate size (in bytes) of each chunk of the input table to read.
+In addition, if you provide a <code class="docutils literal notranslate"><span class="pre">chunk_generator</span></code> key which is set to
+<code class="docutils literal notranslate"><span class="pre">True</span></code>, then instead of returning a single table for the whole input it
+returns an iterator that provides a table for each chunk of the input.</p>
+<div class="section" id="id7">
+<h3>Examples<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
+<p>To read an entire table while limiting peak memory usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Read a large CSV table in 100 Mb chunks.</span>
+
+<span class="n">tbl</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;large_table.csv&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;csv&#39;</span><span class="p">,</span> <span class="n">guess</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">fast_reader</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;chunk_size&#39;</span><span class="p">:</span> <span class="mi">100</span> <span class="o">*</span> <span class="mi">1000000</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>To read the table in chunks with an iterator, we iterate over a CSV table and
+select all rows where the <code class="docutils literal notranslate"><span class="pre">Vmag</span></code> column is less than 8.0 (e.g., all stars in
+table brighter than 8.0 mag). We collect all of these subtables and then stack
+them at the end.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">vstack</span>
+
+<span class="c1"># tbls is an iterator over the chunks (no actual reading done yet)</span>
+<span class="n">tbls</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;large_table.csv&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;csv&#39;</span><span class="p">,</span> <span class="n">guess</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">fast_reader</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;chunk_size&#39;</span><span class="p">:</span> <span class="mi">100</span> <span class="o">*</span> <span class="mi">1000000</span><span class="p">,</span>
+                               <span class="s1">&#39;chunk_generator&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+
+<span class="n">out_tbls</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="c1"># At this point the file is actually read in chunks.</span>
+<span class="k">for</span> <span class="n">tbl</span> <span class="ow">in</span> <span class="n">tbls</span><span class="p">:</span>
+    <span class="n">bright</span> <span class="o">=</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;Vmag&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">8.0</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">bright</span><span class="p">):</span>
+        <span class="n">out_tbls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tbl</span><span class="p">[</span><span class="n">bright</span><span class="p">])</span>
+
+<span class="n">out_tbl</span> <span class="o">=</span> <span class="n">vstack</span><span class="p">(</span><span class="n">out_tbls</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Performance</strong></p>
+<p>Specifying the <code class="docutils literal notranslate"><span class="pre">format</span></code> explicitly and using <code class="docutils literal notranslate"><span class="pre">guess=False</span></code> is a good idea
+for large tables. This prevents unnecessary guessing in the typical case
+where the format is already known.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">chunk_size</span></code> should generally be set to the largest value that is
+reasonable given available system memory. There is overhead associated
+with processing each chunk, so the fewer chunks the better.</p>
+</div>
+</div>
+</div>
+<div class="section" id="how-to-find-and-fix-problems-reading-a-table">
+<span id="io-ascii-how-to-examples"></span><h2>How to Find and Fix Problems Reading a Table<a class="headerlink" href="#how-to-find-and-fix-problems-reading-a-table" title="Permalink to this headline">¶</a></h2>
+<p>The purpose of this section is to provide a few examples how we can
+deal with tables that fail to read.</p>
+<div class="section" id="obtain-the-data-table-in-a-different-format">
+<h3>Obtain the Data Table in a Different Format<a class="headerlink" href="#obtain-the-data-table-in-a-different-format" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes it is easy to obtain the data in a more structured format that
+more clearly defines columns and metadata, e.g. a FITS or VO/XML table, or
+an ASCII table that uses a different colum separator (e.g. comma instead of
+white space) or fixed-width columns.
+In that case, the fastest solution can be to simply download or export the
+data again in a different format.</p>
+</div>
+<div class="section" id="find-the-problem">
+<h3>Find the Problem<a class="headerlink" href="#find-the-problem" title="Permalink to this headline">¶</a></h3>
+<p>Usually, <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii.read</span></code></a> tries many different formats until one
+succeeds in reading. If it works, that saves you from finding and
+setting right options for reading. However, if it fails to find any combination
+of format and format options that correctly parses the file, then you will get
+a long exception message which shows every format that was tried and ends
+with this advice:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">************************************************************************</span>
+<span class="o">**</span> <span class="n">ERROR</span><span class="p">:</span> <span class="n">Unable</span> <span class="n">to</span> <span class="n">guess</span> <span class="n">table</span> <span class="nb">format</span> <span class="k">with</span> <span class="n">the</span> <span class="n">guesses</span> <span class="n">listed</span> <span class="n">above</span><span class="o">.</span> <span class="o">**</span>
+<span class="o">**</span>                                                                    <span class="o">**</span>
+<span class="o">**</span> <span class="n">To</span> <span class="n">figure</span> <span class="n">out</span> <span class="n">why</span> <span class="n">the</span> <span class="n">table</span> <span class="n">did</span> <span class="ow">not</span> <span class="n">read</span><span class="p">,</span> <span class="n">use</span> <span class="n">guess</span><span class="o">=</span><span class="kc">False</span> <span class="ow">and</span>      <span class="o">**</span>
+<span class="o">**</span> <span class="n">fast_reader</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">along</span> <span class="k">with</span> <span class="nb">any</span> <span class="n">appropriate</span> <span class="n">arguments</span> <span class="n">to</span> <span class="n">read</span><span class="p">()</span><span class="o">.</span> <span class="o">**</span>
+<span class="o">**</span> <span class="n">In</span> <span class="n">particular</span> <span class="n">specify</span> <span class="n">the</span> <span class="nb">format</span> <span class="ow">and</span> <span class="nb">any</span> <span class="n">known</span> <span class="n">attributes</span> <span class="n">like</span> <span class="n">the</span> <span class="o">**</span>
+<span class="o">**</span> <span class="n">delimiter</span><span class="o">.</span>                                                         <span class="o">**</span>
+<span class="o">************************************************************************</span>
+</pre></div>
+</div>
+<p>To expand on this a bit, you probably know from looking at the file
+what format it is in, which must be one of the <a class="reference internal" href="index.html#supported-formats"><span class="std std-ref">Supported Formats</span></a>.
+For instance maybe it is a basic space-delimited file but has the header
+line as a comment like below, which corresponds to the <code class="docutils literal notranslate"><span class="pre">commented_header</span></code>
+format:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">table</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;# name id</span>
+<span class="gp">... </span><span class="s2">Jill 1232</span>
+<span class="gp">... </span><span class="s2">Jack Johnson 456&quot;&quot;&quot;</span>
+</pre></div>
+</div>
+<p>In order to find the actual problem with the reading this file, you would do:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;commented_header&#39;</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">guess</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fast_reader</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+  <span class="c">...</span>
+<span class="gr">astropy.io.ascii.core.InconsistentTableError</span>: <span class="n">Number of header columns (2) inconsistent with data columns (3) at data line 1</span>
+<span class="go">Header values: [&#39;name&#39;, &#39;id&#39;]</span>
+<span class="go">Data values: [&#39;Jack&#39;, &#39;Johnson&#39;, &#39;456&#39;]</span>
+</pre></div>
+</div>
+<p>At this point you can see that the problem is that the 2nd data line has 3 columns while the header says there should be only 2. You might be initially confused by the <code class="docutils literal notranslate"><span class="pre">data</span> <span class="pre">line</span> <span class="pre">1</span></code> since the problem was in the 3rd line of the file. There are two things happening here. First, <code class="docutils literal notranslate"><span class="pre">data</span> <span class="pre">line</span> <span class="pre">1</span></code> refers to the count of data lines and does not include any header lines, blank lines, or commented out lines. Second, the count starts from zero, so that <code class="docutils literal notranslate"><span class="pre">1</span></code> is the 2nd data line.
+See the <a class="reference internal" href="#guess-formats"><span class="std std-ref">Guess Table Format</span></a> section for additional details on format guessing.</p>
+</div>
+<div class="section" id="make-the-table-easier-to-read">
+<h3>Make the Table Easier to Read<a class="headerlink" href="#make-the-table-easier-to-read" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes, the parameters for <a class="reference internal" href="../../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii.read</span></code></a> to specify, for example
+<code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">delimiter</span></code>, <code class="docutils literal notranslate"><span class="pre">comment</span></code>, <code class="docutils literal notranslate"><span class="pre">quote_char</span></code>, <code class="docutils literal notranslate"><span class="pre">header_start</span></code>,
+<code class="docutils literal notranslate"><span class="pre">data_start</span></code>, <code class="docutils literal notranslate"><span class="pre">data_end</span></code>, and <code class="docutils literal notranslate"><span class="pre">encoding</span></code> are not enough.
+To read just a single table that has a format close to, but not identical
+with, any of the <a class="reference internal" href="index.html#supported-formats"><span class="std std-ref">Supported Formats</span></a>, the fastest solution may be to open
+that one table file in a text editor to modify it until it does conform to a
+format that can be read. On the other hand, if we need to
+read tables of that specific format again and again, it is better to find a way
+to read them with <a class="reference internal" href="index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ascii</span></code></a> without modifying every file by hand.</p>
+<div class="section" id="badly-formatted-header-line">
+<h4>Badly formatted header line<a class="headerlink" href="#badly-formatted-header-line" title="Permalink to this headline">¶</a></h4>
+<p>The following table will fail to parse (raising an
+<a class="reference internal" href="../../api/astropy.io.ascii.InconsistentTableError.html#astropy.io.ascii.InconsistentTableError" title="astropy.io.ascii.InconsistentTableError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InconsistentTableError</span></code></a>) because the header line looks as
+if there were three columns, while in fact, there are only two:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Name</span> <span class="n">spectral</span> <span class="nb">type</span>
+<span class="n">Vega</span> <span class="n">A0</span>
+<span class="n">Altair</span> <span class="n">A7</span>
+</pre></div>
+</div>
+<p>Opening this file in a text editor to fix the format is easy:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Name</span> <span class="s2">&quot;spectral type&quot;</span>
+<span class="n">Vega</span> <span class="n">A0</span>
+<span class="n">Altair</span> <span class="n">A7</span>
+</pre></div>
+</div>
+<p>or:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Name</span> <span class="n">spectral_type</span>
+<span class="n">Vega</span> <span class="n">A0</span>
+<span class="n">Altair</span> <span class="n">A7</span>
+</pre></div>
+</div>
+<p>With either of the above changes you can read the file with no problem using default settings.</p>
+<p>To read the table without editing the files, we need to ignore the badly formatted header line and
+pass in the names of the column ourselves.
+That can be done without any modification of the table file by setting the <code class="docutils literal notranslate"><span class="pre">data_start</span></code> parameter:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">table</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="gp">... </span><span class="s2">Star spectral type</span>
+<span class="gp">... </span><span class="s2">Vega A0</span>
+<span class="gp">... </span><span class="s2">Altair A7</span>
+<span class="gp">... </span><span class="s2">&quot;&quot;&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Star&quot;</span><span class="p">,</span> <span class="s2">&quot;spectral type&quot;</span><span class="p">],</span> <span class="n">data_start</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">&lt;Table length=2&gt;</span>
+<span class="go"> Star  spectral type</span>
+<span class="go"> str6       str2</span>
+<span class="go">------ -------------</span>
+<span class="go">  Vega            A0</span>
+<span class="go">Altair            A7</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="badly-formatted-data-line">
+<h4>Badly formatted data line<a class="headerlink" href="#badly-formatted-data-line" title="Permalink to this headline">¶</a></h4>
+<p>Similar principles apply to badly formatted data lines. Here is a
+table where the number of columns is not consistent (<code class="docutils literal notranslate"><span class="pre">alpha</span> <span class="pre">Cen</span></code>
+should be written as <code class="docutils literal notranslate"><span class="pre">&quot;alpha</span> <span class="pre">Cen&quot;</span></code> to make clear that the two words
+“alpha” and “Cen” are part of the same column):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Star</span> <span class="n">SpT</span>
+<span class="n">Vega</span> <span class="n">A0</span>
+<span class="n">alpha</span> <span class="n">Cen</span> <span class="n">G2V</span><span class="o">+</span><span class="n">K1</span>
+</pre></div>
+</div>
+<p>When we try to read that with <code class="docutils literal notranslate"><span class="pre">guess=False</span></code>, astropy throws an
+<a class="reference internal" href="../../api/astropy.io.ascii.InconsistentTableError.html#astropy.io.ascii.InconsistentTableError" title="astropy.io.ascii.InconsistentTableError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii.InconsistentTableError</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">ascii</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">table</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="gp">... </span><span class="s1">Star SpT</span>
+<span class="gp">... </span><span class="s1">Vega A0</span>
+<span class="gp">... </span><span class="s1">alpha Cen G2V+K1</span>
+<span class="gp">... </span><span class="s1">&#39;&#39;&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">guess</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+    <span class="o">...</span>
+<span class="gr">astropy.io.ascii.core.InconsistentTableError</span>: <span class="n">Number of header columns (2) inconsistent with data columns in data line 1</span>
+</pre></div>
+</div>
+<p>This points us to the line with the problem, here line 1 (starting to count
+after the header lines and counting the data lines from 0 as usual in Python). In this table with
+just two lines the problem is easy to spot, but for longer tables, the line number is
+very helpful. We can now fix that line by hand in the file by adding quotes
+around <code class="docutils literal notranslate"><span class="pre">&quot;alpha</span> <span class="pre">Cen&quot;</span></code>. Then we can try to read the table again and see
+if it works or if there is a another badly formatted data line.</p>
+</div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Reading Tables</a><ul>
+<li><a class="reference internal" href="#parameters-for-read">Parameters for <code class="docutils literal notranslate"><span class="pre">read()</span></code></a></li>
+<li><a class="reference internal" href="#specifying-header-and-data-location">Specifying Header and Data Location</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#bad-or-missing-values">Bad or Missing Values</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#selecting-columns-for-masking">Selecting columns for masking</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#guess-table-format">Guess Table Format</a><ul>
+<li><a class="reference internal" href="#guess-order">Guess Order</a></li>
+<li><a class="reference internal" href="#disabling">Disabling</a></li>
+<li><a class="reference internal" href="#debugging">Debugging</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#comments-and-metadata">Comments and Metadata</a><ul>
+<li><a class="reference internal" href="#id3">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#converters-for-specifying-dtype">Converters for Specifying Dtype</a><ul>
+<li><a class="reference internal" href="#advanced-usage">Advanced usage</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#fortran-style-exponents">Fortran-Style Exponents</a></li>
+<li><a class="reference internal" href="#advanced-customization">Advanced Customization</a><ul>
+<li><a class="reference internal" href="#id6">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reading-large-tables-in-chunks">Reading Large Tables in Chunks</a><ul>
+<li><a class="reference internal" href="#id7">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#how-to-find-and-fix-problems-reading-a-table">How to Find and Fix Problems Reading a Table</a><ul>
+<li><a class="reference internal" href="#obtain-the-data-table-in-a-different-format">Obtain the Data Table in a Different Format</a></li>
+<li><a class="reference internal" href="#find-the-problem">Find the Problem</a></li>
+<li><a class="reference internal" href="#make-the-table-easier-to-read">Make the Table Easier to Read</a><ul>
+<li><a class="reference internal" href="#badly-formatted-header-line">Badly formatted header line</a></li>
+<li><a class="reference internal" href="#badly-formatted-data-line">Badly formatted data line</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../_sources/io/ascii/read.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

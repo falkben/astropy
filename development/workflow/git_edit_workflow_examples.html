@@ -1,0 +1,618 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contributing code to Astropy, a worked example &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="contributing-code-to-astropy-a-worked-example">
+<span id="astropy-fix-example"></span><h1>Contributing code to Astropy, a worked example<a class="headerlink" href="#contributing-code-to-astropy-a-worked-example" title="Permalink to this headline">¶</a></h1>
+<p>This example is based on fixing <a class="reference external" href="https://github.com/astropy/astropy/issues/1761">Issue 1761</a> from the list
+of <a class="reference external" href="https://github.com/astropy/astropy/issues">astropy issues on GitHub</a>.
+It resulted in <a class="reference external" href="https://github.com/astropy/astropy/pull/1917">pull request 1917</a>.</p>
+<p>The issue title was “len() does not work for coordinates” with description
+“It would be nice to be able to use <code class="docutils literal notranslate"><span class="pre">len</span></code> on coordinate arrays to know how
+many coordinates are present.”</p>
+<p>This particular example was chosen because it was tagged as easy in GitHub;
+seemed like the best place to start out!</p>
+<div class="section" id="before-you-begin">
+<h2>Before you begin<a class="headerlink" href="#before-you-begin" title="Permalink to this headline">¶</a></h2>
+<p>Make sure you have a local copy of astropy set up as described in
+<a class="reference internal" href="get_devel_version.html#get-devel"><span class="std std-ref">Try the development version</span></a>. In a nutshell, the output of <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">remote</span> <span class="pre">-v</span></code>, run in the
+directory where your local of <code class="docutils literal notranslate"><span class="pre">astropy</span></code> resides, should be something like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">astropy</span>   <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">astropy</span><span class="o">/</span><span class="n">astropy</span><span class="o">.</span><span class="n">git</span> <span class="p">(</span><span class="n">fetch</span><span class="p">)</span>
+<span class="n">astropy</span>   <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">astropy</span><span class="o">/</span><span class="n">astropy</span><span class="o">.</span><span class="n">git</span> <span class="p">(</span><span class="n">push</span><span class="p">)</span>
+<span class="n">your</span><span class="o">-</span><span class="n">user</span><span class="o">-</span><span class="n">name</span>     <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">your</span><span class="o">-</span><span class="n">user</span><span class="o">-</span><span class="n">name</span><span class="o">/</span><span class="n">astropy</span><span class="o">.</span><span class="n">git</span> <span class="p">(</span><span class="n">fetch</span><span class="p">)</span>
+<span class="n">your</span><span class="o">-</span><span class="n">user</span><span class="o">-</span><span class="n">name</span>     <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">your</span><span class="o">-</span><span class="n">user</span><span class="o">-</span><span class="n">name</span><span class="o">/</span><span class="n">astropy</span><span class="o">.</span><span class="n">git</span> <span class="p">(</span><span class="n">push</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The precise form of the URLs for <code class="docutils literal notranslate"><span class="pre">your-user-name</span></code> depends on the
+authentication method you set up with GitHub.</p>
+<p>The important point is that <code class="docutils literal notranslate"><span class="pre">astropy</span></code> should point to the official <code class="docutils literal notranslate"><span class="pre">astropy</span></code>
+repo and <code class="docutils literal notranslate"><span class="pre">your-user-name</span></code> should point to <em>your</em> copy of <code class="docutils literal notranslate"><span class="pre">astropy</span></code> on GitHub.</p>
+</div>
+<div class="section" id="grab-the-latest-updates-to-astropy">
+<h2>Grab the latest updates to astropy<a class="headerlink" href="#grab-the-latest-updates-to-astropy" title="Permalink to this headline">¶</a></h2>
+<p>A few steps in this tutorial take only a single command. They are broken out
+separately to outline the process in words as well as code.</p>
+<p>Inform your local copy of <code class="docutils literal notranslate"><span class="pre">astropy</span></code> about the latest changes in the development
+version with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">fetch</span> <span class="n">astropy</span> <span class="o">--</span><span class="n">tags</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="set-up-an-isolated-workspace">
+<h2>Set up an isolated workspace<a class="headerlink" href="#set-up-an-isolated-workspace" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p>Make a new <a class="reference external" href="https://git-scm.com/">git</a> branch for fixing this issue and switch to the branch:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">checkout</span> <span class="n">astropy</span><span class="o">/</span><span class="n">main</span> <span class="o">-</span><span class="n">b</span> <span class="n">fix</span><span class="o">-</span><span class="mi">1761</span>
+</pre></div>
+</div>
+</li>
+<li><p>Make a Python environment just for this fix and switch to that environment.
+The example below shows the necessary steps in the Miniconda/Anaconda Python
+distribution:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">apy</span><span class="o">-</span><span class="mi">1761</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.9</span> <span class="c1"># replace 3.9 with desired version</span>
+<span class="n">conda</span> <span class="n">activate</span> <span class="n">apy</span><span class="o">-</span><span class="mi">1761</span>
+</pre></div>
+</div>
+<p>If you are using a different distribution, see <a class="reference internal" href="virtual_pythons.html#virtual-envs"><span class="std std-ref">Python virtual environments</span></a> for
+instructions for creating and activating a new environment.</p>
+</li>
+<li><p>Install our branch in this environment with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span><span class="p">[</span><span class="n">test</span><span class="p">]</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<p>Do you really have to set up a separate Python environment for each fix? No,
+but you definitely want to have a Python environment for your work on code
+contributions. Making new environments is fast, does not take much space, and
+provide a way to keep your work organized.</p>
+<p>If installation fails, try to upgrade <code class="docutils literal notranslate"><span class="pre">pip</span></code> using <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pip</span> <span class="pre">-U</span></code>
+command. It is also a good practice to keep your <code class="docutils literal notranslate"><span class="pre">conda</span></code> up-to-date by
+running <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">update</span> <span class="pre">conda</span> <span class="pre">-n</span> <span class="pre">base</span></code> when prompted to do so; maybe <code class="docutils literal notranslate"><span class="pre">git</span></code> too.</p>
+</div>
+<div class="section" id="test-first-please">
+<h2>Test first, please<a class="headerlink" href="#test-first-please" title="Permalink to this headline">¶</a></h2>
+<p>It would be hard to overstate the importance of testing in Astropy. Tests are
+what gives you confidence that new code does what it should and that it
+does not break old code.</p>
+<p>You should at least run the relevant tests before you make any changes to make
+sure that your Python environment is set up properly.</p>
+<p>The first challenge is figuring out where to look for relevant tests. <a class="reference external" href="https://github.com/astropy/astropy/issues/1761">Issue
+1761</a> is a problem in the <a class="reference internal" href="../../coordinates/index.html#module-astropy.coordinates" title="astropy.coordinates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code></a> package, so the tests for
+it are in <code class="docutils literal notranslate"><span class="pre">astropy/coordinates/tests</span></code>. The rest of <code class="docutils literal notranslate"><span class="pre">astropy</span></code> has a similar
+layout, as described at <a class="reference internal" href="../testguide.html#testing-guidelines"><span class="std std-ref">Testing Guidelines</span></a>.</p>
+<p>Run the current tests in that directory with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pytest</span> <span class="n">astropy</span><span class="o">/</span><span class="n">coordinates</span><span class="o">/</span><span class="n">tests</span>
+</pre></div>
+</div>
+<p>If the bug you are working on involves remote data access, you need to run
+the tests with an extra flag, i.e., <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">...</span> <span class="pre">--remote-data</span></code>.</p>
+<p>In the event where all the tests passed with the bug present, new tests are
+needed to expose this bug.</p>
+<p>A subpackage organizes its tests into multiple test modules; e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ ls astropy/coordinates/tests
+test_angles.py
+test_angular_separation.py
+test_api_ape5.py
+test_arrays.py
+...
+</pre></div>
+</div>
+<p><a class="reference external" href="https://github.com/astropy/astropy/issues/1761">Issue 1761</a> affects arrays of coordinates, so it seems sensible to put the
+new test in <code class="docutils literal notranslate"><span class="pre">test_arrays.py</span></code>. As with all of the steps, when in doubt,
+please ask on the <a class="reference external" href="http://groups.google.com/group/astropy-dev">astropy-dev mailing list</a>.</p>
+<p>The goal at this point may be a little counter-intuitive: write a test that we
+know will fail with the current code. This test allows <code class="docutils literal notranslate"><span class="pre">astropy</span></code> to check,
+in an automated way, whether our fix actually works and to prevent
+regression (i.e., make sure future changes to code do not break our fix).</p>
+<p>Looking over the existing code in <code class="docutils literal notranslate"><span class="pre">test_arrays.py</span></code>, each test is a function
+with a name that starts with <code class="docutils literal notranslate"><span class="pre">test_</span></code>. An appropriate place to add the test is
+after the last test function in the file.</p>
+<p>Give the test a reasonably clear name; e.g., <code class="docutils literal notranslate"><span class="pre">test_array_len</span></code>. The
+easiest way to figure out what you need to import and how to set up the test
+is to look at other tests. The full test is in the traceback below and in
+<a class="reference external" href="https://github.com/astropy/astropy/pull/1917">pull request 1917</a>.</p>
+<p>Write the test, then see if it works as expected; remember, in this case we
+expect it to <em>fail</em> without the patch from <a class="reference external" href="https://github.com/astropy/astropy/pull/1917">pull request 1917</a>.
+Running <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">astropy/coordinates/tests/test_arrays.py</span></code> would give the expected failure;
+an excerpt from the output is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">=================</span> <span class="n">FAILURES</span> <span class="o">=============================</span>
+<span class="n">______________</span> <span class="n">test_array_len</span> <span class="n">__________________________</span>
+
+    <span class="k">def</span> <span class="nf">test_array_len</span><span class="p">():</span>
+        <span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">ICRS</span>
+
+        <span class="n">input_length</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="n">ra</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">360</span><span class="p">,</span> <span class="n">input_length</span><span class="p">)</span>
+        <span class="n">dec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span> <span class="n">input_length</span><span class="p">)</span>
+
+        <span class="n">c</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">))</span>
+
+<span class="o">&gt;</span>       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="n">input_length</span>
+<span class="n">E</span>       <span class="ne">TypeError</span><span class="p">:</span> <span class="nb">object</span> <span class="n">of</span> <span class="nb">type</span> <span class="s1">&#39;ICRS&#39;</span> <span class="n">has</span> <span class="n">no</span> <span class="nb">len</span><span class="p">()</span>
+
+<span class="n">astropy</span><span class="o">/</span><span class="n">coordinates</span><span class="o">/</span><span class="n">tests</span><span class="o">/</span><span class="n">test_arrays</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">291</span><span class="p">:</span> <span class="ne">TypeError</span>
+</pre></div>
+</div>
+<p>Success!</p>
+</div>
+<div class="section" id="add-this-test-to-your-local-git-repo">
+<h2>Add this test to your local <a class="reference external" href="https://git-scm.com/">git</a> repo<a class="headerlink" href="#add-this-test-to-your-local-git-repo" title="Permalink to this headline">¶</a></h2>
+<p>Keep <a class="reference external" href="https://git-scm.com/">git</a> commits small and focused on one logical piece at a time. The test
+we just wrote is one logical change, so we will commit it. You could, if you
+prefer, wait and commit this test along with your fix.</p>
+<p>For this tutorial, we will commit the test separately. If you are not sure what to
+do, ask on <a class="reference external" href="http://groups.google.com/group/astropy-dev">astropy-dev mailing list</a>.</p>
+<div class="section" id="check-what-was-changed">
+<h3>Check what was changed<a class="headerlink" href="#check-what-was-changed" title="Permalink to this headline">¶</a></h3>
+<p>We can see what has changed with <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">status</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git status
+On branch fix-1761
+Your branch is up-to-date with &#39;astropy/main&#39;.
+
+Changes not staged for commit:
+  (use &quot;git add &lt;file&gt;...&quot; to update what will be committed)
+  (use &quot;git checkout -- &lt;file&gt;...&quot; to discard changes in working directory)
+
+    modified:   astropy/coordinates/tests/test_arrays.py
+
+no changes added to commit (use &quot;git add&quot; and/or &quot;git commit -a&quot;)
+</pre></div>
+</div>
+<p>There are two bits of information here:</p>
+<ul class="simple">
+<li><p>one file changed; i.e., <code class="docutils literal notranslate"><span class="pre">astropy/coordinates/tests/test_arrays.py</span></code></p></li>
+<li><p>this file has not been added to git’s staging area yet, so it is listed
+under <code class="docutils literal notranslate"><span class="pre">Changes</span> <span class="pre">not</span> <span class="pre">staged</span> <span class="pre">for</span> <span class="pre">commit</span></code>.</p></li>
+</ul>
+<p>Use <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">diff</span></code> to see what changes have been made:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git diff
+diff --git a/astropy/coordinates/tests/test_arrays.py b/astropy/coordinates/test
+index 2785b59..7eecfbb 100644
+--- a/astropy/coordinates/tests/test_arrays.py
++++ b/astropy/coordinates/tests/test_arrays.py
+@@ -278,3 +278,14 @@ def test_array_indexing():
+     assert c2.equinox == c1.equinox
+     assert c3.equinox == c1.equinox
+     assert c4.equinox == c1.equinox
++
++
++def test_array_len():
++    from .. import ICRS
++
++    input_length = 5
++    ra = np.linspace(0, 360, input_length)
++    dec = np.linspace(0, 90, input_length)
++
++    c = ICRS(ra, dec, unit=(u.degree, u.degree))
++
++    assert len(c) == input_length
+</pre></div>
+</div>
+<p>A graphical interface to git makes keeping track of these sorts of changes
+even easier; see <a class="reference internal" href="git_install.html#git-gui-options"><span class="std std-ref">Get a git GUI (optional)</span></a> if you are interested.</p>
+</div>
+<div class="section" id="stage-the-change">
+<h3>Stage the change<a class="headerlink" href="#stage-the-change" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference external" href="https://git-scm.com/">git</a> requires you to add changes in two steps:</p>
+<ul class="simple">
+<li><p>stage the change with <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">add</span> <span class="pre">...</span></code>; this adds the file to
+the list of items that will be added to the repo when you are ready to
+commit.</p></li>
+<li><p>commit the change with <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">...</span></code>; this actually adds the changes to
+your repo.</p></li>
+</ul>
+<p>These can be combined into one step (not recommended); the advantage of doing it in two steps
+is that it is easier to undo staging than committing. As we will see later,
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">status</span></code> even tells you how to do it.</p>
+<p>Staging can be very handy if you are making changes in a couple of different
+places that you want to commit at the same time. Make your first changes,
+stage it, then make your second change and stage that. Once everything is
+staged, commit the changes as one commit.</p>
+<p>In this case, first stage the change:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">add</span> <span class="n">astropy</span><span class="o">/</span><span class="n">coordinates</span><span class="o">/</span><span class="n">tests</span><span class="o">/</span><span class="n">test_arrays</span><span class="o">.</span><span class="n">py</span>
+</pre></div>
+</div>
+<p>You get no notice at the command line that anything has changed, but
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">status</span></code> will let you know:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git status
+On branch fix-1761
+Your branch is up-to-date with &#39;astropy/main&#39;.
+
+Changes to be committed:
+  (use &quot;git reset HEAD &lt;file&gt;...&quot; to unstage)
+
+    modified:   astropy/coordinates/tests/test_arrays.py
+</pre></div>
+</div>
+<p>Note that <a class="reference external" href="https://git-scm.com/">git</a> helpfully includes the command necessary to unstage the
+change if you want to.</p>
+</div>
+<div class="section" id="commit-your-change">
+<h3>Commit your change<a class="headerlink" href="#commit-your-change" title="Permalink to this headline">¶</a></h3>
+<p>Next, we will commit the test without the fix:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git commit -m &quot;Add test for array coordinate length (issue #1761)&quot;
+[fix-1761 dd4ef8c] Add test for array coordinate length (issue #1761)
+ 1 file changed, 12 insertions(+)
+</pre></div>
+</div>
+<p>Commit messages should be concise. Including the GitHub issue
+number allows GitHub to automatically create links to the relevant issue.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">status</span></code> to get a recap of where we are so far:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git status
+On branch fix-1761
+Your branch is ahead of &#39;astropy/main&#39; by 1 commit.
+  (use &quot;git push&quot; to publish your local commits)
+
+nothing to commit, working directory clean
+</pre></div>
+</div>
+<p>In other words, we have made a change to our local copy of <code class="docutils literal notranslate"><span class="pre">astropy</span></code> but we
+have not pushed (transferred) that change to our GitHub account.</p>
+</div>
+</div>
+<div class="section" id="fix-the-issue">
+<h2>Fix the issue<a class="headerlink" href="#fix-the-issue" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="write-the-code">
+<h3>Write the code<a class="headerlink" href="#write-the-code" title="Permalink to this headline">¶</a></h3>
+<p>Now that we have a test written, we will fix the issue. A full discussion of
+the fix is beyond the scope of this tutorial, but the fix is to add a
+<code class="docutils literal notranslate"><span class="pre">__len__</span></code> method to <code class="docutils literal notranslate"><span class="pre">astropy.coordinates.SphericalCoordinatesBase</span></code> in
+<code class="docutils literal notranslate"><span class="pre">coordsystems.py</span></code> (the code has since been refactored, if you try to look
+for it). All of the spherical coordinate systems inherit from
+this base class and it is this base class that implements the
+<code class="docutils literal notranslate"><span class="pre">__getitem__</span></code> method that allows indexing of coordinate arrays.</p>
+<p>See <a class="reference external" href="https://github.com/astropy/astropy/pull/1917">pull request 1917</a> to view the changes to the code.</p>
+</div>
+<div class="section" id="test-your-change">
+<span id="test-changes"></span><h3>Test your change<a class="headerlink" href="#test-your-change" title="Permalink to this headline">¶</a></h3>
+<p>There are a few levels at which you want to test:</p>
+<ul class="simple">
+<li><p>Does this code change make the test we wrote succeed now? Check
+by running <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">astropy/coordinates/tests/test_arrays.py</span></code>.
+In this case, yes!</p></li>
+<li><p>Do the rest of the coordinate tests still pass? Check by running
+<code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">astropy/coordinates/</span></code>. In this case, yes, we have not broken
+anything!</p></li>
+<li><p>Do all of the astropy tests still succeed? Check by running <code class="docutils literal notranslate"><span class="pre">pytest</span></code>
+from the top-level directory.
+This may take a while depending on the speed of your system.
+Success again!</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Tests that are skipped or xfailed are fine. A fail or an error is not
+fine. If you get stuck, ask on <a class="reference external" href="http://groups.google.com/group/astropy-dev">astropy-dev mailing list</a> for help!</p>
+</div>
+</div>
+<div class="section" id="stage-and-commit-your-change">
+<h3>Stage and commit your change<a class="headerlink" href="#stage-and-commit-your-change" title="Permalink to this headline">¶</a></h3>
+<p>Add the file to your <a class="reference external" href="https://git-scm.com/">git</a> repo in two steps: stage, then commit.</p>
+<p>To make this a little different than the commit we did above, make sure you
+are still in the top level directory and check the <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">status</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git status
+On branch fix-1761
+Your branch is ahead of &#39;astropy/main&#39; by 1 commit.
+  (use &quot;git push&quot; to publish your local commits)
+
+Changes not staged for commit:
+  (use &quot;git add &lt;file&gt;...&quot; to update what will be committed)
+  (use &quot;git checkout -- &lt;file&gt;...&quot; to discard changes in working directory)
+
+    modified:   astropy/coordinates/coordsystems.py
+
+no changes added to commit (use &quot;git add&quot; and/or &quot;git commit -a&quot;)
+</pre></div>
+</div>
+<p>Note that git knows what has changed no matter what directory you are in (as
+long as you are in one of the directories in the repo, that is).</p>
+<p>Stage the change with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">add</span> <span class="n">astropy</span><span class="o">/</span><span class="n">coordinates</span><span class="o">/</span><span class="n">coordsystems</span><span class="o">.</span><span class="n">py</span>
+</pre></div>
+</div>
+<p>For this commit, it is helpful to use a multi-line commit message that will
+automatically close the issue on GitHub when this change is accepted. The
+snippet below accomplishes that in bash (and similar shells):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git commit -m&quot;
+&gt; Add len() to coordinates
+&gt;
+&gt; Closes #1761&quot;
+[fix-1761 f196771] Add len() to coordinates
+ 1 file changed, 4 insertions(+)
+</pre></div>
+</div>
+<p>Another option for multi-line commit message is to use a Git GUI or to
+run <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span></code> without a message to get prompted by an editor.</p>
+<p>The message after committing should look like this when you inspect with
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">log</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Add</span> <span class="nb">len</span><span class="p">()</span> <span class="n">to</span> <span class="n">coordinates</span>
+
+<span class="n">Closes</span> <span class="c1">#1761</span>
+</pre></div>
+</div>
+<p>If the commit message does not look right, run <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">--amend</span></code>.
+If you still run into problems, please ask about fixing it at
+<a class="reference external" href="http://groups.google.com/group/astropy-dev">astropy-dev mailing list</a>.</p>
+<p>At this point, none of the Astropy maintainers know anything about
+your changes.</p>
+<p>We will take care of that in a moment with a “pull request”, but first,
+see <a class="reference internal" href="#astropy-fix-add-tests"><span class="std std-ref">Stop and think: Any more tests or other changes?</span></a>.</p>
+</div>
+</div>
+<div class="section" id="stop-and-think-any-more-tests-or-other-changes">
+<span id="astropy-fix-add-tests"></span><h2>Stop and think: Any more tests or other changes?<a class="headerlink" href="#stop-and-think-any-more-tests-or-other-changes" title="Permalink to this headline">¶</a></h2>
+<p>It never hurts to pause at this point and review whether your proposed
+changes are complete. In this case, there are some more tests that could
+be included, such as:</p>
+<ul class="simple">
+<li><p>What happens when <code class="docutils literal notranslate"><span class="pre">len()</span></code> is called on a coordinate that is <em>not</em> an
+array?</p></li>
+<li><p>Does <code class="docutils literal notranslate"><span class="pre">len()</span></code> work when the coordinate is an array with one entry?</p></li>
+</ul>
+<p>Both of these are mentioned in <a class="reference external" href="https://github.com/astropy/astropy/pull/1917">pull request 1917</a>, so it does not hurt to check
+them. In this case, they also provide an opportunity to illustrate a feature
+of the <a class="reference external" href="https://pytest.org/en/latest/index.html">pytest</a> framework.</p>
+<p>The second case is easier, so it will be handled first following the
+development cycle we used above:</p>
+<ul class="simple">
+<li><p>Make the change in <code class="docutils literal notranslate"><span class="pre">astropy/coordinates/tests/test_arrays.py</span></code></p></li>
+<li><p>Test the change</p></li>
+</ul>
+<p>The test passed; but rather than committing this one change, we will also
+implement the check for the scalar case.</p>
+<p>One could imagine two different desirable outcomes here:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">len(scalar_coordinate)</span></code> behaves just like <code class="docutils literal notranslate"><span class="pre">len(scalar_angle)</span></code>, raising
+a <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TypeError</span></code></a> for a scalar coordinate.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">len(scalar_coordinate)</span></code> returns 1 since there is one coordinate.</p></li>
+</ul>
+<p>If you encounter a case like this and are not sure what to do, ask. The best
+place to ask is on GitHub on the page for the issue you are fixing.</p>
+<p>Alternatively, make a choice and be clear in your pull request on GitHub what
+you chose and why; instructions for that are below.</p>
+<div class="section" id="testing-for-an-expected-error">
+<h3>Testing for an expected error<a class="headerlink" href="#testing-for-an-expected-error" title="Permalink to this headline">¶</a></h3>
+<p>In this case, we opted for raising a <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TypeError</span></code></a>, because
+the user needs to know that the coordinate they created is not going to
+behave like an array of one coordinate if they try to index it later on.</p>
+<p>The <a class="reference external" href="https://pytest.org/en/latest/index.html">pytest</a> framework makes testing for an exception relatively
+easy; you put the code you expect to fail in a <code class="docutils literal notranslate"><span class="pre">with</span></code> block:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">c</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">))</span>
+
+<span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="ne">TypeError</span><span class="p">):</span>
+    <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A test like this can be added <code class="docutils literal notranslate"><span class="pre">test_array_len</span></code> in <code class="docutils literal notranslate"><span class="pre">test_arrays.py</span></code>.
+In your own work, you may also choose to put that into a new test function,
+if you wish.</p>
+</div>
+<div class="section" id="aside-python-lesson-let-others-do-your-work">
+<h3>Aside: Python lesson–let others do your work<a class="headerlink" href="#aside-python-lesson-let-others-do-your-work" title="Permalink to this headline">¶</a></h3>
+<p>The actual fix to this issue was very, very short. In <code class="docutils literal notranslate"><span class="pre">coordsystems.py</span></code>, two
+lines were added:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lonangle</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">lonangle</span></code> contains the <code class="docutils literal notranslate"><span class="pre">Angle``s</span> <span class="pre">that</span> <span class="pre">represent</span> <span class="pre">longitude</span> <span class="pre">(sometimes</span> <span class="pre">this</span>
+<span class="pre">is</span> <span class="pre">an</span> <span class="pre">RA,</span> <span class="pre">sometimes</span> <span class="pre">a</span> <span class="pre">longitude).</span> <span class="pre">By</span> <span class="pre">simply</span> <span class="pre">calling</span> <span class="pre">``len()</span></code> on one of the
+angles in the array you get, for free, whatever behavior has been defined in
+the <code class="docutils literal notranslate"><span class="pre">Angle</span></code> class for handling the case of a scalar.</p>
+<p>Adding an explicit check for the case of a scalar here would have the very
+big downside of having two things that need to be kept in sync: handling of
+scalars in <code class="docutils literal notranslate"><span class="pre">Angle</span></code> and in coordinates.</p>
+</div>
+</div>
+<div class="section" id="commit-any-additional-changes">
+<h2>Commit any additional changes<a class="headerlink" href="#commit-any-additional-changes" title="Permalink to this headline">¶</a></h2>
+<p>Continue to follow the development cycle above for other files that you need
+to modify, including changelog (see <a class="reference internal" href="#git-edit-changelog"><span class="std std-ref">Edit the changelog</span></a>) and
+documentation, as needed:</p>
+<ul class="simple">
+<li><p>Check that <strong>all</strong> <code class="docutils literal notranslate"><span class="pre">astropy</span></code> tests still pass; see <a class="reference internal" href="#test-changes"><span class="std std-ref">Test your change</span></a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">status</span></code> to see what needs to be staged and committed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">add</span> <span class="pre">...</span></code> to stage the changes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">...</span></code> to commit the changes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">log</span></code> to inspect the change history</p></li>
+</ul>
+<p>The <a class="reference external" href="https://git-scm.com/">git</a> commands, without their output, are:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">status</span>
+<span class="n">git</span> <span class="n">add</span> <span class="n">astropy</span><span class="o">/</span><span class="n">coordinates</span><span class="o">/</span><span class="n">tests</span><span class="o">/</span><span class="n">test_arrays</span><span class="o">.</span><span class="n">py</span>
+<span class="n">git</span> <span class="n">commit</span> <span class="o">-</span><span class="n">m</span> <span class="s2">&quot;Add tests of len() for scalar coordinate and length 1 coordinate&quot;</span>
+<span class="n">git</span> <span class="n">log</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="push-your-changes-to-your-github-fork-of-astropy">
+<h2>Push your changes to your GitHub fork of astropy<a class="headerlink" href="#push-your-changes-to-your-github-fork-of-astropy" title="Permalink to this headline">¶</a></h2>
+<p>Use this command to push your local changes out to your copy of <code class="docutils literal notranslate"><span class="pre">astropy</span></code>
+on GitHub before asking for the changes to be reviewed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">push</span> <span class="n">your</span><span class="o">-</span><span class="n">user</span><span class="o">-</span><span class="n">name</span> <span class="n">fix</span><span class="o">-</span><span class="mi">1761</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="propose-your-changes-as-a-pull-request">
+<h2>Propose your changes as a pull request<a class="headerlink" href="#propose-your-changes-as-a-pull-request" title="Permalink to this headline">¶</a></h2>
+<p>This stage requires going to your GitHub account and navigate to <em>your</em> copy
+of <code class="docutils literal notranslate"><span class="pre">astropy</span></code>; the url will be something like
+<code class="docutils literal notranslate"><span class="pre">https://github.com/your-user-name/astropy</span></code>.</p>
+<p>Once there, select the branch that contains your fix from the branches
+dropdown:</p>
+<blockquote>
+<div><img alt="../../_images/worked_example_switch_branch.png" src="../../_images/worked_example_switch_branch.png" />
+</div></blockquote>
+<p>After selecting the correct branch, click on the “Pull Request” button,
+as shown below:</p>
+<blockquote>
+<div><img alt="../../_images/pull_button.png" src="../../_images/pull_button.png" />
+</div></blockquote>
+<p>Name your pull request something sensible. Include the issue number with a
+leading <code class="docutils literal notranslate"><span class="pre">#</span></code> in the description of the pull request so that a link is
+created to the original issue, as stated in <code class="docutils literal notranslate"><span class="pre">astropy</span></code>’s pull request template.</p>
+<p>Please see <a class="reference external" href="https://github.com/astropy/astropy/pull/1917">pull request 1917</a> for the pull request showcased in this tutorial.</p>
+</div>
+<div class="section" id="edit-the-changelog">
+<span id="git-edit-changelog"></span><h2>Edit the changelog<a class="headerlink" href="#edit-the-changelog" title="Permalink to this headline">¶</a></h2>
+<p>Keeping the list of changes up to date is nearly impossible unless each
+contributor makes the appropriate updates as they propose changes.</p>
+<p>Create a file <code class="docutils literal notranslate"><span class="pre">docs/changes/coordinates/&lt;PULL</span> <span class="pre">REQUEST&gt;.feature.rst</span></code>, where
+<code class="docutils literal notranslate"><span class="pre">&lt;PULL</span> <span class="pre">REQUEST&gt;</span></code> is the pull request number (1917 for this example).  The
+content of this file should summarize what you did. For writing changelog
+entries, you do not need to know much about the markup language being used
+(though you can read as much as you want about it at the <a class="reference external" href="https://www.sphinx-doc.org/">Sphinx primer</a>); look
+at other entries and emulate.</p>
+<p>For this issue, the file would contain:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Implemented ``len()`` for coordinate objects.
+</pre></div>
+</div>
+<p>Putting <code class="docutils literal notranslate"><span class="pre">len()</span></code> in double-backtick makes that text render in a monospaced
+font.</p>
+<div class="section" id="commit-your-changes-and-push">
+<h3>Commit your changes and push<a class="headerlink" href="#commit-your-changes-and-push" title="Permalink to this headline">¶</a></h3>
+<p>You can use <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">status</span></code> as above or jump right to staging and committing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">add</span> <span class="n">docs</span><span class="o">/</span><span class="n">changes</span><span class="o">/</span><span class="n">coordinates</span><span class="o">/&lt;</span><span class="n">PULL</span> <span class="n">REQUEST</span><span class="o">&gt;.</span><span class="n">feature</span><span class="o">.</span><span class="n">rst</span>
+<span class="n">git</span> <span class="n">commit</span> <span class="o">-</span><span class="n">m</span> <span class="s2">&quot;Add changelog entry&quot;</span>
+<span class="n">git</span> <span class="n">push</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="revise-and-push-as-necessary">
+<h2>Revise and push as necessary<a class="headerlink" href="#revise-and-push-as-necessary" title="Permalink to this headline">¶</a></h2>
+<p>You may be asked to make changes in the discussion of the pull request. Make
+those changes in your local copy, commit them to your local repo, and push them
+to GitHub. GitHub will automatically update your pull request.</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Contributing code to Astropy, a worked example</a><ul>
+<li><a class="reference internal" href="#before-you-begin">Before you begin</a></li>
+<li><a class="reference internal" href="#grab-the-latest-updates-to-astropy">Grab the latest updates to astropy</a></li>
+<li><a class="reference internal" href="#set-up-an-isolated-workspace">Set up an isolated workspace</a></li>
+<li><a class="reference internal" href="#test-first-please">Test first, please</a></li>
+<li><a class="reference internal" href="#add-this-test-to-your-local-git-repo">Add this test to your local git repo</a><ul>
+<li><a class="reference internal" href="#check-what-was-changed">Check what was changed</a></li>
+<li><a class="reference internal" href="#stage-the-change">Stage the change</a></li>
+<li><a class="reference internal" href="#commit-your-change">Commit your change</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#fix-the-issue">Fix the issue</a><ul>
+<li><a class="reference internal" href="#write-the-code">Write the code</a></li>
+<li><a class="reference internal" href="#test-your-change">Test your change</a></li>
+<li><a class="reference internal" href="#stage-and-commit-your-change">Stage and commit your change</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#stop-and-think-any-more-tests-or-other-changes">Stop and think: Any more tests or other changes?</a><ul>
+<li><a class="reference internal" href="#testing-for-an-expected-error">Testing for an expected error</a></li>
+<li><a class="reference internal" href="#aside-python-lesson-let-others-do-your-work">Aside: Python lesson–let others do your work</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#commit-any-additional-changes">Commit any additional changes</a></li>
+<li><a class="reference internal" href="#push-your-changes-to-your-github-fork-of-astropy">Push your changes to your GitHub fork of astropy</a></li>
+<li><a class="reference internal" href="#propose-your-changes-as-a-pull-request">Propose your changes as a pull request</a></li>
+<li><a class="reference internal" href="#edit-the-changelog">Edit the changelog</a><ul>
+<li><a class="reference internal" href="#commit-your-changes-and-push">Commit your changes and push</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#revise-and-push-as-necessary">Revise and push as necessary</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../_sources/development/workflow/git_edit_workflow_examples.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,372 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.coordinates.builtin_frames.lsr &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" >Module code</a> &#187;</li>
+      <li><a href="../builtin_frames.html" accesskey="U">astropy.coordinates.builtin_frames</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.coordinates.builtin_frames.lsr</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.decorators</span> <span class="kn">import</span> <span class="n">format_doc</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">representation</span> <span class="k">as</span> <span class="n">r</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.baseframe</span> <span class="kn">import</span> <span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">,</span>
+                                           <span class="n">RepresentationMapping</span><span class="p">,</span>
+                                           <span class="n">frame_transform_graph</span><span class="p">,</span> <span class="n">base_doc</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.transformations</span> <span class="kn">import</span> <span class="n">AffineTransform</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.attributes</span> <span class="kn">import</span> <span class="n">DifferentialAttribute</span>
+
+<span class="kn">from</span> <span class="nn">.baseradec</span> <span class="kn">import</span> <span class="n">BaseRADecFrame</span><span class="p">,</span> <span class="n">doc_components</span> <span class="k">as</span> <span class="n">doc_components_radec</span>
+<span class="kn">from</span> <span class="nn">.icrs</span> <span class="kn">import</span> <span class="n">ICRS</span>
+<span class="kn">from</span> <span class="nn">.galactic</span> <span class="kn">import</span> <span class="n">Galactic</span>
+
+<span class="c1"># For speed</span>
+<span class="n">J2000</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="s1">&#39;J2000&#39;</span><span class="p">)</span>
+
+<span class="n">v_bary_Schoenrich2010</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span><span class="p">([</span><span class="mf">11.1</span><span class="p">,</span> <span class="mf">12.24</span><span class="p">,</span> <span class="mf">7.25</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;LSR&#39;</span><span class="p">,</span> <span class="s1">&#39;GalacticLSR&#39;</span><span class="p">,</span> <span class="s1">&#39;LSRK&#39;</span><span class="p">,</span> <span class="s1">&#39;LSRD&#39;</span><span class="p">]</span>
+
+
+<span class="n">doc_footer_lsr</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Other parameters</span>
+<span class="s2">    ----------------</span>
+<span class="s2">    v_bary : `~astropy.coordinates.representation.CartesianDifferential`</span>
+<span class="s2">        The velocity of the solar system barycenter with respect to the LSR, in</span>
+<span class="s2">        Galactic cartesian velocity components.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="LSR"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.LSR.html#astropy.coordinates.LSR">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components_radec</span><span class="p">,</span> <span class="n">footer</span><span class="o">=</span><span class="n">doc_footer_lsr</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">LSR</span><span class="p">(</span><span class="n">BaseRADecFrame</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A coordinate or frame in the Local Standard of Rest (LSR).</span>
+
+<span class="sd">    This coordinate frame is axis-aligned and co-spatial with `ICRS`, but has</span>
+<span class="sd">    a velocity offset relative to the solar system barycenter to remove the</span>
+<span class="sd">    peculiar motion of the sun relative to the LSR. Roughly, the LSR is the mean</span>
+<span class="sd">    velocity of the stars in the solar neighborhood, but the precise definition</span>
+<span class="sd">    of which depends on the study. As defined in Schönrich et al. (2010):</span>
+<span class="sd">    &quot;The LSR is the rest frame at the location of the Sun of a star that would</span>
+<span class="sd">    be on a circular orbit in the gravitational potential one would obtain by</span>
+<span class="sd">    azimuthally averaging away non-axisymmetric features in the actual Galactic</span>
+<span class="sd">    potential.&quot; No such orbit truly exists, but it is still a commonly used</span>
+<span class="sd">    velocity frame.</span>
+
+<span class="sd">    We use default values from Schönrich et al. (2010) for the barycentric</span>
+<span class="sd">    velocity relative to the LSR, which is defined in Galactic (right-handed)</span>
+<span class="sd">    cartesian velocity components</span>
+<span class="sd">    :math:`(U, V, W) = (11.1, 12.24, 7.25)~{{\rm km}}~{{\rm s}}^{{-1}}`. These</span>
+<span class="sd">    values are customizable via the ``v_bary`` argument which specifies the</span>
+<span class="sd">    velocity of the solar system barycenter with respect to the LSR.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># frame attributes:</span>
+    <span class="n">v_bary</span> <span class="o">=</span> <span class="n">DifferentialAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">v_bary_Schoenrich2010</span><span class="p">,</span>
+                                   <span class="n">allowed_classes</span><span class="o">=</span><span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span><span class="p">])</span></div>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">ICRS</span><span class="p">,</span> <span class="n">LSR</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">icrs_to_lsr</span><span class="p">(</span><span class="n">icrs_coord</span><span class="p">,</span> <span class="n">lsr_frame</span><span class="p">):</span>
+    <span class="n">v_bary_gal</span> <span class="o">=</span> <span class="n">Galactic</span><span class="p">(</span><span class="n">lsr_frame</span><span class="o">.</span><span class="n">v_bary</span><span class="o">.</span><span class="n">to_cartesian</span><span class="p">())</span>
+    <span class="n">v_bary_icrs</span> <span class="o">=</span> <span class="n">v_bary_gal</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">icrs_coord</span><span class="p">)</span>
+    <span class="n">v_offset</span> <span class="o">=</span> <span class="n">v_bary_icrs</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">represent_as</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span><span class="p">)</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">au</span><span class="p">,</span> <span class="n">differentials</span><span class="o">=</span><span class="n">v_offset</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">offset</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">LSR</span><span class="p">,</span> <span class="n">ICRS</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">lsr_to_icrs</span><span class="p">(</span><span class="n">lsr_coord</span><span class="p">,</span> <span class="n">icrs_frame</span><span class="p">):</span>
+    <span class="n">v_bary_gal</span> <span class="o">=</span> <span class="n">Galactic</span><span class="p">(</span><span class="n">lsr_coord</span><span class="o">.</span><span class="n">v_bary</span><span class="o">.</span><span class="n">to_cartesian</span><span class="p">())</span>
+    <span class="n">v_bary_icrs</span> <span class="o">=</span> <span class="n">v_bary_gal</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">icrs_frame</span><span class="p">)</span>
+    <span class="n">v_offset</span> <span class="o">=</span> <span class="n">v_bary_icrs</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">represent_as</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span><span class="p">)</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">au</span><span class="p">,</span> <span class="n">differentials</span><span class="o">=-</span><span class="n">v_offset</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">offset</span>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+
+
+<span class="n">doc_components_gal</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    l : `~astropy.coordinates.Angle`, optional, keyword-only</span>
+<span class="s2">        The Galactic longitude for this object (``b`` must also be given and</span>
+<span class="s2">        ``representation`` must be None).</span>
+<span class="s2">    b : `~astropy.coordinates.Angle`, optional, keyword-only</span>
+<span class="s2">        The Galactic latitude for this object (``l`` must also be given and</span>
+<span class="s2">        ``representation`` must be None).</span>
+<span class="s2">    distance : `~astropy.units.Quantity` [&#39;length&#39;], optional, keyword-only</span>
+<span class="s2">        The Distance for this object along the line-of-sight.</span>
+<span class="s2">        (``representation`` must be None).</span>
+
+<span class="s2">    pm_l_cosb : `~astropy.units.Quantity` [&#39;angular speed&#39;], optional, keyword-only</span>
+<span class="s2">        The proper motion in Galactic longitude (including the ``cos(b)`` term)</span>
+<span class="s2">        for this object (``pm_b`` must also be given).</span>
+<span class="s2">    pm_b : `~astropy.units.Quantity` [&#39;angular speed&#39;], optional, keyword-only</span>
+<span class="s2">        The proper motion in Galactic latitude for this object (``pm_l_cosb``</span>
+<span class="s2">        must also be given).</span>
+<span class="s2">    radial_velocity : `~astropy.units.Quantity` [&#39;speed&#39;], optional, keyword-only</span>
+<span class="s2">        The radial velocity of this object.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="GalacticLSR"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.GalacticLSR.html#astropy.coordinates.GalacticLSR">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components_gal</span><span class="p">,</span> <span class="n">footer</span><span class="o">=</span><span class="n">doc_footer_lsr</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">GalacticLSR</span><span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A coordinate or frame in the Local Standard of Rest (LSR), axis-aligned</span>
+<span class="sd">    to the `Galactic` frame.</span>
+
+<span class="sd">    This coordinate frame is axis-aligned and co-spatial with `ICRS`, but has</span>
+<span class="sd">    a velocity offset relative to the solar system barycenter to remove the</span>
+<span class="sd">    peculiar motion of the sun relative to the LSR. Roughly, the LSR is the mean</span>
+<span class="sd">    velocity of the stars in the solar neighborhood, but the precise definition</span>
+<span class="sd">    of which depends on the study. As defined in Schönrich et al. (2010):</span>
+<span class="sd">    &quot;The LSR is the rest frame at the location of the Sun of a star that would</span>
+<span class="sd">    be on a circular orbit in the gravitational potential one would obtain by</span>
+<span class="sd">    azimuthally averaging away non-axisymmetric features in the actual Galactic</span>
+<span class="sd">    potential.&quot; No such orbit truly exists, but it is still a commonly used</span>
+<span class="sd">    velocity frame.</span>
+
+<span class="sd">    We use default values from Schönrich et al. (2010) for the barycentric</span>
+<span class="sd">    velocity relative to the LSR, which is defined in Galactic (right-handed)</span>
+<span class="sd">    cartesian velocity components</span>
+<span class="sd">    :math:`(U, V, W) = (11.1, 12.24, 7.25)~{{\rm km}}~{{\rm s}}^{{-1}}`. These</span>
+<span class="sd">    values are customizable via the ``v_bary`` argument which specifies the</span>
+<span class="sd">    velocity of the solar system barycenter with respect to the LSR.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">frame_specific_representation_info</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span><span class="p">:</span> <span class="p">[</span>
+            <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span> <span class="s1">&#39;l&#39;</span><span class="p">),</span>
+            <span class="n">RepresentationMapping</span><span class="p">(</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="n">default_representation</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">SphericalRepresentation</span>
+    <span class="n">default_differential</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">SphericalCosLatDifferential</span>
+
+    <span class="c1"># frame attributes:</span>
+    <span class="n">v_bary</span> <span class="o">=</span> <span class="n">DifferentialAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">v_bary_Schoenrich2010</span><span class="p">)</span></div>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">Galactic</span><span class="p">,</span> <span class="n">GalacticLSR</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">galactic_to_galacticlsr</span><span class="p">(</span><span class="n">galactic_coord</span><span class="p">,</span> <span class="n">lsr_frame</span><span class="p">):</span>
+    <span class="n">v_bary_gal</span> <span class="o">=</span> <span class="n">Galactic</span><span class="p">(</span><span class="n">lsr_frame</span><span class="o">.</span><span class="n">v_bary</span><span class="o">.</span><span class="n">to_cartesian</span><span class="p">())</span>
+    <span class="n">v_offset</span> <span class="o">=</span> <span class="n">v_bary_gal</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">represent_as</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span><span class="p">)</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">au</span><span class="p">,</span> <span class="n">differentials</span><span class="o">=</span><span class="n">v_offset</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">offset</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">GalacticLSR</span><span class="p">,</span> <span class="n">Galactic</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">galacticlsr_to_galactic</span><span class="p">(</span><span class="n">lsr_coord</span><span class="p">,</span> <span class="n">galactic_frame</span><span class="p">):</span>
+    <span class="n">v_bary_gal</span> <span class="o">=</span> <span class="n">Galactic</span><span class="p">(</span><span class="n">lsr_coord</span><span class="o">.</span><span class="n">v_bary</span><span class="o">.</span><span class="n">to_cartesian</span><span class="p">())</span>
+    <span class="n">v_offset</span> <span class="o">=</span> <span class="n">v_bary_gal</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">represent_as</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span><span class="p">)</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">au</span><span class="p">,</span> <span class="n">differentials</span><span class="o">=-</span><span class="n">v_offset</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">offset</span>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+
+<span class="c1"># The LSRK velocity frame, defined as having a velocity of 20 km/s towards</span>
+<span class="c1"># RA=270 Dec=30 (B1900) relative to the solar system Barycenter. This is defined</span>
+<span class="c1"># in:</span>
+<span class="c1">#</span>
+<span class="c1">#   Gordon 1975, Methods of Experimental Physics: Volume 12:</span>
+<span class="c1">#   Astrophysics, Part C: Radio Observations - Section 6.1.5.</span>
+
+
+<div class="viewcode-block" id="LSRK"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.LSRK.html#astropy.coordinates.LSRK">[docs]</a><span class="k">class</span> <span class="nc">LSRK</span><span class="p">(</span><span class="n">BaseRADecFrame</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A coordinate or frame in the Kinematic Local Standard of Rest (LSR).</span>
+
+<span class="sd">    This frame is defined as having a velocity of 20 km/s towards RA=270 Dec=30</span>
+<span class="sd">    (B1900) relative to the solar system Barycenter. This is defined in:</span>
+
+<span class="sd">        Gordon 1975, Methods of Experimental Physics: Volume 12:</span>
+<span class="sd">        Astrophysics, Part C: Radio Observations - Section 6.1.5.</span>
+
+<span class="sd">    This coordinate frame is axis-aligned and co-spatial with `ICRS`, but has</span>
+<span class="sd">    a velocity offset relative to the solar system barycenter to remove the</span>
+<span class="sd">    peculiar motion of the sun relative to the LSRK.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<span class="c1"># NOTE: To avoid a performance penalty at import time, we hard-code the ICRS</span>
+<span class="c1"># offsets here. The code to generate the offsets is provided for reproducibility.</span>
+<span class="c1"># GORDON1975_V_BARY = 20*u.km/u.s</span>
+<span class="c1"># GORDON1975_DIRECTION = FK4(ra=270*u.deg, dec=30*u.deg, equinox=&#39;B1900&#39;)</span>
+<span class="c1"># V_OFFSET_LSRK = ((GORDON1975_V_BARY * GORDON1975_DIRECTION.transform_to(ICRS()).data)</span>
+<span class="c1">#                  .represent_as(r.CartesianDifferential))</span>
+
+<span class="n">V_OFFSET_LSRK</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span><span class="p">([</span><span class="mf">0.28999706839034606</span><span class="p">,</span>
+                                         <span class="o">-</span><span class="mf">17.317264789717928</span><span class="p">,</span>
+                                         <span class="mf">10.00141199546947</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+
+<span class="n">ICRS_LSRK_OFFSET</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">au</span><span class="p">,</span> <span class="n">differentials</span><span class="o">=</span><span class="n">V_OFFSET_LSRK</span><span class="p">)</span>
+<span class="n">LSRK_ICRS_OFFSET</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">au</span><span class="p">,</span> <span class="n">differentials</span><span class="o">=-</span><span class="n">V_OFFSET_LSRK</span><span class="p">)</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">ICRS</span><span class="p">,</span> <span class="n">LSRK</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">icrs_to_lsrk</span><span class="p">(</span><span class="n">icrs_coord</span><span class="p">,</span> <span class="n">lsr_frame</span><span class="p">):</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ICRS_LSRK_OFFSET</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">LSRK</span><span class="p">,</span> <span class="n">ICRS</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">lsrk_to_icrs</span><span class="p">(</span><span class="n">lsr_coord</span><span class="p">,</span> <span class="n">icrs_frame</span><span class="p">):</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">LSRK_ICRS_OFFSET</span>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+
+<span class="c1"># The LSRD velocity frame, defined as a velocity of U=9 km/s, V=12 km/s,</span>
+<span class="c1"># and W=7 km/s in Galactic coordinates or 16.552945 km/s</span>
+<span class="c1"># towards l=53.13 b=25.02. This is defined in:</span>
+<span class="c1">#</span>
+<span class="c1">#   Delhaye 1965, Solar Motion and Velocity Distribution of</span>
+<span class="c1">#   Common Stars.</span>
+
+
+<div class="viewcode-block" id="LSRD"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.LSRD.html#astropy.coordinates.LSRD">[docs]</a><span class="k">class</span> <span class="nc">LSRD</span><span class="p">(</span><span class="n">BaseRADecFrame</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A coordinate or frame in the Dynamical Local Standard of Rest (LSRD)</span>
+
+<span class="sd">    This frame is defined as a velocity of U=9 km/s, V=12 km/s,</span>
+<span class="sd">    and W=7 km/s in Galactic coordinates or 16.552945 km/s</span>
+<span class="sd">    towards l=53.13 b=25.02. This is defined in:</span>
+
+<span class="sd">       Delhaye 1965, Solar Motion and Velocity Distribution of</span>
+<span class="sd">       Common Stars.</span>
+
+<span class="sd">    This coordinate frame is axis-aligned and co-spatial with `ICRS`, but has</span>
+<span class="sd">    a velocity offset relative to the solar system barycenter to remove the</span>
+<span class="sd">    peculiar motion of the sun relative to the LSRD.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<span class="c1"># NOTE: To avoid a performance penalty at import time, we hard-code the ICRS</span>
+<span class="c1"># offsets here. The code to generate the offsets is provided for reproducibility.</span>
+<span class="c1"># V_BARY_DELHAYE1965 = r.CartesianDifferential([9, 12, 7] * u.km/u.s)</span>
+<span class="c1"># V_OFFSET_LSRD = (Galactic(V_BARY_DELHAYE1965.to_cartesian()).transform_to(ICRS()).data</span>
+<span class="c1">#                  .represent_as(r.CartesianDifferential))</span>
+
+<span class="n">V_OFFSET_LSRD</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianDifferential</span><span class="p">([</span><span class="o">-</span><span class="mf">0.6382306360182073</span><span class="p">,</span>
+                                         <span class="o">-</span><span class="mf">14.585424483191094</span><span class="p">,</span>
+                                         <span class="mf">7.8011572411006815</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+
+<span class="n">ICRS_LSRD_OFFSET</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">au</span><span class="p">,</span> <span class="n">differentials</span><span class="o">=</span><span class="n">V_OFFSET_LSRD</span><span class="p">)</span>
+<span class="n">LSRD_ICRS_OFFSET</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">CartesianRepresentation</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">au</span><span class="p">,</span> <span class="n">differentials</span><span class="o">=-</span><span class="n">V_OFFSET_LSRD</span><span class="p">)</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">ICRS</span><span class="p">,</span> <span class="n">LSRD</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">icrs_to_lsrd</span><span class="p">(</span><span class="n">icrs_coord</span><span class="p">,</span> <span class="n">lsr_frame</span><span class="p">):</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ICRS_LSRD_OFFSET</span>
+
+
+<span class="nd">@frame_transform_graph</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">AffineTransform</span><span class="p">,</span> <span class="n">LSRD</span><span class="p">,</span> <span class="n">ICRS</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">lsrd_to_icrs</span><span class="p">(</span><span class="n">lsr_coord</span><span class="p">,</span> <span class="n">icrs_frame</span><span class="p">):</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">LSRD_ICRS_OFFSET</span>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+
+<span class="c1"># Create loopback transformations</span>
+<span class="n">frame_transform_graph</span><span class="o">.</span><span class="n">_add_merged_transform</span><span class="p">(</span><span class="n">LSR</span><span class="p">,</span> <span class="n">ICRS</span><span class="p">,</span> <span class="n">LSR</span><span class="p">)</span>
+<span class="n">frame_transform_graph</span><span class="o">.</span><span class="n">_add_merged_transform</span><span class="p">(</span><span class="n">GalacticLSR</span><span class="p">,</span> <span class="n">Galactic</span><span class="p">,</span> <span class="n">GalacticLSR</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

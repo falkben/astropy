@@ -1,0 +1,332 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manipulation and Analysis of Time Series &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Masking Values in Time Series" href="masking.html" />
+    <link rel="prev" title="Converting between Different Time Representations" href="times.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="masking.html" title="Masking Values in Time Series">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="times.html" title="Converting between Different Time Representations">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Time Series (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.timeseries</span></code>)</a> &#187;</li>
+      
+      <li>Manipulation and Analysis of Time Series</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="manipulation-and-analysis-of-time-series">
+<span id="timeseries-analysis"></span><h1>Manipulation and Analysis of Time Series<a class="headerlink" href="#manipulation-and-analysis-of-time-series" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="combining-time-series">
+<h2>Combining Time Series<a class="headerlink" href="#combining-time-series" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../api/astropy.table.vstack.html#astropy.table.vstack" title="astropy.table.vstack"><code class="xref py py-func docutils literal notranslate"><span class="pre">vstack()</span></code></a> and <a class="reference internal" href="../api/astropy.table.hstack.html#astropy.table.hstack" title="astropy.table.hstack"><code class="xref py py-func docutils literal notranslate"><span class="pre">hstack()</span></code></a> functions
+from the <a class="reference internal" href="../table/index.html#module-astropy.table" title="astropy.table"><code class="xref py py-mod docutils literal notranslate"><span class="pre">astropy.table</span></code></a> module can be used to stack time series in
+different ways.</p>
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+<p>Time series can be stacked “vertically” or row-wise using the
+<a class="reference internal" href="../api/astropy.table.vstack.html#astropy.table.vstack" title="astropy.table.vstack"><code class="xref py py-func docutils literal notranslate"><span class="pre">vstack()</span></code></a> function (although note that sampled time
+series cannot be combined with binned time series and vice versa):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">vstack</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.timeseries</span> <span class="kn">import</span> <span class="n">TimeSeries</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts_a</span> <span class="o">=</span> <span class="n">TimeSeries</span><span class="p">(</span><span class="n">time_start</span><span class="o">=</span><span class="s1">&#39;2016-03-22T12:30:31&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                  <span class="n">time_delta</span><span class="o">=</span><span class="mi">3</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+<span class="gp">... </span>                  <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;flux&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">mJy</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts_b</span> <span class="o">=</span> <span class="n">TimeSeries</span><span class="p">(</span><span class="n">time_start</span><span class="o">=</span><span class="s1">&#39;2016-03-22T12:50:31&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                  <span class="n">time_delta</span><span class="o">=</span><span class="mi">3</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+<span class="gp">... </span>                  <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;flux&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">mJy</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts_ab</span> <span class="o">=</span> <span class="n">vstack</span><span class="p">([</span><span class="n">ts_a</span><span class="p">,</span> <span class="n">ts_b</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts_ab</span>
+<span class="go">&lt;TimeSeries length=10&gt;</span>
+<span class="go">          time            flux</span>
+<span class="go">                          mJy</span>
+<span class="go">          Time          float64</span>
+<span class="go">----------------------- -------</span>
+<span class="go">2016-03-22T12:30:31.000     1.0</span>
+<span class="go">2016-03-22T12:30:34.000     4.0</span>
+<span class="go">2016-03-22T12:30:37.000     5.0</span>
+<span class="go">2016-03-22T12:30:40.000     3.0</span>
+<span class="go">2016-03-22T12:30:43.000     2.0</span>
+<span class="go">2016-03-22T12:50:31.000     4.0</span>
+<span class="go">2016-03-22T12:50:34.000     3.0</span>
+<span class="go">2016-03-22T12:50:37.000     1.0</span>
+<span class="go">2016-03-22T12:50:40.000     2.0</span>
+<span class="go">2016-03-22T12:50:43.000     3.0</span>
+</pre></div>
+</div>
+<p>Note that <a class="reference internal" href="../api/astropy.table.vstack.html#astropy.table.vstack" title="astropy.table.vstack"><code class="xref py py-func docutils literal notranslate"><span class="pre">vstack()</span></code></a> does not automatically sort, nor get rid
+of duplicates — this is something you would need to do explicitly afterwards.</p>
+<p>Time series can also be combined “horizontally” or column-wise with other tables
+using the <a class="reference internal" href="../api/astropy.table.hstack.html#astropy.table.hstack" title="astropy.table.hstack"><code class="xref py py-func docutils literal notranslate"><span class="pre">hstack()</span></code></a> function, though these should not be
+time series (as having multiple time columns would be confusing):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">hstack</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;temperature&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.</span><span class="p">,</span> <span class="mf">41.</span><span class="p">,</span> <span class="mf">40.</span><span class="p">,</span> <span class="mf">39.</span><span class="p">,</span> <span class="mf">30.</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">K</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts_a_data</span> <span class="o">=</span> <span class="n">hstack</span><span class="p">([</span><span class="n">ts_a</span><span class="p">,</span> <span class="n">data</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts_a_data</span>
+<span class="go">&lt;TimeSeries length=5&gt;</span>
+<span class="go">          time            flux  temperature</span>
+<span class="go">                          mJy          K</span>
+<span class="go">          Time          float64    float64</span>
+<span class="go">----------------------- ------- -----------</span>
+<span class="go">2016-03-22T12:30:31.000     1.0        40.0</span>
+<span class="go">2016-03-22T12:30:34.000     4.0        41.0</span>
+<span class="go">2016-03-22T12:30:37.000     5.0        40.0</span>
+<span class="go">2016-03-22T12:30:40.000     3.0        39.0</span>
+<span class="go">2016-03-22T12:30:43.000     2.0        30.0</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="sorting-time-series">
+<h2>Sorting Time Series<a class="headerlink" href="#sorting-time-series" title="Permalink to this headline">¶</a></h2>
+<p>Sorting time series in place can be done using the
+<a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.sort" title="astropy.table.Table.sort"><code class="xref py py-meth docutils literal notranslate"><span class="pre">sort()</span></code></a> method, as for <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span> <span class="o">=</span> <span class="n">TimeSeries</span><span class="p">(</span><span class="n">time_start</span><span class="o">=</span><span class="s1">&#39;2016-03-22T12:30:31&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">time_delta</span><span class="o">=</span><span class="mi">3</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;flux&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">4.</span><span class="p">,</span> <span class="mf">5.</span><span class="p">,</span> <span class="mf">3.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">]})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span>
+<span class="go">&lt;TimeSeries length=5&gt;</span>
+<span class="go">          time            flux</span>
+<span class="go">          Time          float64</span>
+<span class="go">----------------------- -------</span>
+<span class="go">2016-03-22T12:30:31.000     1.0</span>
+<span class="go">2016-03-22T12:30:34.000     4.0</span>
+<span class="go">2016-03-22T12:30:37.000     5.0</span>
+<span class="go">2016-03-22T12:30:40.000     3.0</span>
+<span class="go">2016-03-22T12:30:43.000     2.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s1">&#39;flux&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ts</span>
+<span class="go">&lt;TimeSeries length=5&gt;</span>
+<span class="go">          time            flux</span>
+<span class="go">          Time          float64</span>
+<span class="go">----------------------- -------</span>
+<span class="go">2016-03-22T12:30:31.000     1.0</span>
+<span class="go">2016-03-22T12:30:43.000     2.0</span>
+<span class="go">2016-03-22T12:30:40.000     3.0</span>
+<span class="go">2016-03-22T12:30:34.000     4.0</span>
+<span class="go">2016-03-22T12:30:37.000     5.0</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="resampling">
+<h2>Resampling<a class="headerlink" href="#resampling" title="Permalink to this headline">¶</a></h2>
+<p>We provide a <a class="reference internal" href="../api/astropy.timeseries.aggregate_downsample.html#astropy.timeseries.aggregate_downsample" title="astropy.timeseries.aggregate_downsample"><code class="xref py py-func docutils literal notranslate"><span class="pre">aggregate_downsample()</span></code></a> function
+that can be used to bin values from a time series into equal-size or uneven bins,
+and contiguous and non-contiguous bins, using a custom function (mean, median, etc.).
+This operation returns a <a class="reference internal" href="../api/astropy.timeseries.BinnedTimeSeries.html#astropy.timeseries.BinnedTimeSeries" title="astropy.timeseries.BinnedTimeSeries"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinnedTimeSeries</span></code></a>. Note that this is a basic function in
+the sense that it does not, for example, know how to treat columns with uncertainties
+differently from other values, and it will blindly apply the custom function
+specified to all columns.</p>
+<div class="section" id="example">
+<h3>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h3>
+<p>The following example shows how to use
+<a class="reference internal" href="../api/astropy.timeseries.aggregate_downsample.html#astropy.timeseries.aggregate_downsample" title="astropy.timeseries.aggregate_downsample"><code class="xref py py-func docutils literal notranslate"><span class="pre">aggregate_downsample()</span></code></a> to bin a light curve from the
+Kepler mission into 20 minute contiguous bins using a median function. First,
+we read in the data using:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">astropy.timeseries</span> <span class="kn">import</span> <span class="n">TimeSeries</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.data</span> <span class="kn">import</span> <span class="n">get_pkg_data_filename</span>
+<span class="n">example_data</span> <span class="o">=</span> <span class="n">get_pkg_data_filename</span><span class="p">(</span><span class="s1">&#39;timeseries/kplr010666592-2009131110544_slc.fits&#39;</span><span class="p">)</span>
+<span class="n">kepler</span> <span class="o">=</span> <span class="n">TimeSeries</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">example_data</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;kepler.fits&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(See <a class="reference internal" href="io.html#timeseries-io"><span class="std std-ref">Reading and Writing Time Series</span></a> for more details about reading in data). We can then
+downsample using:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.timeseries</span> <span class="kn">import</span> <span class="n">aggregate_downsample</span>
+<span class="n">kepler_binned</span> <span class="o">=</span> <span class="n">aggregate_downsample</span><span class="p">(</span><span class="n">kepler</span><span class="p">,</span> <span class="n">time_bin_size</span><span class="o">=</span><span class="mi">20</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">aggregate_func</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We can take a look at the results:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kepler</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">jd</span><span class="p">,</span> <span class="n">kepler</span><span class="p">[</span><span class="s1">&#39;sap_flux&#39;</span><span class="p">],</span> <span class="s1">&#39;k.&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kepler_binned</span><span class="o">.</span><span class="n">time_bin_start</span><span class="o">.</span><span class="n">jd</span><span class="p">,</span> <span class="n">kepler_binned</span><span class="p">[</span><span class="s1">&#39;sap_flux&#39;</span><span class="p">],</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="n">drawstyle</span><span class="o">=</span><span class="s1">&#39;steps-pre&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Julian Date&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;SAP Flux (e-/s)&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../timeseries/analysis-4.png">png</a>, <a class="reference external" href="../timeseries/analysis-4.svg">svg</a>, <a class="reference external" href="../timeseries/analysis-4.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/analysis-4.png" class="plot-directive" src="../_images/analysis-4.png" />
+</div>
+<p>The <a class="reference internal" href="../api/astropy.timeseries.aggregate_downsample.html#astropy.timeseries.aggregate_downsample" title="astropy.timeseries.aggregate_downsample"><code class="xref py py-func docutils literal notranslate"><span class="pre">aggregate_downsample()</span></code></a> can also be used
+to bin the light curve into custom bins. The following example shows
+the case of uneven-size contiguous bins:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">kepler_binned</span> <span class="o">=</span> <span class="n">aggregate_downsample</span><span class="p">(</span><span class="n">kepler</span><span class="p">,</span> <span class="n">time_bin_size</span><span class="o">=</span><span class="p">[</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">125</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">210</span><span class="p">,</span> <span class="mi">273</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">min</span><span class="p">,</span>
+                                     <span class="n">aggregate_func</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kepler</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">jd</span><span class="p">,</span> <span class="n">kepler</span><span class="p">[</span><span class="s1">&#39;sap_flux&#39;</span><span class="p">],</span> <span class="s1">&#39;k.&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kepler_binned</span><span class="o">.</span><span class="n">time_bin_start</span><span class="o">.</span><span class="n">jd</span><span class="p">,</span> <span class="n">kepler_binned</span><span class="p">[</span><span class="s1">&#39;sap_flux&#39;</span><span class="p">],</span> <span class="s1">&#39;r-&#39;</span><span class="p">,</span> <span class="n">drawstyle</span><span class="o">=</span><span class="s1">&#39;steps-pre&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Julian Date&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;SAP Flux (e-/s)&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../timeseries/analysis-6.png">png</a>, <a class="reference external" href="../timeseries/analysis-6.svg">svg</a>, <a class="reference external" href="../timeseries/analysis-6.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/analysis-6.png" class="plot-directive" src="../_images/analysis-6.png" />
+</div>
+<p>To learn more about the custom binning functionality in
+<a class="reference internal" href="../api/astropy.timeseries.aggregate_downsample.html#astropy.timeseries.aggregate_downsample" title="astropy.timeseries.aggregate_downsample"><code class="xref py py-func docutils literal notranslate"><span class="pre">aggregate_downsample()</span></code></a>, see
+<a class="reference internal" href="initializing.html#timeseries-binned-initializing"><span class="std std-ref">Initializing a Binned Time Series</span></a>.</p>
+</div>
+</div>
+<div class="section" id="folding">
+<h2>Folding<a class="headerlink" href="#folding" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries" title="astropy.timeseries.TimeSeries"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeries</span></code></a> class has a
+<a class="reference internal" href="../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries.fold" title="astropy.timeseries.TimeSeries.fold"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fold()</span></code></a> method that can be used to
+return a new time series with a relative and folded time axis. This method
+takes the period as a <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>, and optionally takes
+an epoch as a <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-class docutils literal notranslate"><span class="pre">Time</span></code></a>, which defines a zero time offset:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">kepler_folded</span> <span class="o">=</span> <span class="n">kepler</span><span class="o">.</span><span class="n">fold</span><span class="p">(</span><span class="n">period</span><span class="o">=</span><span class="mf">2.2</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">epoch_time</span><span class="o">=</span><span class="s1">&#39;2009-05-02T20:53:40&#39;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kepler_folded</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">jd</span><span class="p">,</span> <span class="n">kepler_folded</span><span class="p">[</span><span class="s1">&#39;sap_flux&#39;</span><span class="p">],</span> <span class="s1">&#39;k.&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time from midpoint epoch (days)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;SAP Flux (e-/s)&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../timeseries/analysis-8.png">png</a>, <a class="reference external" href="../timeseries/analysis-8.svg">svg</a>, <a class="reference external" href="../timeseries/analysis-8.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/analysis-8.png" class="plot-directive" src="../_images/analysis-8.png" />
+</div>
+<p>Note that in this example we happened to know the period and midpoint from a
+previous periodogram analysis. See the example in <a class="reference internal" href="index.html"><span class="doc">Time Series (astropy.timeseries)</span></a> for how you
+might do this.</p>
+</div>
+<div class="section" id="arithmetic">
+<h2>Arithmetic<a class="headerlink" href="#arithmetic" title="Permalink to this headline">¶</a></h2>
+<p>Since <a class="reference internal" href="../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries" title="astropy.timeseries.TimeSeries"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeSeries</span></code></a> objects are subclasses of <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a>, they naturally support
+arithmetic on any of the data columns. As an example, we can take the folded
+Kepler time series we have seen in previous examples, and normalize it to the
+sigma-clipped median value.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">astropy.stats</span> <span class="kn">import</span> <span class="n">sigma_clipped_stats</span>
+
+<span class="n">mean</span><span class="p">,</span> <span class="n">median</span><span class="p">,</span> <span class="n">stddev</span> <span class="o">=</span> <span class="n">sigma_clipped_stats</span><span class="p">(</span><span class="n">kepler_folded</span><span class="p">[</span><span class="s1">&#39;sap_flux&#39;</span><span class="p">])</span>
+
+<span class="n">kepler_folded</span><span class="p">[</span><span class="s1">&#39;sap_flux_norm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kepler_folded</span><span class="p">[</span><span class="s1">&#39;sap_flux&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">median</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kepler_folded</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">jd</span><span class="p">,</span> <span class="n">kepler_folded</span><span class="p">[</span><span class="s1">&#39;sap_flux_norm&#39;</span><span class="p">],</span> <span class="s1">&#39;k.&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time from midpoint epoch (days)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Normalized flux&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../timeseries/analysis-11.png">png</a>, <a class="reference external" href="../timeseries/analysis-11.svg">svg</a>, <a class="reference external" href="../timeseries/analysis-11.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/analysis-11.png" class="plot-directive" src="../_images/analysis-11.png" />
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Manipulation and Analysis of Time Series</a><ul>
+<li><a class="reference internal" href="#combining-time-series">Combining Time Series</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sorting-time-series">Sorting Time Series</a></li>
+<li><a class="reference internal" href="#resampling">Resampling</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#folding">Folding</a></li>
+<li><a class="reference internal" href="#arithmetic">Arithmetic</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/timeseries/analysis.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

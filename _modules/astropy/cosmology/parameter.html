@@ -1,0 +1,461 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.cosmology.parameter &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.cosmology.parameter</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.decorators</span> <span class="kn">import</span> <span class="n">deprecated_attribute</span><span class="p">,</span> <span class="n">deprecated_renamed_argument</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Parameter&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Parameter"><a class="viewcode-back" href="../../../api/astropy.cosmology.Parameter.html#astropy.cosmology.Parameter">[docs]</a><span class="k">class</span> <span class="nc">Parameter</span><span class="p">:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Cosmological parameter (descriptor).</span>
+
+<span class="sd">    Should only be used with a :class:`~astropy.cosmology.Cosmology` subclass.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    derived : bool (optional, keyword-only)</span>
+<span class="sd">        Whether the Parameter is &#39;derived&#39;, default `False`.</span>
+<span class="sd">        Derived parameters behave similarly to normal parameters, but are not</span>
+<span class="sd">        sorted by the |Cosmology| signature (probably not there) and are not</span>
+<span class="sd">        included in all methods. For reference, see ``Ode0`` in</span>
+<span class="sd">        ``FlatFLRWMixin``, which removes :math:`\Omega_{de,0}`` as an</span>
+<span class="sd">        independent parameter (:math:`\Omega_{de,0} \equiv 1 - \Omega_{tot}`).</span>
+<span class="sd">    unit : unit-like or None (optional, keyword-only)</span>
+<span class="sd">        The `~astropy.units.Unit` for the Parameter. If None (default) no</span>
+<span class="sd">        unit as assumed.</span>
+<span class="sd">    equivalencies : `~astropy.units.Equivalency` or sequence thereof</span>
+<span class="sd">        Unit equivalencies for this Parameter.</span>
+<span class="sd">    fvalidate : callable[[object, object, Any], Any] or str (optional, keyword-only)</span>
+<span class="sd">        Function to validate the Parameter value from instances of the</span>
+<span class="sd">        cosmology class. If &quot;default&quot;, uses default validator to assign units</span>
+<span class="sd">        (with equivalencies), if Parameter has units.</span>
+<span class="sd">        For other valid string options, see ``Parameter._registry_validators``.</span>
+<span class="sd">        &#39;fvalidate&#39; can also be set through a decorator with</span>
+<span class="sd">        :meth:`~astropy.cosmology.Parameter.validator`.</span>
+<span class="sd">    fmt : str (optional, keyword-only)</span>
+<span class="sd">        `format` specification, used when making string representation</span>
+<span class="sd">        of the containing Cosmology.</span>
+<span class="sd">        See https://docs.python.org/3/library/string.html#formatspec</span>
+
+<span class="sd">        .. deprecated::  5.1</span>
+
+<span class="sd">    doc : str or None (optional, keyword-only)</span>
+<span class="sd">        Parameter description.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    For worked examples see :class:`~astropy.cosmology.FLRW`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_registry_validators</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="nd">@deprecated_renamed_argument</span><span class="p">(</span><span class="s2">&quot;fmt&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">since</span><span class="o">=</span><span class="s2">&quot;5.1&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">derived</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="p">[],</span>
+                 <span class="n">fvalidate</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># attribute name on container cosmology class.</span>
+        <span class="c1"># really set in __set_name__, but if Parameter is not init&#39;ed as a</span>
+        <span class="c1"># descriptor this ensures that the attributes exist.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_attr_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr_name_private</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_derived</span> <span class="o">=</span> <span class="n">derived</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_format_spec</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span>  <span class="c1"># deprecated.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
+
+        <span class="c1"># units stuff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span> <span class="k">if</span> <span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_equivalencies</span> <span class="o">=</span> <span class="n">equivalencies</span>
+
+        <span class="c1"># Parse registered `fvalidate`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fvalidate_in</span> <span class="o">=</span> <span class="n">fvalidate</span>  <span class="c1"># Always store input fvalidate.</span>
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">fvalidate</span><span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="n">fvalidate</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry_validators</span><span class="p">:</span>
+            <span class="n">fvalidate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry_validators</span><span class="p">[</span><span class="n">fvalidate</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fvalidate</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`fvalidate`, if str, must be in &quot;</span>
+                             <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_registry_validators</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;`fvalidate` must be a function or &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_registry_validators</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fvalidate</span> <span class="o">=</span> <span class="n">fvalidate</span>
+
+    <span class="k">def</span> <span class="nf">__set_name__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cosmo_cls</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="c1"># attribute name on container cosmology class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_attr_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_attr_name_private</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parameter name.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr_name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">unit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parameter unit.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unit</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">equivalencies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Equivalencies used when initializing Parameter.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equivalencies</span>
+
+    <span class="n">format_spec</span> <span class="o">=</span> <span class="n">deprecated_attribute</span><span class="p">(</span><span class="s2">&quot;format_spec&quot;</span><span class="p">,</span> <span class="n">since</span><span class="o">=</span><span class="s2">&quot;5.1&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">derived</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Whether the Parameter is derived; true parameters are not.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_derived</span>
+
+    <span class="c1"># -------------------------------------------</span>
+    <span class="c1"># descriptor and property-like methods</span>
+
+    <span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cosmology</span><span class="p">,</span> <span class="n">cosmo_cls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Get from class</span>
+        <span class="k">if</span> <span class="n">cosmology</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="c1"># Get from instance</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr_name_private</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cosmology</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allows attribute setting once. Raises AttributeError subsequently.&quot;&quot;&quot;</span>
+        <span class="c1"># Raise error if setting 2nd time.</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr_name_private</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;can&#39;t set attribute </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_attr_name</span><span class="si">}</span><span class="s2"> again&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Validate value, generally setting units if present</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+        <span class="c1"># Make the value read-only, if ndarray-like</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;setflags&quot;</span><span class="p">):</span>
+            <span class="n">value</span><span class="o">.</span><span class="n">setflags</span><span class="p">(</span><span class="n">write</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Set the value on the cosmology</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr_name_private</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------</span>
+    <span class="c1"># validate value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fvalidate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Function to validate a potential value of this Parameter.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fvalidate</span>
+
+<div class="viewcode-block" id="Parameter.validator"><a class="viewcode-back" href="../../../api/astropy.cosmology.Parameter.html#astropy.cosmology.Parameter.validator">[docs]</a>    <span class="k">def</span> <span class="nf">validator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fvalidate</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Make new Parameter with custom ``fvalidate``.</span>
+
+<span class="sd">        Note: ``Parameter.fvalidator`` must be the top-most descriptor decorator.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fvalidate : callable[[type, type, Any], Any]</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        `~astropy.cosmology.Parameter`</span>
+<span class="sd">            Copy of this Parameter but with custom ``fvalidate``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">fvalidate</span><span class="o">=</span><span class="n">fvalidate</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parameter.validate"><a class="viewcode-back" href="../../../api/astropy.cosmology.Parameter.html#astropy.cosmology.Parameter.validate">[docs]</a>    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cosmology</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Run the validator on this Parameter.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cosmology : `~astropy.cosmology.Cosmology` instance</span>
+<span class="sd">        value : Any</span>
+<span class="sd">            The object to validate.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Any</span>
+<span class="sd">            The output of calling ``fvalidate(cosmology, self, value)``</span>
+<span class="sd">            (yes, that parameter order).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fvalidate</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parameter.register_validator"><a class="viewcode-back" href="../../../api/astropy.cosmology.Parameter.html#astropy.cosmology.Parameter.register_validator">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">register_validator</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">fvalidate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decorator to register a new kind of validator function.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : str</span>
+<span class="sd">        fvalidate : callable[[object, object, Any], Any] or None, optional</span>
+<span class="sd">            Value validation function.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ``validator`` or callable[``validator``]</span>
+<span class="sd">            if validator is None returns a function that takes and registers a</span>
+<span class="sd">            validator. This allows ``register_validator`` to be used as a</span>
+<span class="sd">            decorator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_registry_validators</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;validator </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> already registered with Parameter.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># fvalidate directly passed</span>
+        <span class="k">if</span> <span class="n">fvalidate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_registry_validators</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">fvalidate</span>
+            <span class="k">return</span> <span class="n">fvalidate</span>
+
+        <span class="c1"># for use as a decorator</span>
+        <span class="k">def</span> <span class="nf">register</span><span class="p">(</span><span class="n">fvalidate</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Register validator function.</span>
+
+<span class="sd">            Parameters</span>
+<span class="sd">            ----------</span>
+<span class="sd">            fvalidate : callable[[object, object, Any], Any]</span>
+<span class="sd">                Validation function.</span>
+
+<span class="sd">            Returns</span>
+<span class="sd">            -------</span>
+<span class="sd">            ``validator``</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_registry_validators</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">fvalidate</span>
+            <span class="k">return</span> <span class="n">fvalidate</span>
+
+        <span class="k">return</span> <span class="n">register</span></div>
+
+    <span class="c1"># -------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">_get_init_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">processed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialization arguments.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        processed : bool</span>
+<span class="sd">            Whether to more closely reproduce the input arguments (`False`,</span>
+<span class="sd">            default) or the processed arguments (`True`). The former is better</span>
+<span class="sd">            for string representations and round-tripping with ``eval(repr())``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict[str, Any]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># The keys are added in this order because `repr` prints them in order.</span>
+        <span class="n">kw</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;derived&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">derived</span><span class="p">,</span>
+              <span class="s2">&quot;unit&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span>
+              <span class="s2">&quot;equivalencies&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">equivalencies</span><span class="p">,</span>
+              <span class="c1"># Validator is always turned into a function, but for ``repr`` it&#39;s nice</span>
+              <span class="c1"># to know if it was originally a string.</span>
+              <span class="s2">&quot;fvalidate&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">fvalidate</span> <span class="k">if</span> <span class="n">processed</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fvalidate_in</span><span class="p">,</span>
+              <span class="s2">&quot;doc&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">}</span>
+        <span class="c1"># fmt will issue a deprecation warning if passed, so only passed if</span>
+        <span class="c1"># it&#39;s not the default.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_spec</span><span class="p">:</span>
+            <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;fmt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_spec</span>
+        <span class="k">return</span> <span class="n">kw</span>
+
+<div class="viewcode-block" id="Parameter.clone"><a class="viewcode-back" href="../../../api/astropy.cosmology.Parameter.html#astropy.cosmology.Parameter.clone">[docs]</a>    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Clone this `Parameter`, changing any constructor argument.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        **kw</span>
+<span class="sd">            Passed to constructor. The current values, eg. ``fvalidate`` are</span>
+<span class="sd">            used as the default values, so an empty ``**kw`` is an exact copy.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; p = Parameter()</span>
+<span class="sd">        &gt;&gt;&gt; p</span>
+<span class="sd">        Parameter(derived=False, unit=None, equivalencies=[],</span>
+<span class="sd">                  fvalidate=&#39;default&#39;, doc=None)</span>
+
+<span class="sd">        &gt;&gt;&gt; p.clone(unit=&quot;km&quot;)</span>
+<span class="sd">        Parameter(derived=False, unit=Unit(&quot;km&quot;), equivalencies=[],</span>
+<span class="sd">                  fvalidate=&#39;default&#39;, doc=None)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Start with defaults, update from kw.</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_init_arguments</span><span class="p">(),</span> <span class="o">**</span><span class="n">kw</span><span class="p">}</span>
+        <span class="c1"># All initialization failures, like incorrect input are handled by init</span>
+        <span class="n">cloned</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># Transfer over the __set_name__ stuff. If `clone` is used to make a</span>
+        <span class="c1"># new descriptor, __set_name__ will be called again, overwriting this.</span>
+        <span class="n">cloned</span><span class="o">.</span><span class="n">_attr_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr_name</span>
+        <span class="n">cloned</span><span class="o">.</span><span class="n">_attr_name_private</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr_name_private</span>
+
+        <span class="k">return</span> <span class="n">cloned</span></div>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check Parameter equality. Only equal to other Parameter objects.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        NotImplemented or True</span>
+<span class="sd">            `True` if equal, `NotImplemented` otherwise. This allows `other` to</span>
+<span class="sd">            be check for equality with ``other.__eq__``.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; p1, p2 = Parameter(unit=&quot;km&quot;), Parameter(unit=&quot;km&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; p1 == p2</span>
+<span class="sd">        True</span>
+
+<span class="sd">        &gt;&gt;&gt; p3 = Parameter(unit=&quot;km / s&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; p3 == p1</span>
+<span class="sd">        False</span>
+
+<span class="sd">        &gt;&gt;&gt; p1 != 2</span>
+<span class="sd">        True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="c1"># Check equality on all `_init_arguments` &amp; `name`.</span>
+        <span class="c1"># Need to compare the processed arguments because the inputs are many-</span>
+        <span class="c1"># to-one, e.g. `fvalidate` can be a string or the equivalent function.</span>
+        <span class="k">return</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_init_arguments</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_get_init_arguments</span><span class="p">(</span><span class="kc">True</span><span class="p">))</span>
+                <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;String representation.</span>
+
+<span class="sd">        ``eval(repr())`` should work, depending if contents like ``fvalidate``</span>
+<span class="sd">        can be similarly round-tripped.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;Parameter(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">!r}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span>
+                                                <span class="bp">self</span><span class="o">.</span><span class="n">_get_init_arguments</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span></div>
+
+
+<span class="c1"># ===================================================================</span>
+<span class="c1"># Built-in validators</span>
+
+
+<span class="nd">@Parameter</span><span class="o">.</span><span class="n">register_validator</span><span class="p">(</span><span class="s2">&quot;default&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_validate_with_unit</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Default Parameter value validator.</span>
+<span class="sd">    Adds/converts units if Parameter has a unit.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">u</span><span class="o">.</span><span class="n">add_enabled_equivalencies</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">equivalencies</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">param</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="nd">@Parameter</span><span class="o">.</span><span class="n">register_validator</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_validate_to_float</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parameter value validator with units, and converted to float.&quot;&quot;&quot;</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">_validate_with_unit</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="nd">@Parameter</span><span class="o">.</span><span class="n">register_validator</span><span class="p">(</span><span class="s2">&quot;scalar&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_validate_to_scalar</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;&quot;&quot;&quot;</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">_validate_with_unit</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="o">.</span><span class="n">isscalar</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">param</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is a non-scalar quantity&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="nd">@Parameter</span><span class="o">.</span><span class="n">register_validator</span><span class="p">(</span><span class="s2">&quot;non-negative&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_validate_non_negative</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parameter value validator where value is a positive float.&quot;&quot;&quot;</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">_validate_to_float</span><span class="p">(</span><span class="n">cosmology</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">param</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> cannot be negative.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

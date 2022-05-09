@@ -1,0 +1,341 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.cosmology.connect &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.cosmology.connect</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">cu</span>
+<span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">registry</span> <span class="k">as</span> <span class="n">io_registry</span>
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">add_enabled_units</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CosmologyRead&quot;</span><span class="p">,</span> <span class="s2">&quot;CosmologyWrite&quot;</span><span class="p">,</span>
+           <span class="s2">&quot;CosmologyFromFormat&quot;</span><span class="p">,</span> <span class="s2">&quot;CosmologyToFormat&quot;</span><span class="p">]</span>
+<span class="n">__doctest_skip__</span> <span class="o">=</span> <span class="n">__all__</span>
+
+
+<span class="c1"># ==============================================================================</span>
+<span class="c1"># Read / Write</span>
+
+<span class="n">readwrite_registry</span> <span class="o">=</span> <span class="n">io_registry</span><span class="o">.</span><span class="n">UnifiedIORegistry</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="CosmologyRead"><a class="viewcode-back" href="../../../api/astropy.cosmology.connect.CosmologyRead.html#astropy.cosmology.connect.CosmologyRead">[docs]</a><span class="k">class</span> <span class="nc">CosmologyRead</span><span class="p">(</span><span class="n">io_registry</span><span class="o">.</span><span class="n">UnifiedReadWrite</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read and parse data to a `~astropy.cosmology.Cosmology`.</span>
+
+<span class="sd">    This function provides the Cosmology interface to the Astropy unified I/O</span>
+<span class="sd">    layer. This allows easily reading a file in supported data formats using</span>
+<span class="sd">    syntax such as::</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.cosmology import Cosmology</span>
+<span class="sd">        &gt;&gt;&gt; cosmo1 = Cosmology.read(&#39;&lt;file name&gt;&#39;)</span>
+
+<span class="sd">    When the ``read`` method is called from a subclass the subclass will</span>
+<span class="sd">    provide a keyword argument ``cosmology=&lt;class&gt;`` to the registered read</span>
+<span class="sd">    method. The method uses this cosmology class, regardless of the class</span>
+<span class="sd">    indicated in the file, and sets parameters&#39; default values from the class&#39;</span>
+<span class="sd">    signature.</span>
+
+<span class="sd">    Get help on the available readers using the ``help()`` method::</span>
+
+<span class="sd">      &gt;&gt;&gt; Cosmology.read.help()  # Get help reading and list supported formats</span>
+<span class="sd">      &gt;&gt;&gt; Cosmology.read.help(format=&#39;&lt;format&gt;&#39;)  # Get detailed help on a format</span>
+<span class="sd">      &gt;&gt;&gt; Cosmology.read.list_formats()  # Print list of available formats</span>
+
+<span class="sd">    See also: https://docs.astropy.org/en/stable/io/unified.html</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    *args</span>
+<span class="sd">        Positional arguments passed through to data reader. If supplied the</span>
+<span class="sd">        first argument is typically the input filename.</span>
+<span class="sd">    format : str (optional, keyword-only)</span>
+<span class="sd">        File format specifier.</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Keyword arguments passed through to data reader.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out : `~astropy.cosmology.Cosmology` subclass instance</span>
+<span class="sd">        `~astropy.cosmology.Cosmology` corresponding to file contents.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">cosmo_cls</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">cosmo_cls</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="n">registry</span><span class="o">=</span><span class="n">readwrite_registry</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CosmologyRead.__call__"><a class="viewcode-back" href="../../../api/astropy.cosmology.connect.CosmologyRead.html#astropy.cosmology.connect.CosmologyRead.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">astropy.cosmology.core</span> <span class="kn">import</span> <span class="n">Cosmology</span>
+
+        <span class="c1"># so subclasses can override, also pass the class as a kwarg.</span>
+        <span class="c1"># allows for `FlatLambdaCDM.read` and</span>
+        <span class="c1"># `Cosmology.read(..., cosmology=FlatLambdaCDM)`</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">Cosmology</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;cosmology&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cls</span><span class="p">)</span>  <span class="c1"># set, if not present</span>
+            <span class="c1"># check that it is the correct cosmology, can be wrong if user</span>
+            <span class="c1"># passes in e.g. `w0wzCDM.read(..., cosmology=FlatLambdaCDM)`</span>
+            <span class="n">valid</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cls</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cls</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;cosmology&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;keyword argument `cosmology` must be either the class &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">valid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> or its qualified name &#39;</span><span class="si">{</span><span class="n">valid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">add_enabled_units</span><span class="p">(</span><span class="n">cu</span><span class="p">):</span>
+            <span class="n">cosmo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cosmo</span></div></div>
+
+
+<div class="viewcode-block" id="CosmologyWrite"><a class="viewcode-back" href="../../../api/astropy.cosmology.connect.CosmologyWrite.html#astropy.cosmology.connect.CosmologyWrite">[docs]</a><span class="k">class</span> <span class="nc">CosmologyWrite</span><span class="p">(</span><span class="n">io_registry</span><span class="o">.</span><span class="n">UnifiedReadWrite</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Write this Cosmology object out in the specified format.</span>
+
+<span class="sd">    This function provides the Cosmology interface to the astropy unified I/O</span>
+<span class="sd">    layer. This allows easily writing a file in supported data formats</span>
+<span class="sd">    using syntax such as::</span>
+
+<span class="sd">      &gt;&gt;&gt; from astropy.cosmology import Planck18</span>
+<span class="sd">      &gt;&gt;&gt; Planck18.write(&#39;&lt;file name&gt;&#39;)</span>
+
+<span class="sd">    Get help on the available writers for ``Cosmology`` using the ``help()``</span>
+<span class="sd">    method::</span>
+
+<span class="sd">      &gt;&gt;&gt; Cosmology.write.help()  # Get help writing and list supported formats</span>
+<span class="sd">      &gt;&gt;&gt; Cosmology.write.help(format=&#39;&lt;format&gt;&#39;)  # Get detailed help on format</span>
+<span class="sd">      &gt;&gt;&gt; Cosmology.write.list_formats()  # Print list of available formats</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    *args</span>
+<span class="sd">        Positional arguments passed through to data writer. If supplied the</span>
+<span class="sd">        first argument is the output filename.</span>
+<span class="sd">    format : str (optional, keyword-only)</span>
+<span class="sd">        File format specifier.</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Keyword arguments passed through to data writer.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;write&quot;</span><span class="p">,</span> <span class="n">registry</span><span class="o">=</span><span class="n">readwrite_registry</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CosmologyWrite.__call__"><a class="viewcode-back" href="../../../api/astropy.cosmology.connect.CosmologyWrite.html#astropy.cosmology.connect.CosmologyWrite.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_instance</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+
+
+<span class="c1"># ==============================================================================</span>
+<span class="c1"># Format Interchange</span>
+<span class="c1"># for transforming instances, e.g. Cosmology &lt;-&gt; dict</span>
+
+<span class="n">convert_registry</span> <span class="o">=</span> <span class="n">io_registry</span><span class="o">.</span><span class="n">UnifiedIORegistry</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="CosmologyFromFormat"><a class="viewcode-back" href="../../../api/astropy.cosmology.connect.CosmologyFromFormat.html#astropy.cosmology.connect.CosmologyFromFormat">[docs]</a><span class="k">class</span> <span class="nc">CosmologyFromFormat</span><span class="p">(</span><span class="n">io_registry</span><span class="o">.</span><span class="n">UnifiedReadWrite</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transform object to a `~astropy.cosmology.Cosmology`.</span>
+
+<span class="sd">    This function provides the Cosmology interface to the Astropy unified I/O</span>
+<span class="sd">    layer. This allows easily parsing supported data formats using</span>
+<span class="sd">    syntax such as::</span>
+
+<span class="sd">      &gt;&gt;&gt; from astropy.cosmology import Cosmology</span>
+<span class="sd">      &gt;&gt;&gt; cosmo1 = Cosmology.from_format(cosmo_mapping, format=&#39;mapping&#39;)</span>
+
+<span class="sd">    When the ``from_format`` method is called from a subclass the subclass will</span>
+<span class="sd">    provide a keyword argument ``cosmology=&lt;class&gt;`` to the registered parser.</span>
+<span class="sd">    The method uses this cosmology class, regardless of the class indicated in</span>
+<span class="sd">    the data, and sets parameters&#39; default values from the class&#39; signature.</span>
+
+<span class="sd">    Get help on the available readers using the ``help()`` method::</span>
+
+<span class="sd">      &gt;&gt;&gt; Cosmology.from_format.help()  # Get help and list supported formats</span>
+<span class="sd">      &gt;&gt;&gt; Cosmology.from_format.help(&#39;&lt;format&gt;&#39;)  # Get detailed help on a format</span>
+<span class="sd">      &gt;&gt;&gt; Cosmology.from_format.list_formats()  # Print list of available formats</span>
+
+<span class="sd">    See also: https://docs.astropy.org/en/stable/io/unified.html</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    obj : object</span>
+<span class="sd">        The object to parse according to &#39;format&#39;</span>
+<span class="sd">    *args</span>
+<span class="sd">        Positional arguments passed through to data parser.</span>
+<span class="sd">    format : str or None, optional keyword-only</span>
+<span class="sd">        Object format specifier. For `None` (default) CosmologyFromFormat tries</span>
+<span class="sd">        to identify the correct format.</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Keyword arguments passed through to data parser.</span>
+<span class="sd">        Parsers should accept the following keyword arguments:</span>
+
+<span class="sd">        - cosmology : the class (or string name thereof) to use / check when</span>
+<span class="sd">                      constructing the cosmology instance.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out : `~astropy.cosmology.Cosmology` subclass instance</span>
+<span class="sd">        `~astropy.cosmology.Cosmology` corresponding to ``obj`` contents.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">cosmo_cls</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">cosmo_cls</span><span class="p">,</span> <span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="n">registry</span><span class="o">=</span><span class="n">convert_registry</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CosmologyFromFormat.__call__"><a class="viewcode-back" href="../../../api/astropy.cosmology.connect.CosmologyFromFormat.html#astropy.cosmology.connect.CosmologyFromFormat.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">astropy.cosmology.core</span> <span class="kn">import</span> <span class="n">Cosmology</span>
+
+        <span class="c1"># so subclasses can override, also pass the class as a kwarg.</span>
+        <span class="c1"># allows for `FlatLambdaCDM.read` and</span>
+        <span class="c1"># `Cosmology.read(..., cosmology=FlatLambdaCDM)`</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">Cosmology</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;cosmology&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cls</span><span class="p">)</span>  <span class="c1"># set, if not present</span>
+            <span class="c1"># check that it is the correct cosmology, can be wrong if user</span>
+            <span class="c1"># passes in e.g. `w0wzCDM.read(..., cosmology=FlatLambdaCDM)`</span>
+            <span class="n">valid</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cls</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cls</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;cosmology&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;keyword argument `cosmology` must be either the class &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">valid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> or its qualified name &#39;</span><span class="si">{</span><span class="n">valid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">add_enabled_units</span><span class="p">(</span><span class="n">cu</span><span class="p">):</span>
+            <span class="n">cosmo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cls</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cosmo</span></div></div>
+
+
+<div class="viewcode-block" id="CosmologyToFormat"><a class="viewcode-back" href="../../../api/astropy.cosmology.connect.CosmologyToFormat.html#astropy.cosmology.connect.CosmologyToFormat">[docs]</a><span class="k">class</span> <span class="nc">CosmologyToFormat</span><span class="p">(</span><span class="n">io_registry</span><span class="o">.</span><span class="n">UnifiedReadWrite</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transform this Cosmology to another format.</span>
+
+<span class="sd">    This function provides the Cosmology interface to the astropy unified I/O</span>
+<span class="sd">    layer. This allows easily transforming to supported data formats</span>
+<span class="sd">    using syntax such as::</span>
+
+<span class="sd">      &gt;&gt;&gt; from astropy.cosmology import Planck18</span>
+<span class="sd">      &gt;&gt;&gt; Planck18.to_format(&quot;mapping&quot;)</span>
+<span class="sd">      {&#39;cosmology&#39;: astropy.cosmology.core.FlatLambdaCDM,</span>
+<span class="sd">       &#39;name&#39;: &#39;Planck18&#39;,</span>
+<span class="sd">       &#39;H0&#39;: &lt;Quantity 67.66 km / (Mpc s)&gt;,</span>
+<span class="sd">       &#39;Om0&#39;: 0.30966,</span>
+<span class="sd">       ...</span>
+
+<span class="sd">    Get help on the available representations for ``Cosmology`` using the</span>
+<span class="sd">    ``help()`` method::</span>
+
+<span class="sd">      &gt;&gt;&gt; Cosmology.to_format.help()  # Get help and list supported formats</span>
+<span class="sd">      &gt;&gt;&gt; Cosmology.to_format.help(&#39;&lt;format&gt;&#39;)  # Get detailed help on format</span>
+<span class="sd">      &gt;&gt;&gt; Cosmology.to_format.list_formats()  # Print list of available formats</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    format : str</span>
+<span class="sd">        Format specifier.</span>
+<span class="sd">    *args</span>
+<span class="sd">        Positional arguments passed through to data writer. If supplied the</span>
+<span class="sd">        first argument is the output filename.</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Keyword arguments passed through to data writer.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;write&quot;</span><span class="p">,</span> <span class="n">registry</span><span class="o">=</span><span class="n">convert_registry</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CosmologyToFormat.__call__"><a class="viewcode-back" href="../../../api/astropy.cosmology.connect.CosmologyToFormat.html#astropy.cosmology.connect.CosmologyToFormat.__call__">[docs]</a>    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_instance</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

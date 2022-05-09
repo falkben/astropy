@@ -1,0 +1,240 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Adding support for units in a model (Advanced) &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="JointFitter" href="jointfitter.html" />
+    <link rel="prev" title="Defining New Fitter Classes" href="new-fitter.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="jointfitter.html" title="JointFitter">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="new-fitter.html" title="Defining New Fitter Classes">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Models and Fitting (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling</span></code>)</a> &#187;</li>
+      
+      <li>Adding support for units in a model (Advanced)</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="adding-support-for-units-in-a-model-advanced">
+<span id="add-units"></span><h1>Adding support for units in a model (Advanced)<a class="headerlink" href="#adding-support-for-units-in-a-model-advanced" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="evaluation">
+<h2>Evaluation<a class="headerlink" href="#evaluation" title="Permalink to this headline">¶</a></h2>
+<p>To make it so that your models can accept parameters with units and be evaluated
+using inputs with units, you need to make sure that the
+<a class="reference internal" href="../api/astropy.modeling.Model.html#astropy.modeling.Model.evaluate" title="astropy.modeling.Model.evaluate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">evaluate()</span></code></a> method works correctly with
+input values and parameters with units. For simple arithmetic, this may work
+out of the box since <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> objects are understood by
+a number of Numpy functions.</p>
+<p>If users of your models provide input during evaluation that is not compatible
+with the parameter units, they may get cryptic errors such as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">UnitsError</span> <span class="p">:</span> <span class="n">Can</span> <span class="n">only</span> <span class="n">apply</span> <span class="s1">&#39;subtract&#39;</span> <span class="n">function</span> <span class="n">to</span> <span class="n">dimensionless</span> <span class="n">quantities</span>
+<span class="n">when</span> <span class="n">other</span> <span class="n">argument</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">a</span> <span class="n">quantity</span> <span class="p">(</span><span class="n">unless</span> <span class="n">the</span> <span class="n">latter</span> <span class="ow">is</span> <span class="nb">all</span>
+<span class="n">zero</span><span class="o">/</span><span class="n">infinity</span><span class="o">/</span><span class="n">nan</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>There are several attributes or properties that can be set on models that adjust
+the behavior of models with units. These attributes can be changed from the
+defaults in the class definition, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyModel</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">input_units</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">}</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>Note that these are all optional.</p>
+<div class="section" id="input-units">
+<span id="models-input-units"></span><h3><code class="docutils literal notranslate"><span class="pre">input_units</span></code><a class="headerlink" href="#input-units" title="Permalink to this headline">¶</a></h3>
+<p>You can easily add checking of the input units by adding an <code class="docutils literal notranslate"><span class="pre">input_units</span></code>
+property or attribute on your model class. This should return either <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> (to
+indicate no constraints) or a dictionary where the keys are the input names
+(e.g. <code class="docutils literal notranslate"><span class="pre">x</span></code> for many 1D models) and the values are the units expected, which can
+be a function of the parameter units:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@property</span>
+<span class="k">def</span> <span class="nf">input_units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="o">.</span><span class="n">unit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="o">.</span><span class="n">unit</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>If the user then gives values with incorrect input units, a clear error will be
+displayed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">UnitsError</span><span class="p">:</span> <span class="n">Units</span> <span class="n">of</span> <span class="nb">input</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">dimensionless</span><span class="p">),</span> <span class="n">could</span> <span class="ow">not</span> <span class="n">be</span> <span class="n">converted</span> <span class="n">to</span>
+<span class="n">required</span> <span class="nb">input</span> <span class="n">units</span> <span class="n">of</span> <span class="n">m</span> <span class="p">(</span><span class="n">length</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that the input units don’t have to match exactly those returned by
+<code class="docutils literal notranslate"><span class="pre">input_units</span></code>, but be convertible to them. In addition, <code class="docutils literal notranslate"><span class="pre">input_units</span></code> can
+also be specified as an attribute rather than a property in simple cases:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">input_units</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="return-units">
+<span id="models-return-units"></span><h3><code class="docutils literal notranslate"><span class="pre">return_units</span></code><a class="headerlink" href="#return-units" title="Permalink to this headline">¶</a></h3>
+<p>Similarly to <a class="reference internal" href="#models-input-units"><span class="std std-ref">input_units</span></a>, this should be dictionary that maps the return
+values of a model to units. If <a class="reference internal" href="../api/astropy.modeling.Model.html#astropy.modeling.Model.evaluate" title="astropy.modeling.Model.evaluate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">evaluate()</span></code></a> was called
+with quantities but returns unitless values, the units are added to the output.
+If the return values are quantities in different units, they are converted to
+<code class="docutils literal notranslate"><span class="pre">return_units</span></code>.</p>
+</div>
+<div class="section" id="input-units-strict">
+<h3><code class="docutils literal notranslate"><span class="pre">input_units_strict</span></code><a class="headerlink" href="#input-units-strict" title="Permalink to this headline">¶</a></h3>
+<p>If set to <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>, values that are passed in compatible units will be converted
+to the exact units specified in <code class="docutils literal notranslate"><span class="pre">input_units</span></code>.</p>
+<p>This attribute can also be a
+dictionary that maps input names to a Boolean to enable converting of that input
+to the specified unit.</p>
+</div>
+<div class="section" id="input-units-equivalencies">
+<h3><code class="docutils literal notranslate"><span class="pre">input_units_equivalencies</span></code><a class="headerlink" href="#input-units-equivalencies" title="Permalink to this headline">¶</a></h3>
+<p>This can be set to a dictionary that maps the input names to a list of
+equivalencies, for example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">input_units_equivalencies</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;nu&#39;</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">spectral</span><span class="p">()}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="input-units-allow-dimensionless">
+<h3><code class="docutils literal notranslate"><span class="pre">_input_units_allow_dimensionless</span></code><a class="headerlink" href="#input-units-allow-dimensionless" title="Permalink to this headline">¶</a></h3>
+<p>If set to <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>, values that are plain scalars or Numpy arrays can be passed to
+evaluate even if <code class="docutils literal notranslate"><span class="pre">input_units</span></code> specifies that the input should have units. It
+is up to the <a class="reference internal" href="../api/astropy.modeling.Model.html#astropy.modeling.Model.evaluate" title="astropy.modeling.Model.evaluate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">evaluate()</span></code></a> to then decide how to
+handle these dimensionless values. This attribute can also be a dictionary that
+maps input names to a Boolean to enable passing dimensionless values to
+<a class="reference internal" href="../api/astropy.modeling.Model.html#astropy.modeling.Model.evaluate" title="astropy.modeling.Model.evaluate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">evaluate()</span></code></a> for that input.</p>
+</div>
+</div>
+<div class="section" id="fitting">
+<h2>Fitting<a class="headerlink" href="#fitting" title="Permalink to this headline">¶</a></h2>
+<p>To allow models with parameters that have units to be fitted to data with units,
+you will need to add a method called <code class="docutils literal notranslate"><span class="pre">_parameter_units_for_data_units</span></code> to your
+model class. This should take two arguments <code class="docutils literal notranslate"><span class="pre">input_units</span></code> and
+<code class="docutils literal notranslate"><span class="pre">output_units</span></code> - <code class="docutils literal notranslate"><span class="pre">input_units</span></code> will be set to a dictionary with
+the units of the independent variables in the data, while <code class="docutils literal notranslate"><span class="pre">output_units</span></code> will
+be set to a dictionary with the units the dependent variables in the data (for
+example, for a simple 1D model, <code class="docutils literal notranslate"><span class="pre">input_units</span></code> will have one key, <code class="docutils literal notranslate"><span class="pre">x</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">output_units</span></code> will have one key, <code class="docutils literal notranslate"><span class="pre">y</span></code>). This method should then return
+a dictionary giving for each parameter the units the parameter should be
+converted to so that the model could be used on the data if units were removed
+from both the models and the data. The following example shows the
+implementation for the 1D Gaussian:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">_parameter_units_for_data_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs_unit</span><span class="p">,</span> <span class="n">outputs_unit</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="n">inputs_unit</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;stddev&#39;</span><span class="p">:</span> <span class="n">inputs_unit</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;amplitude&#39;</span><span class="p">:</span> <span class="n">outputs_unit</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]}</span>
+</pre></div>
+</div>
+<p>With this method in place, the model can then be fit to data that has units.</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Adding support for units in a model (Advanced)</a><ul>
+<li><a class="reference internal" href="#evaluation">Evaluation</a><ul>
+<li><a class="reference internal" href="#input-units"><code class="docutils literal notranslate"><span class="pre">input_units</span></code></a></li>
+<li><a class="reference internal" href="#return-units"><code class="docutils literal notranslate"><span class="pre">return_units</span></code></a></li>
+<li><a class="reference internal" href="#input-units-strict"><code class="docutils literal notranslate"><span class="pre">input_units_strict</span></code></a></li>
+<li><a class="reference internal" href="#input-units-equivalencies"><code class="docutils literal notranslate"><span class="pre">input_units_equivalencies</span></code></a></li>
+<li><a class="reference internal" href="#input-units-allow-dimensionless"><code class="docutils literal notranslate"><span class="pre">_input_units_allow_dimensionless</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#fitting">Fitting</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/modeling/add-units.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

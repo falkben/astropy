@@ -1,0 +1,243 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Convert a radial velocity to the Galactic Standard of Rest (GSR) &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Determining and plotting the altitude/azimuth of a celestial object" href="plot_obs-planning.html" />
+    <link rel="prev" title="Example gallery" href="../index.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="plot_obs-planning.html" title="Determining and plotting the altitude/azimuth of a celestial object">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../index.html" title="Example gallery">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../index.html" accesskey="U">Example gallery</a> &#187;</li>
+      
+      <li>Convert a radial velocity to the Galactic Standard of Rest (GSR)</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p>Click <a class="reference internal" href="#sphx-glr-download-generated-examples-coordinates-rv-to-gsr-py"><span class="std std-ref">here</span></a>
+to download the full example code</p>
+</div>
+<div class="sphx-glr-example-title section" id="convert-a-radial-velocity-to-the-galactic-standard-of-rest-gsr">
+<span id="sphx-glr-generated-examples-coordinates-rv-to-gsr-py"></span><h1>Convert a radial velocity to the Galactic Standard of Rest (GSR)<a class="headerlink" href="#convert-a-radial-velocity-to-the-galactic-standard-of-rest-gsr" title="Permalink to this headline">¶</a></h1>
+<p>Radial or line-of-sight velocities of sources are often reported in a
+Heliocentric or Solar-system barycentric reference frame. A common
+transformation incorporates the projection of the Sun’s motion along the
+line-of-sight to the target, hence transforming it to a Galactic rest frame
+instead (sometimes referred to as the Galactic Standard of Rest, GSR). This
+transformation depends on the assumptions about the orientation of the Galactic
+frame relative to the bary- or Heliocentric frame. It also depends on the
+assumed solar velocity vector. Here we’ll demonstrate how to perform this
+transformation using a sky position and barycentric radial-velocity.</p>
+<p><em>By: Adrian Price-Whelan</em></p>
+<p><em>License: BSD</em></p>
+<p>Make print work the same in all versions of Python and import the required
+Astropy packages:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">astropy.coordinates</span> <span class="k">as</span> <span class="nn">coord</span>
+</pre></div>
+</div>
+<p>Use the latest convention for the Galactocentric coordinates</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="../../../api/astropy.utils.state.ScienceState.html#astropy.utils.state.ScienceState.set" title="astropy.utils.state.ScienceState.set" class="sphx-glr-backref-module-astropy-utils-state sphx-glr-backref-type-py-method"><a href="../../../api/astropy.utils.state.ScienceState.html#astropy.utils.state.ScienceState.set" title="astropy.utils.state.ScienceState.set" class="sphx-glr-backref-module-astropy-utils-state sphx-glr-backref-type-py-method"><span class="n">coord</span><span class="o">.</span><span class="n">galactocentric_frame_defaults</span><span class="o">.</span><span class="n">set</span></a></a><span class="p">(</span><span class="s1">&#39;latest&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;ScienceState galactocentric_frame_defaults: {&#39;galcen_coord&#39;: &lt;ICRS Coordinate: (ra, dec) in deg...&gt;
+</pre></div>
+</div>
+<p>For this example, let’s work with the coordinates and barycentric radial
+velocity of the star HD 155967, as obtained from
+<a class="reference external" href="https://simbad.u-strasbg.fr/simbad/">Simbad</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="../../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">icrs</span></a></a> <span class="o">=</span> <a href="../../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class"><a href="../../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class"><span class="n">coord</span><span class="o">.</span><span class="n">SkyCoord</span></a></a><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">258.58356362</span><span class="o">*</span><a href="../../../api/astropy.units.Unit.html#astropy.units.Unit" title="astropy.units.Unit" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.Unit.html#astropy.units.Unit" title="astropy.units.Unit" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">u</span><span class="o">.</span><span class="n">deg</span></a></a><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">14.55255619</span><span class="o">*</span><a href="../../../api/astropy.units.Unit.html#astropy.units.Unit" title="astropy.units.Unit" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.Unit.html#astropy.units.Unit" title="astropy.units.Unit" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">u</span><span class="o">.</span><span class="n">deg</span></a></a><span class="p">,</span>
+                      <span class="n">radial_velocity</span><span class="o">=-</span><span class="mf">16.1</span><span class="o">*</span><a href="../../../api/astropy.units.PrefixUnit.html#astropy.units.PrefixUnit" title="astropy.units.PrefixUnit" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.PrefixUnit.html#astropy.units.PrefixUnit" title="astropy.units.PrefixUnit" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">u</span><span class="o">.</span><span class="n">km</span></a></a><span class="o">/</span><a href="../../../api/astropy.units.IrreducibleUnit.html#astropy.units.IrreducibleUnit" title="astropy.units.IrreducibleUnit" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.IrreducibleUnit.html#astropy.units.IrreducibleUnit" title="astropy.units.IrreducibleUnit" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">u</span><span class="o">.</span><span class="n">s</span></a></a><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;icrs&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We next need to decide on the velocity of the Sun in the assumed GSR frame.
+We’ll use the same velocity vector as used in the
+<a class="reference internal" href="../../../api/astropy.coordinates.Galactocentric.html#astropy.coordinates.Galactocentric" title="astropy.coordinates.Galactocentric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Galactocentric</span></code></a> frame, and convert it to a
+<a class="reference internal" href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartesianRepresentation</span></code></a> object using the
+<code class="docutils literal notranslate"><span class="pre">.to_cartesian()</span></code> method of the
+<a class="reference internal" href="../../../api/astropy.coordinates.CartesianDifferential.html#astropy.coordinates.CartesianDifferential" title="astropy.coordinates.CartesianDifferential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartesianDifferential</span></code></a> object <code class="docutils literal notranslate"><span class="pre">galcen_v_sun</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">v_sun</span></a></a> <span class="o">=</span> <a href="../../../api/astropy.coordinates.Galactocentric.html#astropy.coordinates.Galactocentric" title="astropy.coordinates.Galactocentric" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class"><a href="../../../api/astropy.coordinates.Galactocentric.html#astropy.coordinates.Galactocentric" title="astropy.coordinates.Galactocentric" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class"><span class="n">coord</span><span class="o">.</span><span class="n">Galactocentric</span></a></a><span class="p">()</span><span class="o">.</span><span class="n">galcen_v_sun</span><span class="o">.</span><span class="n">to_cartesian</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>We now need to get a unit vector in the assumed Galactic frame from the sky
+position in the ICRS frame above. We’ll use this unit vector to project the
+solar velocity onto the line-of-sight:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="../../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gal</span></a></a> <span class="o">=</span> <a href="../../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.transform_to" title="astropy.coordinates.SkyCoord.transform_to" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><a href="../../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.transform_to" title="astropy.coordinates.SkyCoord.transform_to" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><span class="n">icrs</span><span class="o">.</span><span class="n">transform_to</span></a></a><span class="p">(</span><a href="../../../api/astropy.coordinates.Galactic.html#astropy.coordinates.Galactic" title="astropy.coordinates.Galactic" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class"><a href="../../../api/astropy.coordinates.Galactic.html#astropy.coordinates.Galactic" title="astropy.coordinates.Galactic" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class"><span class="n">coord</span><span class="o">.</span><span class="n">Galactic</span></a></a><span class="p">)</span>
+<a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">cart_data</span></a></a> <span class="o">=</span> <a href="../../../api/astropy.coordinates.UnitSphericalRepresentation.html#astropy.coordinates.UnitSphericalRepresentation.to_cartesian" title="astropy.coordinates.UnitSphericalRepresentation.to_cartesian" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><a href="../../../api/astropy.coordinates.UnitSphericalRepresentation.html#astropy.coordinates.UnitSphericalRepresentation.to_cartesian" title="astropy.coordinates.UnitSphericalRepresentation.to_cartesian" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><span class="n">gal</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to_cartesian</span></a></a><span class="p">()</span>
+<a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">unit_vector</span></a></a> <span class="o">=</span> <a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">cart_data</span></a></a> <span class="o">/</span> <a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation.norm" title="astropy.coordinates.CartesianRepresentation.norm" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation.norm" title="astropy.coordinates.CartesianRepresentation.norm" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><span class="n">cart_data</span><span class="o">.</span><span class="n">norm</span></a></a><span class="p">()</span>
+</pre></div>
+</div>
+<p>Now we project the solar velocity using this unit vector:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">v_proj</span></a></a> <span class="o">=</span> <a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation.dot" title="astropy.coordinates.CartesianRepresentation.dot" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation.dot" title="astropy.coordinates.CartesianRepresentation.dot" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><span class="n">v_sun</span><span class="o">.</span><span class="n">dot</span></a></a><span class="p">(</span><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">unit_vector</span></a></a><span class="p">)</span>
+</pre></div>
+</div>
+<p>Finally, we add the projection of the solar velocity to the radial velocity
+to get a GSR radial velocity:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rv_gsr</span></a></a> <span class="o">=</span> <a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">icrs</span><span class="o">.</span><span class="n">radial_velocity</span></a></a> <span class="o">+</span> <a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">v_proj</span></a></a>
+<span class="nb">print</span><span class="p">(</span><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rv_gsr</span></a></a><span class="p">)</span>
+</pre></div>
+</div>
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>123.30460087379763 km / s
+</pre></div>
+</div>
+<p>We could wrap this in a function so we can control the solar velocity and
+re-use the above code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">rv_to_gsr</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">v_sun</span></a></a><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transform a barycentric radial velocity to the Galactic Standard of Rest</span>
+<span class="sd">    (GSR).</span>
+
+<span class="sd">    The input radial velocity must be passed in as a</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    c : `~astropy.coordinates.BaseCoordinateFrame` subclass instance</span>
+<span class="sd">        The radial velocity, associated with a sky coordinates, to be</span>
+<span class="sd">        transformed.</span>
+<span class="sd">    v_sun : `~astropy.units.Quantity`, optional</span>
+<span class="sd">        The 3D velocity of the solar system barycenter in the GSR frame.</span>
+<span class="sd">        Defaults to the same solar motion as in the</span>
+<span class="sd">        `~astropy.coordinates.Galactocentric` frame.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    v_gsr : `~astropy.units.Quantity`</span>
+<span class="sd">        The input radial velocity transformed to a GSR frame.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">v_sun</span></a></a> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">v_sun</span></a></a> <span class="o">=</span> <a href="../../../api/astropy.coordinates.Galactocentric.html#astropy.coordinates.Galactocentric" title="astropy.coordinates.Galactocentric" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class"><a href="../../../api/astropy.coordinates.Galactocentric.html#astropy.coordinates.Galactocentric" title="astropy.coordinates.Galactocentric" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class"><span class="n">coord</span><span class="o">.</span><span class="n">Galactocentric</span></a></a><span class="p">()</span><span class="o">.</span><span class="n">galcen_v_sun</span><span class="o">.</span><span class="n">to_cartesian</span><span class="p">()</span>
+
+    <a href="../../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">gal</span></a></a> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><a href="../../../api/astropy.coordinates.Galactic.html#astropy.coordinates.Galactic" title="astropy.coordinates.Galactic" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class"><a href="../../../api/astropy.coordinates.Galactic.html#astropy.coordinates.Galactic" title="astropy.coordinates.Galactic" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class"><span class="n">coord</span><span class="o">.</span><span class="n">Galactic</span></a></a><span class="p">)</span>
+    <a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">cart_data</span></a></a> <span class="o">=</span> <a href="../../../api/astropy.coordinates.UnitSphericalRepresentation.html#astropy.coordinates.UnitSphericalRepresentation.to_cartesian" title="astropy.coordinates.UnitSphericalRepresentation.to_cartesian" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><a href="../../../api/astropy.coordinates.UnitSphericalRepresentation.html#astropy.coordinates.UnitSphericalRepresentation.to_cartesian" title="astropy.coordinates.UnitSphericalRepresentation.to_cartesian" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><span class="n">gal</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to_cartesian</span></a></a><span class="p">()</span>
+    <a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">unit_vector</span></a></a> <span class="o">=</span> <a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">cart_data</span></a></a> <span class="o">/</span> <a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation.norm" title="astropy.coordinates.CartesianRepresentation.norm" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation.norm" title="astropy.coordinates.CartesianRepresentation.norm" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><span class="n">cart_data</span><span class="o">.</span><span class="n">norm</span></a></a><span class="p">()</span>
+
+    <a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">v_proj</span></a></a> <span class="o">=</span> <a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation.dot" title="astropy.coordinates.CartesianRepresentation.dot" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation.dot" title="astropy.coordinates.CartesianRepresentation.dot" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-method"><span class="n">v_sun</span><span class="o">.</span><span class="n">dot</span></a></a><span class="p">(</span><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">unit_vector</span></a></a><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">c</span><span class="o">.</span><span class="n">radial_velocity</span> <span class="o">+</span> <a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">v_proj</span></a></a>
+
+
+<a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rv_gsr</span></a></a> <span class="o">=</span> <span class="n">rv_to_gsr</span><span class="p">(</span><a href="../../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord" class="sphx-glr-backref-module-astropy-coordinates sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">icrs</span></a></a><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><a href="../../../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity" class="sphx-glr-backref-module-astropy-units sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">rv_gsr</span></a></a><span class="p">)</span>
+</pre></div>
+</div>
+<p class="sphx-glr-script-out">Out:</p>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>123.30460087379763 km / s
+</pre></div>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> ( 0 minutes  0.017 seconds)</p>
+<div class="sphx-glr-footer class sphx-glr-footer-example docutils container" id="sphx-glr-download-generated-examples-coordinates-rv-to-gsr-py">
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../../_downloads/9f9f2802c2e9d7884a4f8de4c59f6383/rv-to-gsr.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">rv-to-gsr.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../../_downloads/d13ce499689999a1da2ec69addcdf2c8/rv-to-gsr.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">rv-to-gsr.ipynb</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Convert a radial velocity to the Galactic Standard of Rest (GSR)</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/generated/examples/coordinates/rv-to-gsr.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

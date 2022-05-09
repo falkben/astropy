@@ -1,0 +1,767 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Equivalencies &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Physical Types" href="physical_types.html" />
+    <link rel="prev" title="String Representations of Units" href="format.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="physical_types.html" title="Physical Types">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="format.html" title="String Representations of Units">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Units and Quantities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.units</span></code>)</a> &#187;</li>
+      
+      <li>Equivalencies</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="equivalencies">
+<span id="unit-equivalencies"></span><h1>Equivalencies<a class="headerlink" href="#equivalencies" title="Permalink to this headline">¶</a></h1>
+<p>The unit module has machinery for supporting equivalences between
+different units in certain contexts, namely when equations can
+uniquely relate a value in one unit to a different unit. A good
+example is the equivalence between wavelength, frequency, and energy
+for specifying a wavelength of radiation. Normally these units are not
+convertible, but when understood as representing light, they are
+convertible in certain contexts. Here we describe how to use the
+equivalencies included in <a class="reference internal" href="index.html#module-astropy.units" title="astropy.units"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.units</span></code></a> and how to
+define new equivalencies.</p>
+<p>Equivalencies are used by passing a list of equivalency pairs to the
+<code class="docutils literal notranslate"><span class="pre">equivalencies</span></code> keyword argument of <a class="reference internal" href="../api/astropy.units.quantity.Quantity.html#astropy.units.quantity.Quantity.to" title="astropy.units.quantity.Quantity.to"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Quantity.to()</span></code></a> or <a class="reference internal" href="../api/astropy.units.UnitBase.html#astropy.units.UnitBase.to" title="astropy.units.core.UnitBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unit.to()</span></code></a> methods. The list can be supplied directly,
+but <code class="docutils literal notranslate"><span class="pre">astropy</span></code> contains several functions that return appropriate lists so
+constructing them is often not necessary. Alternatively, if a larger piece of
+code needs the same equivalencies, you can set them for a <a class="reference internal" href="#equivalency-context"><span class="std std-ref">given context</span></a>.</p>
+<div class="section" id="built-in-equivalencies">
+<h2>Built-In Equivalencies<a class="headerlink" href="#built-in-equivalencies" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="how-to-convert-parallax-to-distance">
+<h3>How to Convert Parallax to Distance<a class="headerlink" href="#how-to-convert-parallax-to-distance" title="Permalink to this headline">¶</a></h3>
+<p>The length unit <em>parsec</em> is defined such that a star one parsec away
+will exhibit a 1-arcsecond parallax. (Think of the name as a contraction
+between <em>parallax</em> and <em>arcsecond</em>.)</p>
+<p>The <a class="reference internal" href="../api/astropy.units.equivalencies.parallax.html#astropy.units.equivalencies.parallax" title="astropy.units.equivalencies.parallax"><code class="xref py py-func docutils literal notranslate"><span class="pre">parallax()</span></code></a> function handles
+conversions between parallax angles and length.</p>
+<p>In general, you should not be able to change units of length into
+angles or vice versa, so <a class="reference internal" href="../api/astropy.units.UnitBase.html#astropy.units.UnitBase.to" title="astropy.units.core.UnitBase"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to()</span></code></a>
+raises an exception:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mf">0.8</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">parsec</span><span class="p">)</span>  
+<span class="gt">Traceback (most recent call last):</span>
+  <span class="c">...</span>
+<span class="gr">UnitConversionError</span>: <span class="n">&#39;arcsec&#39; (angle) and &#39;pc&#39; (length) are not convertible</span>
+</pre></div>
+</div>
+<p>To trigger the conversion between parallax angle and distance, provide
+<a class="reference internal" href="../api/astropy.units.equivalencies.parallax.html#astropy.units.equivalencies.parallax" title="astropy.units.equivalencies.parallax"><code class="xref py py-func docutils literal notranslate"><span class="pre">parallax()</span></code></a> as the optional keyword
+argument (<code class="docutils literal notranslate"><span class="pre">equivalencies=</span></code>) to the
+<a class="reference internal" href="../api/astropy.units.UnitBase.html#astropy.units.UnitBase.to" title="astropy.units.core.UnitBase"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to()</span></code></a> method.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mf">0.8</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">parsec</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">parallax</span><span class="p">())</span>
+<span class="go">&lt;Quantity 1.25 pc&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="angles-as-dimensionless-units">
+<h3>Angles as Dimensionless Units<a class="headerlink" href="#angles-as-dimensionless-units" title="Permalink to this headline">¶</a></h3>
+<p>Angles are treated as a physically distinct type, which usually helps to avoid
+mistakes. However, this is not very handy when working with units related to
+rotational energy or the small angle approximation. (Indeed, this
+double-sidedness underlies why radians went from a <a class="reference external" href="https://www.bipm.org/en/committees/cg/cgpm/20-1995/resolution-8">supplementary to derived unit</a>.) The function
+<a class="reference internal" href="../api/astropy.units.equivalencies.dimensionless_angles.html#astropy.units.equivalencies.dimensionless_angles" title="astropy.units.equivalencies.dimensionless_angles"><code class="xref py py-func docutils literal notranslate"><span class="pre">dimensionless_angles()</span></code></a> provides the required
+equivalency list that helps convert between angles and dimensionless units. It
+is somewhat different from all others in that it allows an arbitrary change in
+the number of powers to which radians is raised (i.e., including zero and
+thus dimensionless).</p>
+<div class="section" id="examples">
+<h4>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h4>
+<p>Normally the following would raise exceptions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>  
+<span class="gt">Traceback (most recent call last):</span>
+  <span class="c">...</span>
+<span class="gr">UnitConversionError</span>: <span class="n">&#39;deg&#39; (angle) and &#39;&#39; (dimensionless) are not convertible</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">kg</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">cycle</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">J</span><span class="p">)</span>  
+<span class="gt">Traceback (most recent call last):</span>
+  <span class="c">...</span>
+<span class="gr">UnitConversionError</span>: <span class="n">&#39;cycle2 kg m2 / s2&#39; and &#39;J&#39; (energy) are not convertible</span>
+</pre></div>
+</div>
+<p>But when passing the proper conversion function,
+<a class="reference internal" href="../api/astropy.units.equivalencies.dimensionless_angles.html#astropy.units.equivalencies.dimensionless_angles" title="astropy.units.equivalencies.dimensionless_angles"><code class="xref py py-func docutils literal notranslate"><span class="pre">dimensionless_angles()</span></code></a>, it works.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">dimensionless_angles</span><span class="p">())</span>  
+<span class="go">0.017453292519943295</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mf">0.5e38</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">kg</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">cycle</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">J</span><span class="p">,</span>
+<span class="gp">... </span>                           <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">dimensionless_angles</span><span class="p">())</span>  
+<span class="go">&lt;Quantity 1.9739208802178715e+39 J&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="mf">0.125</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">cycle</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">dimensionless_angles</span><span class="p">()))</span> 
+<span class="go">&lt;Quantity  0.70710678+0.70710678j&gt;</span>
+</pre></div>
+</div>
+<p>In an example with complex numbers you may well be doing a fair
+number of similar calculations. For such situations, there is the
+option to <a class="reference internal" href="#equivalency-context"><span class="std std-ref">set default equivalencies</span></a>.</p>
+<p>In some situations, this equivalency may behave differently than
+anticipated. For instance, it might at first seem reasonable to use it
+for converting from an angular velocity <span class="math notranslate nohighlight">\(\omega\)</span> in radians per
+second to the corresponding frequency <span class="math notranslate nohighlight">\(f\)</span> in hertz (i.e., to
+implement <span class="math notranslate nohighlight">\(f=\omega/2\pi\)</span>). However, attempting this yields:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">dimensionless_angles</span><span class="p">())</span>  
+<span class="go">&lt;Quantity 1. Hz&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">cycle</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">dimensionless_angles</span><span class="p">())</span>  
+<span class="go">&lt;Quantity 6.283185307179586 Hz&gt;</span>
+</pre></div>
+</div>
+<p>Here, we might have expected ~0.159 Hz in the first example and 1 Hz in
+the second. However, <a class="reference internal" href="../api/astropy.units.equivalencies.dimensionless_angles.html#astropy.units.equivalencies.dimensionless_angles" title="astropy.units.equivalencies.dimensionless_angles"><code class="xref py py-func docutils literal notranslate"><span class="pre">dimensionless_angles()</span></code></a>
+converts to radians per second and then drops radians as a unit. The
+implicit mistake made in these examples is that the unit Hz is taken to be
+equivalent to cycles per second, which it is not (it is just “per second”).
+This realization also leads to the solution: to use an explicit equivalency
+between cycles per second and hertz:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="p">[(</span><span class="n">u</span><span class="o">.</span><span class="n">cy</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">)])</span>  
+<span class="go">&lt;Quantity 0.15915494309189535 Hz&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">cy</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="p">[(</span><span class="n">u</span><span class="o">.</span><span class="n">cy</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">)])</span>  
+<span class="go">&lt;Quantity 1. Hz&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="spectral-units">
+<span id="astropy-units-spectral-equivalency"></span><h3>Spectral Units<a class="headerlink" href="#spectral-units" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference internal" href="../api/astropy.units.equivalencies.spectral.html#astropy.units.equivalencies.spectral" title="astropy.units.equivalencies.spectral"><code class="xref py py-func docutils literal notranslate"><span class="pre">spectral()</span></code></a> is a function that returns
+an equivalency list to handle conversions between wavelength,
+frequency, energy, and wave number.</p>
+<p>As mentioned with parallax units, we pass a list of equivalencies (in this case,
+the result of <a class="reference internal" href="../api/astropy.units.equivalencies.spectral.html#astropy.units.equivalencies.spectral" title="astropy.units.equivalencies.spectral"><code class="xref py py-func docutils literal notranslate"><span class="pre">spectral()</span></code></a>) as the second
+argument to the <a class="reference internal" href="../api/astropy.units.quantity.Quantity.html#astropy.units.quantity.Quantity.to" title="astropy.units.quantity.Quantity.to"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to()</span></code></a> method and
+wavelength, and then frequency and energy can be converted.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">([</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">2000</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">nm</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">spectral</span><span class="p">())</span>  
+<span class="go">&lt;Quantity [2.99792458e+14, 1.49896229e+14] Hz&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">([</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">2000</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">nm</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">eV</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">spectral</span><span class="p">())</span>  
+<span class="go">&lt;Quantity [1.23984193, 0.61992096] eV&gt;</span>
+</pre></div>
+</div>
+<p>These equivalencies even work with non-base units:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Inches to calories</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">imperial</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">imperial</span><span class="o">.</span><span class="n">inch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">imperial</span><span class="o">.</span><span class="n">Cal</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">spectral</span><span class="p">())</span>  
+<span class="go">1.869180759162485e-27</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="spectral-doppler-equivalencies">
+<span id="astropy-units-doppler-equivalencies"></span><h3>Spectral (Doppler) Equivalencies<a class="headerlink" href="#spectral-doppler-equivalencies" title="Permalink to this headline">¶</a></h3>
+<p>Spectral equivalencies allow you to convert between wavelength,
+frequency, energy, and wave number, but not to velocity, which is
+frequently the quantity of interest.</p>
+<p>It is fairly convenient to define the equivalency, but note that there are
+different <a class="reference external" href="https://www.gb.nrao.edu/~fghigo/gbtdoc/doppler.html">conventions</a>.
+In these conventions <span class="math notranslate nohighlight">\(f_0\)</span> is the rest frequency, <span class="math notranslate nohighlight">\(f\)</span> is the
+observed frequency, <span class="math notranslate nohighlight">\(V\)</span> is the velocity, and <span class="math notranslate nohighlight">\(c\)</span> is the speed of
+light:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Radio         <span class="math notranslate nohighlight">\(V = c \frac{f_0 - f}{f_0}  ;  f(V) = f_0 ( 1 - V/c )\)</span></p></li>
+<li><p>Optical       <span class="math notranslate nohighlight">\(V = c \frac{f_0 - f}{f  }  ;  f(V) = f_0 ( 1 + V/c )^{-1}\)</span></p></li>
+<li><p>Relativistic  <span class="math notranslate nohighlight">\(V = c \frac{f_0^2 - f^2}{f_0^2 + f^2} ;  f(V) = f_0 \frac{\left(1 - (V/c)^2\right)^{1/2}}{(1+V/c)}\)</span></p></li>
+</ul>
+</div></blockquote>
+<p>These three conventions are implemented in
+<a class="reference internal" href="index.html#module-astropy.units.equivalencies" title="astropy.units.equivalencies"><code class="xref py py-mod docutils literal notranslate"><span class="pre">astropy.units.equivalencies</span></code></a> as
+<a class="reference internal" href="../api/astropy.units.equivalencies.doppler_optical.html#astropy.units.equivalencies.doppler_optical" title="astropy.units.equivalencies.doppler_optical"><code class="xref py py-func docutils literal notranslate"><span class="pre">doppler_optical()</span></code></a>,
+<a class="reference internal" href="../api/astropy.units.equivalencies.doppler_radio.html#astropy.units.equivalencies.doppler_radio" title="astropy.units.equivalencies.doppler_radio"><code class="xref py py-func docutils literal notranslate"><span class="pre">doppler_radio()</span></code></a>, and
+<a class="reference internal" href="../api/astropy.units.equivalencies.doppler_relativistic.html#astropy.units.equivalencies.doppler_relativistic" title="astropy.units.equivalencies.doppler_relativistic"><code class="xref py py-func docutils literal notranslate"><span class="pre">doppler_relativistic()</span></code></a>.</p>
+<div class="section" id="example">
+<h4>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<p>To define an equivalency:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">restfreq</span> <span class="o">=</span> <span class="mf">115.27120</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">GHz</span>  <span class="c1"># rest frequency of 12 CO 1-0 in GHz</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">freq_to_vel</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">doppler_radio</span><span class="p">(</span><span class="n">restfreq</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mf">116e9</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">freq_to_vel</span><span class="p">)</span>  
+<span class="go">&lt;Quantity -1895.4321928669085 km / s&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="spectral-flux-and-luminosity-density-units">
+<h3>Spectral Flux and Luminosity Density Units<a class="headerlink" href="#spectral-flux-and-luminosity-density-units" title="Permalink to this headline">¶</a></h3>
+<p>There is also support for spectral flux and luminosity density units,
+their equivalent surface brightness units, and integrated flux units. Their use
+is more complex, since it is necessary to also supply the location in the
+spectrum for which the conversions will be done, and the units of those spectral
+locations. The function that handles these unit conversions is
+<a class="reference internal" href="../api/astropy.units.equivalencies.spectral_density.html#astropy.units.equivalencies.spectral_density" title="astropy.units.equivalencies.spectral_density"><code class="xref py py-func docutils literal notranslate"><span class="pre">spectral_density()</span></code></a>. This function takes as
+its arguments the <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> for the spectral location.</p>
+<div class="section" id="id1">
+<h4>Example<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
+<p>To perform unit conversions with
+<a class="reference internal" href="../api/astropy.units.equivalencies.spectral_density.html#astropy.units.equivalencies.spectral_density" title="astropy.units.equivalencies.spectral_density"><code class="xref py py-func docutils literal notranslate"><span class="pre">spectral_density()</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Jy</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">photon</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">spectral_density</span><span class="p">(</span><span class="mi">3500</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">AA</span><span class="p">))</span> 
+<span class="go">&lt;Quantity 2.6429114293019694e-12 ph / (cm2 Hz s)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Jy</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">photon</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">micron</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">spectral_density</span><span class="p">(</span><span class="mi">3500</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">AA</span><span class="p">))</span>  
+<span class="go">&lt;Quantity 6467.9584789120845 ph / (cm2 micron s)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">photon</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">angstrom</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">erg</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">,</span>
+<span class="gp">... </span>     <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">spectral_density</span><span class="p">(</span><span class="mi">5500</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">AA</span><span class="p">))</span>  
+<span class="go">&lt;Quantity 3.6443382634999996e-23 erg / (Hz s)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">w</span> <span class="o">=</span> <span class="mi">5000</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">AA</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">erg</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">photon</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">spectral_density</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span>  
+<span class="go">&lt;Quantity 2.51705828e+11 ph / (cm2 s)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">spectral_density</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>  
+<span class="go">&lt;Quantity 1. erg / (cm2 s)&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="brightness-temperature-and-surface-brightness-equivalency">
+<h3>Brightness Temperature and Surface Brightness Equivalency<a class="headerlink" href="#brightness-temperature-and-surface-brightness-equivalency" title="Permalink to this headline">¶</a></h3>
+<p>There is an equivalency between surface brightness (flux density per area) and
+brightness temperature. This equivalency is often referred to as “Antenna Gain”
+since, at a given frequency, telescope brightness sensitivity is unrelated to
+aperture size, but flux density sensitivity is, so this equivalency is only
+dependent on the aperture size. See <a class="reference external" href="https://books.google.com/books?id=9KHw6R8rQEMC&amp;pg=PA179&amp;source=gbs_toc_r&amp;cad=4#v=onepage&amp;q&amp;f=false">Tools of Radio Astronomy</a>
+for details.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The brightness temperature mentioned here is the Rayleigh-Jeans
+equivalent temperature, which results in a linear relation between
+flux and temperature. This is the convention that is most often used
+in relation to observations, but if you are interested in computing
+the <em>exact</em> temperature of a blackbody function that would produce a
+given flux, you should not use this equivalency.</p>
+</div>
+<div class="section" id="id2">
+<h4>Examples<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h4>
+<p>The <a class="reference internal" href="../api/astropy.units.equivalencies.brightness_temperature.html#astropy.units.equivalencies.brightness_temperature" title="astropy.units.equivalencies.brightness_temperature"><code class="xref py py-func docutils literal notranslate"><span class="pre">brightness_temperature()</span></code></a> equivalency
+requires the beam area and frequency as arguments. Recalling that the area of a
+2D Gaussian is <span class="math notranslate nohighlight">\(2 \pi \sigma^2\)</span> (see <a class="reference external" href="https://en.wikipedia.org/wiki/Gaussian_function#Two-dimensional_Gaussian_function">wikipedia</a>),
+here is an example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">beam_sigma</span> <span class="o">=</span> <span class="mi">50</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">arcsec</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">omega_B</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">beam_sigma</span><span class="o">**</span><span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">freq</span> <span class="o">=</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">GHz</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">Jy</span><span class="o">/</span><span class="n">omega_B</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">brightness_temperature</span><span class="p">(</span><span class="n">freq</span><span class="p">))</span>  
+<span class="go">&lt;Quantity 3.526295144567176 K&gt;</span>
+</pre></div>
+</div>
+<p>If you have beam full-width half-maxima (FWHM), which are often quoted and are
+the values stored in the FITS header keywords BMAJ and BMIN, a more appropriate
+example converts the FWHM to sigma:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">beam_fwhm</span> <span class="o">=</span> <span class="mi">50</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">arcsec</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fwhm_to_sigma</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span><span class="o">**</span><span class="mf">0.5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">beam_sigma</span> <span class="o">=</span> <span class="n">beam_fwhm</span> <span class="o">*</span> <span class="n">fwhm_to_sigma</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">omega_B</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">beam_sigma</span><span class="o">**</span><span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">Jy</span><span class="o">/</span><span class="n">omega_B</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">brightness_temperature</span><span class="p">(</span><span class="n">freq</span><span class="p">))</span>  
+<span class="go">&lt;Quantity 19.553932298231704 K&gt;</span>
+</pre></div>
+</div>
+<p>You can also convert between <code class="docutils literal notranslate"><span class="pre">Jy/beam</span></code> and <code class="docutils literal notranslate"><span class="pre">K</span></code> by specifying the beam area:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">Jy</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">beam</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">brightness_temperature</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="n">beam_area</span><span class="o">=</span><span class="n">omega_B</span><span class="p">))</span>  
+<span class="go">&lt;Quantity 19.553932298231704 K&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="beam-equivalency">
+<h3>Beam Equivalency<a class="headerlink" href="#beam-equivalency" title="Permalink to this headline">¶</a></h3>
+<p>Radio data, especially from interferometers, is often produced in units of
+<code class="docutils literal notranslate"><span class="pre">Jy/beam</span></code>. Converting this number to a beam-independent value (e.g.,
+<code class="docutils literal notranslate"><span class="pre">Jy/sr</span></code>), can be done with the
+<a class="reference internal" href="../api/astropy.units.equivalencies.beam_angular_area.html#astropy.units.equivalencies.beam_angular_area" title="astropy.units.equivalencies.beam_angular_area"><code class="xref py py-func docutils literal notranslate"><span class="pre">beam_angular_area()</span></code></a> equivalency.</p>
+<div class="section" id="id3">
+<h4>Example<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<p>To convert units of <code class="docutils literal notranslate"><span class="pre">Jy/beam</span></code> to <code class="docutils literal notranslate"><span class="pre">Jy/sr</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">beam_fwhm</span> <span class="o">=</span> <span class="mi">50</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">arcsec</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fwhm_to_sigma</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span><span class="o">**</span><span class="mf">0.5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">beam_sigma</span> <span class="o">=</span> <span class="n">beam_fwhm</span> <span class="o">*</span> <span class="n">fwhm_to_sigma</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">omega_B</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">beam_sigma</span><span class="o">**</span><span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">Jy</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">beam</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">MJy</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">sr</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">beam_angular_area</span><span class="p">(</span><span class="n">omega_B</span><span class="p">))</span>  
+<span class="go">&lt;Quantity 15.019166691021288 MJy / sr&gt;</span>
+</pre></div>
+</div>
+<p>Note that the <a class="reference external" href="https://github.com/radio-astro-tools/radio-beam">radio_beam</a>
+package deals with beam input/output and various operations more directly.</p>
+</div>
+</div>
+<div class="section" id="temperature-energy-equivalency">
+<h3>Temperature Energy Equivalency<a class="headerlink" href="#temperature-energy-equivalency" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference internal" href="../api/astropy.units.equivalencies.temperature_energy.html#astropy.units.equivalencies.temperature_energy" title="astropy.units.equivalencies.temperature_energy"><code class="xref py py-func docutils literal notranslate"><span class="pre">temperature_energy()</span></code></a> equivalency allows
+conversion between temperature and its equivalent in energy (i.e., the
+temperature multiplied by the Boltzmann constant), usually expressed in
+electronvolts. This is used frequently for observations at high-energy, be it
+for solar or X-ray astronomy.</p>
+<div class="section" id="id4">
+<h4>Example<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
+<p>To convert between temperature and its equivalent in energy:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t_k</span> <span class="o">=</span> <span class="mf">1e6</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">K</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t_k</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">eV</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">temperature_energy</span><span class="p">())</span>  
+<span class="go">&lt;Quantity 86.17332384960955 eV&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="thermodynamic-temperature-equivalency">
+<span id="tcmb-equivalency"></span><h3>Thermodynamic Temperature Equivalency<a class="headerlink" href="#thermodynamic-temperature-equivalency" title="Permalink to this headline">¶</a></h3>
+<p>This <a class="reference internal" href="../api/astropy.units.equivalencies.thermodynamic_temperature.html#astropy.units.equivalencies.thermodynamic_temperature" title="astropy.units.equivalencies.thermodynamic_temperature"><code class="xref py py-func docutils literal notranslate"><span class="pre">thermodynamic_temperature()</span></code></a>
+equivalency allows conversion between <code class="docutils literal notranslate"><span class="pre">Jy/beam</span></code> and “thermodynamic
+temperature”, <span class="math notranslate nohighlight">\(T_{CMB}\)</span>, in Kelvins.</p>
+<div class="section" id="id5">
+<h4>Examples<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h4>
+<p>To convert between <code class="docutils literal notranslate"><span class="pre">Jy/beam</span></code> and thermodynamic temperature:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">nu</span> <span class="o">=</span> <span class="mi">143</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">GHz</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t_k</span> <span class="o">=</span> <span class="mf">0.002632051878</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">K</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t_k</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">MJy</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">sr</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">thermodynamic_temperature</span><span class="p">(</span><span class="n">nu</span><span class="p">))</span>  
+<span class="go">&lt;Quantity 1. MJy / sr&gt;</span>
+</pre></div>
+</div>
+<p>By default, this will use the <span class="math notranslate nohighlight">\(T_{CMB}\)</span> value for the default
+<a class="reference internal" href="../cosmology/index.html#astropy-cosmology"><span class="std std-ref">cosmology</span></a> in <code class="docutils literal notranslate"><span class="pre">astropy</span></code>, but it is possible to
+specify a custom <span class="math notranslate nohighlight">\(T_{CMB}\)</span> value for a specific cosmology as the second
+argument to the equivalency:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">WMAP9</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t_k</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">MJy</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">sr</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">thermodynamic_temperature</span><span class="p">(</span><span class="n">nu</span><span class="p">,</span> <span class="n">T_cmb</span><span class="o">=</span><span class="n">WMAP9</span><span class="o">.</span><span class="n">Tcmb0</span><span class="p">))</span>  
+<span class="go">&lt;Quantity 0.99982392 MJy / sr&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="molar-mass-amu-equivalency">
+<h3>Molar Mass AMU Equivalency<a class="headerlink" href="#molar-mass-amu-equivalency" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference internal" href="../api/astropy.units.equivalencies.molar_mass_amu.html#astropy.units.equivalencies.molar_mass_amu" title="astropy.units.equivalencies.molar_mass_amu"><code class="xref py py-func docutils literal notranslate"><span class="pre">molar_mass_amu()</span></code></a> equivalency allows
+conversion between the atomic mass unit and the equivalent g/mol. For context,
+refer to the <a class="reference external" href="https://www.nist.gov/si-redefinition/definitions-si-base-units">NIST definition of SI Base Units</a>.</p>
+<div class="section" id="id6">
+<h4>Example<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h4>
+<p>To convert between atomic mass unit and the equivalent g/mol:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">g</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">mol</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">u</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">molar_mass_amu</span><span class="p">())</span> 
+<span class="go">&lt;Quantity 1.0 u&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">g</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">mol</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">molar_mass_amu</span><span class="p">())</span> 
+<span class="go">&lt;Quantity 1.0 g / mol&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="pixel-and-plate-scale-equivalencies">
+<h3>Pixel and Plate Scale Equivalencies<a class="headerlink" href="#pixel-and-plate-scale-equivalencies" title="Permalink to this headline">¶</a></h3>
+<p>These equivalencies are for converting between angular scales and either linear
+scales in the focal plane or distances in units of the number of pixels.</p>
+<div class="section" id="id7">
+<h4>Examples<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h4>
+<p>Suppose you are working with cutouts from the Sloan Digital Sky Survey,
+which defaults to a pixel scale of 0.4 arcseconds per pixel, and want to know
+the true size of something that you measure to be 240 pixels across in the
+cutout image:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sdss_pixelscale</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">pixel_scale</span><span class="p">(</span><span class="mf">0.4</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">pixel</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mi">240</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pixel</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">arcmin</span><span class="p">,</span> <span class="n">sdss_pixelscale</span><span class="p">)</span>  
+<span class="go">&lt;Quantity 1.6 arcmin&gt;</span>
+</pre></div>
+</div>
+<p>Or maybe you are designing an instrument for a telescope that someone told you
+has an inverse plate scale of 7.8 meters per radian (for your desired focus),
+and you want to know how big your pixels need to be to cover half an arcsecond.
+Using <a class="reference internal" href="../api/astropy.units.equivalencies.plate_scale.html#astropy.units.equivalencies.plate_scale" title="astropy.units.equivalencies.plate_scale"><code class="xref py py-func docutils literal notranslate"><span class="pre">plate_scale()</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tel_platescale</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">plate_scale</span><span class="p">(</span><span class="mf">7.8</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">radian</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">micron</span><span class="p">,</span> <span class="n">tel_platescale</span><span class="p">)</span>  
+<span class="go">&lt;Quantity 18.9077335632719 micron&gt;</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="../api/astropy.units.equivalencies.pixel_scale.html#astropy.units.equivalencies.pixel_scale" title="astropy.units.equivalencies.pixel_scale"><code class="xref py py-func docutils literal notranslate"><span class="pre">pixel_scale()</span></code></a> equivalency can also work
+in more general context, where the scale is specified as any quantity that is
+reducible to <code class="docutils literal notranslate"><span class="pre">&lt;composite</span> <span class="pre">unit&gt;/u.pix</span></code> or <code class="docutils literal notranslate"><span class="pre">u.pix/&lt;composite</span> <span class="pre">unit&gt;</span></code> (that is,
+the dimensionality of <code class="docutils literal notranslate"><span class="pre">u.pix</span></code> is 1 or -1). For instance, you may define the
+dots per inch (DPI) for a digital image to calculate its physical size:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dpi</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">pixel_scale</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">pix</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">imperial</span><span class="o">.</span><span class="n">inch</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">pix</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="p">,</span> <span class="n">dpi</span><span class="p">)</span>  
+<span class="go">&lt;Quantity 26.0096 cm&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="photometric-zero-point-equivalency">
+<h3>Photometric Zero Point Equivalency<a class="headerlink" href="#photometric-zero-point-equivalency" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference internal" href="../api/astropy.units.zero_point_flux.html#astropy.units.zero_point_flux" title="astropy.units.zero_point_flux"><code class="xref py py-func docutils literal notranslate"><span class="pre">zero_point_flux()</span></code></a> equivalency provides a way to move
+between photometric systems (i.e., those defined relative to a particular
+zero-point flux) and absolute fluxes. This is most useful in conjunction with
+support for <a class="reference internal" href="logarithmic_units.html#logarithmic-units"><span class="std std-ref">Magnitudes and Other Logarithmic Units</span></a>.</p>
+<div class="section" id="id8">
+<h4>Example<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h4>
+<p>Suppose you are observing a target with a filter with a reported standard zero
+point of 3631.1 Jy:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">target_flux</span> <span class="o">=</span> <span class="mf">1.2</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">nanomaggy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">zero_point_star_equiv</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">zero_point_flux</span><span class="p">(</span><span class="mf">3631.1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Jy</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">u</span><span class="o">.</span><span class="n">Magnitude</span><span class="p">(</span><span class="n">target_flux</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">AB</span><span class="p">,</span> <span class="n">zero_point_star_equiv</span><span class="p">))</span>  
+<span class="go">&lt;Magnitude 22.30195136 mag(AB)&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="temperature-equivalency">
+<h3>Temperature Equivalency<a class="headerlink" href="#temperature-equivalency" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference internal" href="../api/astropy.units.temperature.html#astropy.units.temperature" title="astropy.units.temperature"><code class="xref py py-func docutils literal notranslate"><span class="pre">temperature()</span></code></a> equivalency allows conversion
+between the Celsius, Fahrenheit, Rankine and Kelvin.</p>
+<div class="section" id="id9">
+<h4>Example<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h4>
+<p>To convert between temperature scales:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">temp_C</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Celsius</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">temp_Kelvin</span> <span class="o">=</span> <span class="n">temp_C</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">K</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">temperature</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">temp_Kelvin</span>  
+<span class="go">&lt;Quantity 273.15 K&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">temp_F</span> <span class="o">=</span> <span class="n">temp_C</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">imperial</span><span class="o">.</span><span class="n">deg_F</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">temperature</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">temp_F</span>  
+<span class="go">&lt;Quantity 32. deg_F&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">temp_R</span> <span class="o">=</span> <span class="n">temp_C</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">imperial</span><span class="o">.</span><span class="n">deg_R</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">temperature</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">temp_R</span>  
+<span class="go">&lt;Quantity 491.67 deg_R&gt;</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You can also use <code class="docutils literal notranslate"><span class="pre">u.deg_C</span></code> instead of <code class="docutils literal notranslate"><span class="pre">u.Celsius</span></code>.</p>
+</div>
+</div>
+</div>
+<div class="section" id="mass-energy-equivalency">
+<h3>Mass-Energy Equivalency<a class="headerlink" href="#mass-energy-equivalency" title="Permalink to this headline">¶</a></h3>
+<p>In a special relativity context it can be convenient to use the
+<a class="reference internal" href="../api/astropy.units.equivalencies.mass_energy.html#astropy.units.equivalencies.mass_energy" title="astropy.units.equivalencies.mass_energy"><code class="xref py py-func docutils literal notranslate"><span class="pre">mass_energy()</span></code></a> equivalency. For instance:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mi">1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">g</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">eV</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">mass_energy</span><span class="p">())</span>  
+<span class="go">&lt;Quantity 5.60958865e+32 eV&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="doppler-redshift-equivalency">
+<h3>Doppler Redshift Equivalency<a class="headerlink" href="#doppler-redshift-equivalency" title="Permalink to this headline">¶</a></h3>
+<p>Conversion between Doppler redshift and radial velocity can be done with the
+<a class="reference internal" href="../api/astropy.units.equivalencies.doppler_redshift.html#astropy.units.equivalencies.doppler_redshift" title="astropy.units.equivalencies.doppler_redshift"><code class="xref py py-func docutils literal notranslate"><span class="pre">doppler_redshift()</span></code></a> equivalency.</p>
+<div class="section" id="id10">
+<h4>Example<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h4>
+<p>To convert Doppler redshift (unitless) to <code class="docutils literal notranslate"><span class="pre">km/s</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">z</span> <span class="o">=</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">dimensionless_unscaled</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">z</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">doppler_redshift</span><span class="p">())</span>  
+<span class="go">&lt;Quantity 28487.0661448 km / s&gt;</span>
+</pre></div>
+</div>
+<p>However, it cannot take the cosmological redshift unit from <a class="reference internal" href="../cosmology/units.html#module-astropy.cosmology.units" title="astropy.cosmology.units"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.cosmology.units</span></code></a>
+because the latter should not be interpreted the same since the recessional
+velocity from the expansion of space can exceed the speed of light; see
+<a class="reference external" href="https://en.wikipedia.org/wiki/Hubble%27s_law#Redshift_velocity_and_recessional_velocity">Hubble’s law: Redshift velocity and recessional velocity</a>
+for more information.</p>
+</div>
+</div>
+</div>
+<div class="section" id="writing-new-equivalencies">
+<h2>Writing New Equivalencies<a class="headerlink" href="#writing-new-equivalencies" title="Permalink to this headline">¶</a></h2>
+<p>An equivalence list is a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of tuples, where each <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a> has
+four elements:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="n">from_unit</span><span class="p">,</span> <span class="n">to_unit</span><span class="p">,</span> <span class="n">forward</span><span class="p">,</span> <span class="n">backward</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">from_unit</span></code> and <code class="docutils literal notranslate"><span class="pre">to_unit</span></code> are the equivalent units. <code class="docutils literal notranslate"><span class="pre">forward</span></code> and
+<code class="docutils literal notranslate"><span class="pre">backward</span></code> are functions that convert values between those units. <code class="docutils literal notranslate"><span class="pre">forward</span></code>
+and <code class="docutils literal notranslate"><span class="pre">backward</span></code> are optional, and if omitted then the equivalency declares
+that the two units should be taken as equivalent. The functions must take and
+return non-<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> objects to avoid infinite recursion; See
+<a class="reference internal" href="#complicated-equiv-example"><span class="std std-ref">A More Complex Example: Spectral Doppler Equivalencies</span></a> for more details.</p>
+<div class="section" id="id11">
+<h3>Examples<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h3>
+<p>Until 1964, the metric liter was defined as the volume of 1kg of water at 4°C at
+760mm mercury pressure. Volumes and masses are not normally directly
+convertible, but if we hold the constants in the 1964 definition of the liter as
+true, we could build an equivalency for them:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">liters_water</span> <span class="o">=</span> <span class="p">[</span>
+<span class="gp">... </span>   <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">l</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">g</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1000.0</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="mf">1000.0</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">u</span><span class="o">.</span><span class="n">l</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">kg</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">liters_water</span><span class="p">)</span>
+<span class="go">1.0</span>
+</pre></div>
+</div>
+<p>Note that the equivalency can be used with any other compatible unit:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">imperial</span><span class="o">.</span><span class="n">gallon</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">imperial</span><span class="o">.</span><span class="n">pound</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">liters_water</span><span class="p">)</span>  
+<span class="go">8.345404463333525</span>
+</pre></div>
+</div>
+<p>And it also works in the other direction:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">imperial</span><span class="o">.</span><span class="n">lb</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">imperial</span><span class="o">.</span><span class="n">pint</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">liters_water</span><span class="p">)</span>  
+<span class="go">0.9586114172355459</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="a-more-complex-example-spectral-doppler-equivalencies">
+<span id="complicated-equiv-example"></span><h3>A More Complex Example: Spectral Doppler Equivalencies<a class="headerlink" href="#a-more-complex-example-spectral-doppler-equivalencies" title="Permalink to this headline">¶</a></h3>
+<p>We show how to define an equivalency using the radio convention for CO 1-0.
+This function is already defined in
+<a class="reference internal" href="../api/astropy.units.equivalencies.doppler_radio.html#astropy.units.equivalencies.doppler_radio" title="astropy.units.equivalencies.doppler_radio"><code class="xref py py-func docutils literal notranslate"><span class="pre">doppler_radio()</span></code></a>, but this example is
+illustrative:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.constants</span> <span class="kn">import</span> <span class="n">si</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">restfreq</span> <span class="o">=</span> <span class="mf">115.27120</span>  <span class="c1"># rest frequency of 12 CO 1-0 in GHz</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">freq_to_vel</span> <span class="o">=</span> <span class="p">[(</span><span class="n">u</span><span class="o">.</span><span class="n">GHz</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+<span class="gp">... </span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">restfreq</span><span class="o">-</span><span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">restfreq</span> <span class="o">*</span> <span class="n">si</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s1">&#39;km/s&#39;</span><span class="p">),</span>
+<span class="gp">... </span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">x</span><span class="o">/</span><span class="n">si</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="s1">&#39;km/s&#39;</span><span class="p">))</span> <span class="o">*</span> <span class="n">restfreq</span> <span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="mf">116e9</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">freq_to_vel</span><span class="p">)</span>  
+<span class="go">-1895.4321928669262</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="mf">116e9</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">freq_to_vel</span><span class="p">)</span>  
+<span class="go">&lt;Quantity -1895.4321928669262 km / s&gt;</span>
+</pre></div>
+</div>
+<p>Note that once this is defined for GHz and km/s, it will work for all other
+units of frequency and velocity. <code class="docutils literal notranslate"><span class="pre">x</span></code> is converted from the input frequency
+unit (e.g., Hz) to GHz before being passed to <code class="docutils literal notranslate"><span class="pre">lambda</span> <span class="pre">x:</span></code>. Similarly, the
+return value is assumed to be in units of <code class="docutils literal notranslate"><span class="pre">km/s</span></code>, which is why the <code class="docutils literal notranslate"><span class="pre">value</span></code>
+of <code class="docutils literal notranslate"><span class="pre">c</span></code> is used instead of the <a class="reference internal" href="../api/astropy.constants.Constant.html#astropy.constants.Constant" title="astropy.constants.Constant"><code class="xref py py-class docutils literal notranslate"><span class="pre">Constant</span></code></a>.</p>
+</div>
+</div>
+<div class="section" id="displaying-available-equivalencies">
+<h2>Displaying Available Equivalencies<a class="headerlink" href="#displaying-available-equivalencies" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../api/astropy.units.UnitBase.html#astropy.units.UnitBase.find_equivalent_units" title="astropy.units.core.UnitBase"><code class="xref py py-meth docutils literal notranslate"><span class="pre">find_equivalent_units()</span></code></a> method also
+understands equivalencies.</p>
+<div class="section" id="id12">
+<h3>Example<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h3>
+<p>Without passing equivalencies, there are three compatible units for <code class="docutils literal notranslate"><span class="pre">Hz</span></code> in
+the standard set:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="o">.</span><span class="n">find_equivalent_units</span><span class="p">()</span>
+<span class="go">  Primary name | Unit definition | Aliases</span>
+<span class="go">[</span>
+<span class="go">  Bq           | 1 / s           | becquerel    ,</span>
+<span class="go">  Ci           | 3.7e+10 / s    | curie        ,</span>
+<span class="go">  Hz           | 1 / s           | Hertz, hertz ,</span>
+<span class="go">]</span>
+</pre></div>
+</div>
+<p>However, when passing the spectral equivalency, you can see there are
+all kinds of things that <code class="docutils literal notranslate"><span class="pre">Hz</span></code> can be converted to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="o">.</span><span class="n">find_equivalent_units</span><span class="p">(</span><span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">spectral</span><span class="p">())</span>
+<span class="go">  Primary name | Unit definition        | Aliases</span>
+<span class="go">[</span>
+<span class="go">  AU           | 1.49598e+11 m          | au, astronomical_unit ,</span>
+<span class="go">  Angstrom     | 1e-10 m                | AA, angstrom          ,</span>
+<span class="go">  Bq           | 1 / s                  | becquerel             ,</span>
+<span class="go">  Ci           | 3.7e+10 / s            | curie                 ,</span>
+<span class="go">  Hz           | 1 / s                  | Hertz, hertz          ,</span>
+<span class="go">  J            | kg m2 / s2             | Joule, joule          ,</span>
+<span class="go">  Ry           | 2.17987e-18 kg m2 / s2 | rydberg               ,</span>
+<span class="go">  cm           | 0.01 m                 | centimeter            ,</span>
+<span class="go">  eV           | 1.60218e-19 kg m2 / s2 | electronvolt          ,</span>
+<span class="go">  earthRad     | 6.3781e+06 m           | R_earth, Rearth       ,</span>
+<span class="go">  erg          | 1e-07 kg m2 / s2       |                       ,</span>
+<span class="go">  jupiterRad   | 7.1492e+07 m           | R_jup, Rjup, R_jupiter, Rjupiter ,</span>
+<span class="go">  k            | 100 / m                | Kayser, kayser        ,</span>
+<span class="go">  lsec         | 2.99792e+08 m          | lightsecond           ,</span>
+<span class="go">  lyr          | 9.46073e+15 m          | lightyear             ,</span>
+<span class="go">  m            | irreducible            | meter                 ,</span>
+<span class="go">  micron       | 1e-06 m                |                       ,</span>
+<span class="go">  pc           | 3.08568e+16 m          | parsec                ,</span>
+<span class="go">  solRad       | 6.957e+08 m            | R_sun, Rsun           ,</span>
+<span class="go">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="using-equivalencies-in-larger-pieces-of-code">
+<span id="equivalency-context"></span><h2>Using Equivalencies in Larger Pieces of Code<a class="headerlink" href="#using-equivalencies-in-larger-pieces-of-code" title="Permalink to this headline">¶</a></h2>
+<p>Sometimes you may have an involved calculation where you are regularly switching
+back and forth between equivalent units. For these cases, you can set
+equivalencies that will by default be used, in a way similar to how you can
+<a class="reference internal" href="standard_units.html#enabling-other-units"><span class="std std-ref">enable other units</span></a>.</p>
+<div class="section" id="id13">
+<h3>Examples<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h3>
+<p>To enable radians to be treated as a dimensionless unit use
+<a class="reference internal" href="../api/astropy.units.set_enabled_equivalencies.html#astropy.units.set_enabled_equivalencies" title="astropy.units.set_enabled_equivalencies"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_enabled_equivalencies()</span></code></a> as a <a class="reference external" href="https://docs.python.org/3/reference/datamodel.html#context-managers">context manager</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">u</span><span class="o">.</span><span class="n">set_enabled_equivalencies</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">dimensionless_angles</span><span class="p">()):</span>
+<span class="gp">... </span>   <span class="n">phase</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">cycle</span>
+<span class="gp">... </span>   <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">phase</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span>  
+<span class="go">&lt;Quantity -1.+1.2246468e-16j&gt;</span>
+</pre></div>
+</div>
+<p>To permanently and globally enable radians to be treated as a dimensionless
+unit use <a class="reference internal" href="../api/astropy.units.set_enabled_equivalencies.html#astropy.units.set_enabled_equivalencies" title="astropy.units.set_enabled_equivalencies"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_enabled_equivalencies()</span></code></a> not as a context
+manager:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">u</span><span class="o">.</span><span class="n">set_enabled_equivalencies</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">dimensionless_angles</span><span class="p">())</span>
+<span class="go">&lt;astropy.units.core._UnitContext object at ...&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>  
+<span class="go">0.017453292519943295</span>
+</pre></div>
+</div>
+<p>The disadvantage of the above approach is that you may forget to turn the
+default off (done by giving an empty argument).</p>
+<p><a class="reference internal" href="../api/astropy.units.set_enabled_equivalencies.html#astropy.units.set_enabled_equivalencies" title="astropy.units.set_enabled_equivalencies"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_enabled_equivalencies()</span></code></a> accepts any list of
+equivalencies, so you could add, for example,
+<a class="reference internal" href="../api/astropy.units.equivalencies.spectral.html#astropy.units.equivalencies.spectral" title="astropy.units.equivalencies.spectral"><code class="xref py py-func docutils literal notranslate"><span class="pre">spectral()</span></code></a> and
+<a class="reference internal" href="../api/astropy.units.equivalencies.spectral_density.html#astropy.units.equivalencies.spectral_density" title="astropy.units.equivalencies.spectral_density"><code class="xref py py-func docutils literal notranslate"><span class="pre">spectral_density()</span></code></a> (since these return
+lists, they should indeed be combined by adding them together).</p>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Equivalencies</a><ul>
+<li><a class="reference internal" href="#built-in-equivalencies">Built-In Equivalencies</a><ul>
+<li><a class="reference internal" href="#how-to-convert-parallax-to-distance">How to Convert Parallax to Distance</a></li>
+<li><a class="reference internal" href="#angles-as-dimensionless-units">Angles as Dimensionless Units</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#spectral-units">Spectral Units</a></li>
+<li><a class="reference internal" href="#spectral-doppler-equivalencies">Spectral (Doppler) Equivalencies</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#spectral-flux-and-luminosity-density-units">Spectral Flux and Luminosity Density Units</a><ul>
+<li><a class="reference internal" href="#id1">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#brightness-temperature-and-surface-brightness-equivalency">Brightness Temperature and Surface Brightness Equivalency</a><ul>
+<li><a class="reference internal" href="#id2">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#beam-equivalency">Beam Equivalency</a><ul>
+<li><a class="reference internal" href="#id3">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#temperature-energy-equivalency">Temperature Energy Equivalency</a><ul>
+<li><a class="reference internal" href="#id4">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#thermodynamic-temperature-equivalency">Thermodynamic Temperature Equivalency</a><ul>
+<li><a class="reference internal" href="#id5">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#molar-mass-amu-equivalency">Molar Mass AMU Equivalency</a><ul>
+<li><a class="reference internal" href="#id6">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pixel-and-plate-scale-equivalencies">Pixel and Plate Scale Equivalencies</a><ul>
+<li><a class="reference internal" href="#id7">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#photometric-zero-point-equivalency">Photometric Zero Point Equivalency</a><ul>
+<li><a class="reference internal" href="#id8">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#temperature-equivalency">Temperature Equivalency</a><ul>
+<li><a class="reference internal" href="#id9">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mass-energy-equivalency">Mass-Energy Equivalency</a></li>
+<li><a class="reference internal" href="#doppler-redshift-equivalency">Doppler Redshift Equivalency</a><ul>
+<li><a class="reference internal" href="#id10">Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#writing-new-equivalencies">Writing New Equivalencies</a><ul>
+<li><a class="reference internal" href="#id11">Examples</a></li>
+<li><a class="reference internal" href="#a-more-complex-example-spectral-doppler-equivalencies">A More Complex Example: Spectral Doppler Equivalencies</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#displaying-available-equivalencies">Displaying Available Equivalencies</a><ul>
+<li><a class="reference internal" href="#id12">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#using-equivalencies-in-larger-pieces-of-code">Using Equivalencies in Larger Pieces of Code</a><ul>
+<li><a class="reference internal" href="#id13">Examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/units/equivalencies.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

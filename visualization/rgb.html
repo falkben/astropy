@@ -1,0 +1,196 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Creating color RGB images &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="hist" href="../api/astropy.visualization.hist.html" />
+    <link rel="prev" title="Choosing Histogram Bins" href="histogram.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="../api/astropy.visualization.hist.html" title="hist">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="histogram.html" title="Choosing Histogram Bins">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Data Visualization (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.visualization</span></code>)</a> &#187;</li>
+      
+      <li>Creating color RGB images</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="creating-color-rgb-images">
+<span id="astropy-visualization-rgb"></span><h1>Creating color RGB images<a class="headerlink" href="#creating-color-rgb-images" title="Permalink to this headline">¶</a></h1>
+<p>RGB images can be produced using matplotlib’s ability to make three-color
+images.  In general, an RGB image is an MxNx3 array, where M is the
+y-dimension, N is the x-dimension, and the length-3 layer represents red,
+green, and blue, respectively.  A fourth layer representing the alpha (opacity)
+value can be specified.</p>
+<p>Matplotlib has several tools for manipulating these colors at
+<a class="reference external" href="https://matplotlib.org/stable/api/colors_api.html#module-matplotlib.colors" title="(in Matplotlib v3.5.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">matplotlib.colors</span></code></a>.</p>
+<p>Astropy’s visualization tools can be used to change the stretch and scaling of
+the individual layers of the RGB image.  Each layer must be on a scale of 0-1
+for floats (or 0-255 for integers); values outside that range will be clipped.</p>
+</div>
+<div class="section" id="creating-color-rgb-images-using-the-lupton-et-al-2004-scheme">
+<h1>Creating color RGB images using the Lupton et al (2004) scheme<a class="headerlink" href="#creating-color-rgb-images-using-the-lupton-et-al-2004-scheme" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2004PASP..116..133L">Lupton et al. (2004)</a> describe an “optimal” algorithm for producing red-green-
+blue composite images from three separate high-dynamic range arrays. This method
+is implemented in <a class="reference internal" href="../api/astropy.visualization.make_lupton_rgb.html#astropy.visualization.make_lupton_rgb" title="astropy.visualization.make_lupton_rgb"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_lupton_rgb</span></code></a> as a convenience
+wrapper function and an associated set of classes to provide alternate scalings.
+The SDSS SkyServer color images were made using a variation on this technique.
+To generate a color PNG file with the default (arcsinh) scaling:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">astropy.visualization</span> <span class="kn">import</span> <span class="n">make_lupton_rgb</span>
+<span class="n">image_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">100</span><span class="p">,</span><span class="mi">100</span><span class="p">))</span>
+<span class="n">image_g</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">100</span><span class="p">,</span><span class="mi">100</span><span class="p">))</span>
+<span class="n">image_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">100</span><span class="p">,</span><span class="mi">100</span><span class="p">))</span>
+<span class="n">image</span> <span class="o">=</span> <span class="n">make_lupton_rgb</span><span class="p">(</span><span class="n">image_r</span><span class="p">,</span> <span class="n">image_g</span><span class="p">,</span> <span class="n">image_b</span><span class="p">,</span> <span class="n">stretch</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../visualization/rgb-1.png">png</a>, <a class="reference external" href="../visualization/rgb-1.svg">svg</a>, <a class="reference external" href="../visualization/rgb-1.pdf">pdf</a>)</p>
+<div class="figure align-center">
+<img alt="../_images/rgb-1.png" class="plot-directive" src="../_images/rgb-1.png" />
+</div>
+<p>This method requires that the three images be aligned and have the same pixel
+scale and size. Changing <code class="docutils literal notranslate"><span class="pre">minimum</span></code> will change the black level, while
+<code class="docutils literal notranslate"><span class="pre">stretch</span></code> and <code class="docutils literal notranslate"><span class="pre">Q</span></code> will change how the values between black and white are
+scaled.</p>
+<p>For a more in-depth example, download the <code class="docutils literal notranslate"><span class="pre">g</span></code>, <code class="docutils literal notranslate"><span class="pre">r</span></code>, <code class="docutils literal notranslate"><span class="pre">i</span></code> SDSS frames
+(they will serve as the blue, green and red channels respectively) of
+the area around the Hickson 88 group and try the example below and compare
+it with Figure 1 of <a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2004PASP..116..133L">Lupton et al. (2004)</a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">astropy.visualization</span> <span class="kn">import</span> <span class="n">make_lupton_rgb</span>
+<span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.data</span> <span class="kn">import</span> <span class="n">get_pkg_data_filename</span>
+
+<span class="c1"># Read in the three images downloaded from here:</span>
+<span class="n">g_name</span> <span class="o">=</span> <span class="n">get_pkg_data_filename</span><span class="p">(</span><span class="s1">&#39;visualization/reprojected_sdss_g.fits.bz2&#39;</span><span class="p">)</span>
+<span class="n">r_name</span> <span class="o">=</span> <span class="n">get_pkg_data_filename</span><span class="p">(</span><span class="s1">&#39;visualization/reprojected_sdss_r.fits.bz2&#39;</span><span class="p">)</span>
+<span class="n">i_name</span> <span class="o">=</span> <span class="n">get_pkg_data_filename</span><span class="p">(</span><span class="s1">&#39;visualization/reprojected_sdss_i.fits.bz2&#39;</span><span class="p">)</span>
+<span class="n">g</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">g_name</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">r_name</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+<span class="n">i</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">i_name</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+
+<span class="n">rgb_default</span> <span class="o">=</span> <span class="n">make_lupton_rgb</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;ngc6976-default.jpeg&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">rgb_default</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../visualization/rgb-2.png">png</a>, <a class="reference external" href="../visualization/rgb-2.svg">svg</a>, <a class="reference external" href="../visualization/rgb-2.pdf">pdf</a>)</p>
+<div class="figure align-center">
+<img alt="../_images/rgb-2.png" class="plot-directive" src="../_images/rgb-2.png" />
+</div>
+<p>The image above was generated with the default parameters. However using a
+different scaling, e.g Q=10, stretch=0.5, faint features
+of the galaxies show up. Compare with Fig. 1 of <a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2004PASP..116..133L">Lupton et al. (2004)</a> or the
+<a class="reference external" href="http://skyserver.sdss.org/dr13/en/tools/chart/navi.aspx?ra=313.12381&amp;dec=-5.74611">SDSS Skyserver image</a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">rgb</span> <span class="o">=</span> <span class="n">make_lupton_rgb</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">Q</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">stretch</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;ngc6976.jpeg&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">rgb</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../visualization/rgb-3.png">png</a>, <a class="reference external" href="../visualization/rgb-3.svg">svg</a>, <a class="reference external" href="../visualization/rgb-3.pdf">pdf</a>)</p>
+<div class="figure align-center">
+<img alt="../_images/rgb-3.png" class="plot-directive" src="../_images/rgb-3.png" />
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Creating color RGB images</a></li>
+<li><a class="reference internal" href="#creating-color-rgb-images-using-the-lupton-et-al-2004-scheme">Creating color RGB images using the Lupton et al (2004) scheme</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/visualization/rgb.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,801 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.nddata.bitmask &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >Module code</a> &#187;</li>
+      <li><a href="../nddata.html" accesskey="U">astropy.nddata</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.nddata.bitmask</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">A module that provides functions for manipulating bit masks and data quality</span>
+<span class="sd">(DQ) arrays.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bitfield_to_boolean_mask&#39;</span><span class="p">,</span> <span class="s1">&#39;interpret_bit_flags&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;BitFlagNameMap&#39;</span><span class="p">,</span> <span class="s1">&#39;extend_bit_flag_map&#39;</span><span class="p">,</span> <span class="s1">&#39;InvalidBitFlag&#39;</span><span class="p">]</span>
+
+
+<span class="n">_ENABLE_BITFLAG_CACHING</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">_MAX_UINT_TYPE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum_sctype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint</span><span class="p">)</span>
+<span class="n">_SUPPORTED_FLAGS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bitwise_not</span><span class="p">(</span>
+    <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">_MAX_UINT_TYPE</span><span class="p">,</span> <span class="n">casting</span><span class="o">=</span><span class="s1">&#39;unsafe&#39;</span>
+<span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_is_bit_flag</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verifies if the input number is a bit flag (i.e., an integer number that is</span>
+<span class="sd">    an integer power of 2).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n : int</span>
+<span class="sd">        A positive integer number. Non-positive integers are considered not to</span>
+<span class="sd">        be &quot;flags&quot;.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        ``True`` if input ``n`` is a bit flag and ``False`` if it is not.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="nb">bin</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+
+
+<span class="k">def</span> <span class="nf">_is_int</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span>
+        <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">generic</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">))</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="InvalidBitFlag"><a class="viewcode-back" href="../../../api/astropy.nddata.bitmask.InvalidBitFlag.html#astropy.nddata.InvalidBitFlag">[docs]</a><span class="k">class</span> <span class="nc">InvalidBitFlag</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Indicates that a value is not an integer that is a power of 2. &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<span class="k">class</span> <span class="nc">BitFlag</span><span class="p">(</span><span class="nb">int</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Bit flags: integer values that are powers of 2. &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Flag&#39;s doc string cannot be provided twice.&quot;</span><span class="p">)</span>
+            <span class="n">val</span><span class="p">,</span> <span class="n">doc</span> <span class="o">=</span> <span class="n">val</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">_is_int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_is_bit_flag</span><span class="p">(</span><span class="n">val</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="n">InvalidBitFlag</span><span class="p">(</span>
+                <span class="s2">&quot;Value &#39;</span><span class="si">{}</span><span class="s2">&#39; is not a valid bit flag: bit flag value must be &quot;</span>
+                <span class="s2">&quot;an integral power of two.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">s</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">doc</span>
+        <span class="k">return</span> <span class="n">s</span>
+
+
+<span class="k">class</span> <span class="nc">BitFlagNameMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">members</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">members</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">BitFlag</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+        <span class="n">attr</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">members</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)]</span>
+        <span class="n">attrl</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">lower</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">_ENABLE_BITFLAG_CACHING</span><span class="p">:</span>
+            <span class="n">cache</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">b</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="n">kl</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">kl</span> <span class="ow">in</span> <span class="n">attrl</span><span class="p">:</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">attrl</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">kl</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Bit flag &#39;</span><span class="si">{:s}</span><span class="s2">&#39; was already defined.&quot;</span>
+                                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">[</span><span class="n">idx</span><span class="p">]))</span>
+                <span class="k">if</span> <span class="n">_ENABLE_BITFLAG_CACHING</span><span class="p">:</span>
+                    <span class="n">cache</span><span class="p">[</span><span class="n">kl</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="n">members</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">BitFlag</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                   <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">members</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+        <span class="k">if</span> <span class="n">_ENABLE_BITFLAG_CACHING</span><span class="p">:</span>
+            <span class="n">cache</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">members</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                          <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)})</span>
+            <span class="n">members</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;_locked&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;__version__&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">members</span><span class="p">,</span>
+                       <span class="s1">&#39;_cache&#39;</span><span class="p">:</span> <span class="n">cache</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">members</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;_locked&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;__version__&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">members</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">members</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_locked&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;__version__&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_locked</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Version cannot be modified.&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Bit flags are read-only. Unable to reassign attribute </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_locked</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+        <span class="n">namel</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">_ENABLE_BITFLAG_CACHING</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">namel</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">namel</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__bases__</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">namel</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">namel</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">lower</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)):</span>
+                    <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">namel</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">lower</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+        <span class="n">val</span> <span class="o">=</span> <span class="n">BitFlag</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">_ENABLE_BITFLAG_CACHING</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">namel</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">namel</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">_ENABLE_BITFLAG_CACHING</span><span class="p">:</span>
+            <span class="n">flagnames</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_cache</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">flagnames</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="n">flagnames</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="n">v</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__bases__</span>
+                              <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">b</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">flagnames</span><span class="p">[</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Flag &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; not defined&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="fm">__getattr__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">items</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">items</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="n">items</span><span class="p">]</span>
+            <span class="n">items</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">extend_bit_flag_map</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">items</span><span class="p">]),</span>
+            <span class="bp">cls</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">items</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iadd__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;Unary &#39;+&#39; is not supported. Use binary operator instead.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__delattr__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: cannot delete </span><span class="si">{:s}</span><span class="s2"> member.&quot;</span>
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">mro</span><span class="p">()[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">: cannot delete </span><span class="si">{:s}</span><span class="s2"> member.&quot;</span>
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">mro</span><span class="p">()[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">mro</span><span class="p">()[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="vm">__name__</span><span class="si">:</span><span class="s2">s</span><span class="si">}</span><span class="s2"> &#39;</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">:</span><span class="s2">s</span><span class="si">}</span><span class="s2">&#39;&gt;&quot;</span>
+
+
+<div class="viewcode-block" id="BitFlagNameMap"><a class="viewcode-back" href="../../../api/astropy.nddata.bitmask.BitFlagNameMap.html#astropy.nddata.BitFlagNameMap">[docs]</a><span class="k">class</span> <span class="nc">BitFlagNameMap</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">BitFlagNameMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A base class for bit flag name maps used to describe data quality (DQ)</span>
+<span class="sd">    flags of images by provinding a mapping from a mnemonic flag name to a flag</span>
+<span class="sd">    value.</span>
+
+<span class="sd">    Mapping for a specific instrument should subclass this class.</span>
+<span class="sd">    Subclasses should define flags as class attributes with integer values</span>
+<span class="sd">    that are powers of 2. Each bit flag may also contain a string</span>
+<span class="sd">    comment following the flag value.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.nddata.bitmask import BitFlagNameMap</span>
+<span class="sd">        &gt;&gt;&gt; class ST_DQ(BitFlagNameMap):</span>
+<span class="sd">        ...     __version__ = &#39;1.0.0&#39;  # optional</span>
+<span class="sd">        ...     CR = 1, &#39;Cosmic Ray&#39;</span>
+<span class="sd">        ...     CLOUDY = 4  # no docstring comment</span>
+<span class="sd">        ...     RAINY = 8, &#39;Dome closed&#39;</span>
+<span class="sd">        ...</span>
+<span class="sd">        &gt;&gt;&gt; class ST_CAM1_DQ(ST_DQ):</span>
+<span class="sd">        ...     HOT = 16</span>
+<span class="sd">        ...     DEAD = 32</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="extend_bit_flag_map"><a class="viewcode-back" href="../../../api/astropy.nddata.extend_bit_flag_map.html#astropy.nddata.extend_bit_flag_map">[docs]</a><span class="k">def</span> <span class="nf">extend_bit_flag_map</span><span class="p">(</span><span class="n">cls_name</span><span class="p">,</span> <span class="n">base_cls</span><span class="o">=</span><span class="n">BitFlagNameMap</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A convenience function for creating bit flags maps by subclassing an</span>
+<span class="sd">    existing map and adding additional flags supplied as keyword arguments.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cls_name : str</span>
+<span class="sd">        Class name of the bit flag map to be created.</span>
+
+<span class="sd">    base_cls : BitFlagNameMap, optional</span>
+<span class="sd">        Base class for the new bit flag map.</span>
+
+<span class="sd">    **kwargs : int</span>
+<span class="sd">        Each supplied keyword argument will be used to define bit flag</span>
+<span class="sd">        names in the new map. In addition to bit flag names, ``__version__`` is</span>
+<span class="sd">        allowed to indicate the version of the newly created map.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.nddata.bitmask import extend_bit_flag_map</span>
+<span class="sd">        &gt;&gt;&gt; ST_DQ = extend_bit_flag_map(&#39;ST_DQ&#39;, __version__=&#39;1.0.0&#39;, CR=1, CLOUDY=4, RAINY=8)</span>
+<span class="sd">        &gt;&gt;&gt; ST_CAM1_DQ = extend_bit_flag_map(&#39;ST_CAM1_DQ&#39;, ST_DQ, HOT=16, DEAD=32)</span>
+<span class="sd">        &gt;&gt;&gt; ST_CAM1_DQ[&#39;HOT&#39;]  # &lt;-- Access flags as dictionary keys</span>
+<span class="sd">        16</span>
+<span class="sd">        &gt;&gt;&gt; ST_CAM1_DQ.HOT  # &lt;-- Access flags as class attributes</span>
+<span class="sd">        16</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">new_cls</span> <span class="o">=</span> <span class="n">BitFlagNameMeta</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+        <span class="n">BitFlagNameMeta</span><span class="p">,</span>
+        <span class="n">cls_name</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">base_cls</span><span class="p">,</span> <span class="p">),</span>
+        <span class="p">{</span><span class="s1">&#39;_locked&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">new_cls</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">new_cls</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">e</span>
+
+    <span class="n">new_cls</span><span class="o">.</span><span class="n">_locked</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">new_cls</span></div>
+
+
+<div class="viewcode-block" id="interpret_bit_flags"><a class="viewcode-back" href="../../../api/astropy.nddata.interpret_bit_flags.html#astropy.nddata.interpret_bit_flags">[docs]</a><span class="k">def</span> <span class="nf">interpret_bit_flags</span><span class="p">(</span><span class="n">bit_flags</span><span class="p">,</span> <span class="n">flip_bits</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flag_name_map</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts input bit flags to a single integer value (bit mask) or `None`.</span>
+
+<span class="sd">    When input is a list of flags (either a Python list of integer flags or a</span>
+<span class="sd">    string of comma-, ``&#39;|&#39;``-, or ``&#39;+&#39;``-separated list of flags),</span>
+<span class="sd">    the returned bit mask is obtained by summing input flags.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        In order to flip the bits of the returned bit mask,</span>
+<span class="sd">        for input of `str` type, prepend &#39;~&#39; to the input string. &#39;~&#39; must</span>
+<span class="sd">        be prepended to the *entire string* and not to each bit flag! For</span>
+<span class="sd">        input that is already a bit mask or a Python list of bit flags, set</span>
+<span class="sd">        ``flip_bits`` for `True` in order to flip the bits of the returned</span>
+<span class="sd">        bit mask.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bit_flags : int, str, list, None</span>
+<span class="sd">        An integer bit mask or flag, `None`, a string of comma-, ``&#39;|&#39;``- or</span>
+<span class="sd">        ``&#39;+&#39;``-separated list of integer bit flags or mnemonic flag names,</span>
+<span class="sd">        or a Python list of integer bit flags. If ``bit_flags`` is a `str`</span>
+<span class="sd">        and if it is prepended with &#39;~&#39;, then the output bit mask will have</span>
+<span class="sd">        its bits flipped (compared to simple sum of input flags).</span>
+<span class="sd">        For input ``bit_flags`` that is already a bit mask or a Python list</span>
+<span class="sd">        of bit flags, bit-flipping can be controlled through ``flip_bits``</span>
+<span class="sd">        parameter.</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            When ``bit_flags`` is a list of flag names, the ``flag_name_map``</span>
+<span class="sd">            parameter must be provided.</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            Only one flag separator is supported at a time. ``bit_flags``</span>
+<span class="sd">            string should not mix ``&#39;,&#39;``, ``&#39;+&#39;``, and ``&#39;|&#39;`` separators.</span>
+
+<span class="sd">    flip_bits : bool, None</span>
+<span class="sd">        Indicates whether or not to flip the bits of the returned bit mask</span>
+<span class="sd">        obtained from input bit flags. This parameter must be set to `None`</span>
+<span class="sd">        when input ``bit_flags`` is either `None` or a Python list of flags.</span>
+
+<span class="sd">    flag_name_map : BitFlagNameMap</span>
+<span class="sd">         A `BitFlagNameMap` object that provides mapping from mnemonic</span>
+<span class="sd">         bit flag names to integer bit values in order to translate mnemonic</span>
+<span class="sd">         flags to numeric values when ``bit_flags`` that are comma- or</span>
+<span class="sd">         &#39;+&#39;-separated list of menmonic bit flag names.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bitmask : int or None</span>
+<span class="sd">        Returns an integer bit mask formed from the input bit value or `None`</span>
+<span class="sd">        if input ``bit_flags`` parameter is `None` or an empty string.</span>
+<span class="sd">        If input string value was prepended with &#39;~&#39; (or ``flip_bits`` was set</span>
+<span class="sd">        to `True`), then returned value will have its bits flipped</span>
+<span class="sd">        (inverse mask).</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.nddata.bitmask import interpret_bit_flags, extend_bit_flag_map</span>
+<span class="sd">        &gt;&gt;&gt; ST_DQ = extend_bit_flag_map(&#39;ST_DQ&#39;, CR=1, CLOUDY=4, RAINY=8, HOT=16, DEAD=32)</span>
+<span class="sd">        &gt;&gt;&gt; &quot;{0:016b}&quot;.format(0xFFFF &amp; interpret_bit_flags(28))</span>
+<span class="sd">        &#39;0000000000011100&#39;</span>
+<span class="sd">        &gt;&gt;&gt; &quot;{0:016b}&quot;.format(0xFFFF &amp; interpret_bit_flags(&#39;4,8,16&#39;))</span>
+<span class="sd">        &#39;0000000000011100&#39;</span>
+<span class="sd">        &gt;&gt;&gt; &quot;{0:016b}&quot;.format(0xFFFF &amp; interpret_bit_flags(&#39;CLOUDY,RAINY,HOT&#39;, flag_name_map=ST_DQ))</span>
+<span class="sd">        &#39;0000000000011100&#39;</span>
+<span class="sd">        &gt;&gt;&gt; &quot;{0:016b}&quot;.format(0xFFFF &amp; interpret_bit_flags(&#39;~4,8,16&#39;))</span>
+<span class="sd">        &#39;1111111111100011&#39;</span>
+<span class="sd">        &gt;&gt;&gt; &quot;{0:016b}&quot;.format(0xFFFF &amp; interpret_bit_flags(&#39;~(4+8+16)&#39;))</span>
+<span class="sd">        &#39;1111111111100011&#39;</span>
+<span class="sd">        &gt;&gt;&gt; &quot;{0:016b}&quot;.format(0xFFFF &amp; interpret_bit_flags(&#39;~(CLOUDY+RAINY+HOT)&#39;,</span>
+<span class="sd">        ... flag_name_map=ST_DQ))</span>
+<span class="sd">        &#39;1111111111100011&#39;</span>
+<span class="sd">        &gt;&gt;&gt; &quot;{0:016b}&quot;.format(0xFFFF &amp; interpret_bit_flags([4, 8, 16]))</span>
+<span class="sd">        &#39;0000000000011100&#39;</span>
+<span class="sd">        &gt;&gt;&gt; &quot;{0:016b}&quot;.format(0xFFFF &amp; interpret_bit_flags([4, 8, 16], flip_bits=True))</span>
+<span class="sd">        &#39;1111111111100011&#39;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">has_flip_bits</span> <span class="o">=</span> <span class="n">flip_bits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">flip_bits</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">flip_bits</span><span class="p">)</span>
+    <span class="n">allow_non_flags</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">_is_int</span><span class="p">(</span><span class="n">bit_flags</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="o">~</span><span class="nb">int</span><span class="p">(</span><span class="n">bit_flags</span><span class="p">)</span> <span class="k">if</span> <span class="n">flip_bits</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">bit_flags</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="n">bit_flags</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">has_flip_bits</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;Keyword argument &#39;flip_bits&#39; must be set to &#39;None&#39; when &quot;</span>
+                <span class="s2">&quot;input &#39;bit_flags&#39; is None.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bit_flags</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">has_flip_bits</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;Keyword argument &#39;flip_bits&#39; is not permitted for &quot;</span>
+                <span class="s2">&quot;comma-separated string lists of bit flags. Prepend &#39;~&#39; to &quot;</span>
+                <span class="s2">&quot;the string to indicate bit-flipping.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">bit_flags</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">bit_flags</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">bit_flags</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">,</span> <span class="s1">&#39;INDEF&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># check whether bitwise-NOT is present and if it is, check that it is</span>
+        <span class="c1"># in the first position:</span>
+        <span class="n">bitflip_pos</span> <span class="o">=</span> <span class="n">bit_flags</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bitflip_pos</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">flip_bits</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">bit_flags</span> <span class="o">=</span> <span class="n">bit_flags</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">bitflip_pos</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Bitwise-NOT must precede bit flag list.&quot;</span><span class="p">)</span>
+            <span class="n">flip_bits</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># basic check for correct use of parenthesis:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">nlpar</span> <span class="o">=</span> <span class="n">bit_flags</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)</span>
+            <span class="n">nrpar</span> <span class="o">=</span> <span class="n">bit_flags</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">nlpar</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">nrpar</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">break</span>
+
+            <span class="k">if</span> <span class="n">nlpar</span> <span class="o">!=</span> <span class="n">nrpar</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unbalanced parentheses in bit flag list.&quot;</span><span class="p">)</span>
+
+            <span class="n">lpar_pos</span> <span class="o">=</span> <span class="n">bit_flags</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)</span>
+            <span class="n">rpar_pos</span> <span class="o">=</span> <span class="n">bit_flags</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">lpar_pos</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">rpar_pos</span> <span class="o">&lt;</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bit_flags</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Incorrect syntax (incorrect use of &quot;</span>
+                                 <span class="s2">&quot;parenthesis) in bit flag list.&quot;</span><span class="p">)</span>
+
+            <span class="n">bit_flags</span> <span class="o">=</span> <span class="n">bit_flags</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">k</span> <span class="ow">in</span> <span class="n">bit_flags</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="s1">&#39;+,|&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Only one type of bit flag separator may be used in one &quot;</span>
+                <span class="s2">&quot;expression. Allowed separators are: &#39;+&#39;, &#39;|&#39;, or &#39;,&#39;.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">bit_flags</span><span class="p">:</span>
+            <span class="n">bit_flags</span> <span class="o">=</span> <span class="n">bit_flags</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="s1">&#39;+&#39;</span> <span class="ow">in</span> <span class="n">bit_flags</span><span class="p">:</span>
+            <span class="n">bit_flags</span> <span class="o">=</span> <span class="n">bit_flags</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="s1">&#39;|&#39;</span> <span class="ow">in</span> <span class="n">bit_flags</span><span class="p">:</span>
+            <span class="n">bit_flags</span> <span class="o">=</span> <span class="n">bit_flags</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">bit_flags</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Empty bit flag lists not allowed when either bitwise-NOT &quot;</span>
+                    <span class="s2">&quot;or parenthesis are present.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">bit_flags</span> <span class="o">=</span> <span class="p">[</span><span class="n">bit_flags</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">flag_name_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">bit_flags</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="n">bit_flags</span> <span class="o">=</span> <span class="p">[</span><span class="n">flag_name_map</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">bit_flags</span><span class="p">]</span>
+
+        <span class="n">allow_non_flags</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bit_flags</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bit_flags</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="n">_is_int</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span> <span class="k">for</span> <span class="n">flag</span> <span class="ow">in</span> <span class="n">bit_flags</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">flag_name_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                                                   <span class="k">for</span> <span class="n">flag</span> <span class="ow">in</span> <span class="n">bit_flags</span><span class="p">])):</span>
+                <span class="n">bit_flags</span> <span class="o">=</span> <span class="p">[</span><span class="n">flag_name_map</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">bit_flags</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Every bit flag in a list must be either an &quot;</span>
+                                <span class="s2">&quot;integer flag value or a &#39;str&#39; flag name.&quot;</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Unsupported type for argument &#39;bit_flags&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="n">bitset</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">bit_flags</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bitset</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bit_flags</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Duplicate bit flags will be ignored&quot;</span><span class="p">)</span>
+
+    <span class="n">bitmask</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">bitset</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_bit_flag</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">allow_non_flags</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input list contains invalid (not powers of two) &quot;</span>
+                             <span class="s2">&quot;bit flag: </span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+        <span class="n">bitmask</span> <span class="o">+=</span> <span class="n">v</span>
+
+    <span class="k">if</span> <span class="n">flip_bits</span><span class="p">:</span>
+        <span class="n">bitmask</span> <span class="o">=</span> <span class="o">~</span><span class="n">bitmask</span>
+
+    <span class="k">return</span> <span class="n">bitmask</span></div>
+
+
+<div class="viewcode-block" id="bitfield_to_boolean_mask"><a class="viewcode-back" href="../../../api/astropy.nddata.bitmask.bitfield_to_boolean_mask.html#astropy.nddata.bitfield_to_boolean_mask">[docs]</a><span class="k">def</span> <span class="nf">bitfield_to_boolean_mask</span><span class="p">(</span><span class="n">bitfield</span><span class="p">,</span> <span class="n">ignore_flags</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">flip_bits</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">good_mask_value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">,</span>
+                             <span class="n">flag_name_map</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    bitfield_to_boolean_mask(bitfield, ignore_flags=None, flip_bits=None, \</span>
+<span class="sd">good_mask_value=False, dtype=numpy.bool_)</span>
+<span class="sd">    Converts an array of bit fields to a boolean (or integer) mask array</span>
+<span class="sd">    according to a bit mask constructed from the supplied bit flags (see</span>
+<span class="sd">    ``ignore_flags`` parameter).</span>
+
+<span class="sd">    This function is particularly useful to convert data quality arrays to</span>
+<span class="sd">    boolean masks with selective filtering of DQ flags.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bitfield : ndarray</span>
+<span class="sd">        An array of bit flags. By default, values different from zero are</span>
+<span class="sd">        interpreted as &quot;bad&quot; values and values equal to zero are considered</span>
+<span class="sd">        as &quot;good&quot; values. However, see ``ignore_flags`` parameter on how to</span>
+<span class="sd">        selectively ignore some bits in the ``bitfield`` array data.</span>
+
+<span class="sd">    ignore_flags : int, str, list, None (default = 0)</span>
+<span class="sd">        An integer bit mask, `None`, a Python list of bit flags, a comma-,</span>
+<span class="sd">        or ``&#39;|&#39;``-separated, ``&#39;+&#39;``-separated string list of integer</span>
+<span class="sd">        bit flags or mnemonic flag names that indicate what bits in the input</span>
+<span class="sd">        ``bitfield`` should be *ignored* (i.e., zeroed), or `None`.</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            When ``bit_flags`` is a list of flag names, the ``flag_name_map``</span>
+<span class="sd">            parameter must be provided.</span>
+
+<span class="sd">        | Setting ``ignore_flags`` to `None` effectively will make</span>
+<span class="sd">          `bitfield_to_boolean_mask` interpret all ``bitfield`` elements</span>
+<span class="sd">          as &quot;good&quot; regardless of their value.</span>
+
+<span class="sd">        | When ``ignore_flags`` argument is an integer bit mask, it will be</span>
+<span class="sd">          combined using bitwise-NOT and bitwise-AND with each element of the</span>
+<span class="sd">          input ``bitfield`` array (``~ignore_flags &amp; bitfield``). If the</span>
+<span class="sd">          resultant bitfield element is non-zero, that element will be</span>
+<span class="sd">          interpreted as a &quot;bad&quot; in the output boolean mask and it will be</span>
+<span class="sd">          interpreted as &quot;good&quot; otherwise. ``flip_bits`` parameter may be used</span>
+<span class="sd">          to flip the bits (``bitwise-NOT``) of the bit mask thus effectively</span>
+<span class="sd">          changing the meaning of the ``ignore_flags`` parameter from &quot;ignore&quot;</span>
+<span class="sd">          to &quot;use only&quot; these flags.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            Setting ``ignore_flags`` to 0 effectively will assume that all</span>
+<span class="sd">            non-zero elements in the input ``bitfield`` array are to be</span>
+<span class="sd">            interpreted as &quot;bad&quot;.</span>
+
+<span class="sd">        | When ``ignore_flags`` argument is a Python list of integer bit</span>
+<span class="sd">          flags, these flags are added together to create an integer bit mask.</span>
+<span class="sd">          Each item in the list must be a flag, i.e., an integer that is an</span>
+<span class="sd">          integer power of 2. In order to flip the bits of the resultant</span>
+<span class="sd">          bit mask, use ``flip_bits`` parameter.</span>
+
+<span class="sd">        | Alternatively, ``ignore_flags`` may be a string of comma- or</span>
+<span class="sd">          ``&#39;+&#39;``(or ``&#39;|&#39;``)-separated list of integer bit flags that should</span>
+<span class="sd">          be added (bitwise OR) together to create an integer bit mask.</span>
+<span class="sd">          For example, both ``&#39;4,8&#39;``, ``&#39;4|8&#39;``, and ``&#39;4+8&#39;`` are equivalent</span>
+<span class="sd">          and indicate that bit flags 4 and 8 in the input ``bitfield``</span>
+<span class="sd">          array should be ignored when generating boolean mask.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            ``&#39;None&#39;``, ``&#39;INDEF&#39;``, and empty (or all white space) strings</span>
+<span class="sd">            are special values of string ``ignore_flags`` that are</span>
+<span class="sd">            interpreted as `None`.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            Each item in the list must be a flag, i.e., an integer that is an</span>
+<span class="sd">            integer power of 2. In addition, for convenience, an arbitrary</span>
+<span class="sd">            **single** integer is allowed and it will be interpreted as an</span>
+<span class="sd">            integer bit mask. For example, instead of ``&#39;4,8&#39;`` one could</span>
+<span class="sd">            simply provide string ``&#39;12&#39;``.</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            Only one flag separator is supported at a time. ``ignore_flags``</span>
+<span class="sd">            string should not mix ``&#39;,&#39;``, ``&#39;+&#39;``, and ``&#39;|&#39;`` separators.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            When ``ignore_flags`` is a `str` and when it is prepended with</span>
+<span class="sd">            &#39;~&#39;, then the meaning of ``ignore_flags`` parameters will be</span>
+<span class="sd">            reversed: now it will be interpreted as a list of bit flags to be</span>
+<span class="sd">            *used* (or *not ignored*) when deciding which elements of the</span>
+<span class="sd">            input ``bitfield`` array are &quot;bad&quot;. Following this convention,</span>
+<span class="sd">            an ``ignore_flags`` string value of ``&#39;~0&#39;`` would be equivalent</span>
+<span class="sd">            to setting ``ignore_flags=None``.</span>
+
+<span class="sd">        .. warning::</span>
+
+<span class="sd">            Because prepending &#39;~&#39; to a string ``ignore_flags`` is equivalent</span>
+<span class="sd">            to setting ``flip_bits`` to `True`, ``flip_bits`` cannot be used</span>
+<span class="sd">            with string ``ignore_flags`` and it must be set to `None`.</span>
+
+<span class="sd">    flip_bits : bool, None (default = None)</span>
+<span class="sd">        Specifies whether or not to invert the bits of the bit mask either</span>
+<span class="sd">        supplied directly through ``ignore_flags`` parameter or built from the</span>
+<span class="sd">        bit flags passed through ``ignore_flags`` (only when bit flags are</span>
+<span class="sd">        passed as Python lists of integer bit flags). Occasionally, it may be</span>
+<span class="sd">        useful to *consider only specific bit flags* in the ``bitfield``</span>
+<span class="sd">        array when creating a boolean mask as opposed to *ignoring* specific</span>
+<span class="sd">        bit flags as ``ignore_flags`` behaves by default. This can be achieved</span>
+<span class="sd">        by inverting/flipping the bits of the bit mask created from</span>
+<span class="sd">        ``ignore_flags`` flags which effectively changes the meaning of the</span>
+<span class="sd">        ``ignore_flags`` parameter from &quot;ignore&quot; to &quot;use only&quot; these flags.</span>
+<span class="sd">        Setting ``flip_bits`` to `None` means that no bit flipping will be</span>
+<span class="sd">        performed. Bit flipping for string lists of bit flags must be</span>
+<span class="sd">        specified by prepending &#39;~&#39; to string bit flag lists</span>
+<span class="sd">        (see documentation for ``ignore_flags`` for more details).</span>
+
+<span class="sd">        .. warning::</span>
+<span class="sd">            This parameter can be set to either `True` or `False` **ONLY** when</span>
+<span class="sd">            ``ignore_flags`` is either an integer bit mask or a Python</span>
+<span class="sd">            list of integer bit flags. When ``ignore_flags`` is either</span>
+<span class="sd">            `None` or a string list of flags, ``flip_bits`` **MUST** be set</span>
+<span class="sd">            to `None`.</span>
+
+<span class="sd">    good_mask_value : int, bool (default = False)</span>
+<span class="sd">        This parameter is used to derive the values that will be assigned to</span>
+<span class="sd">        the elements in the output boolean mask array that correspond to the</span>
+<span class="sd">        &quot;good&quot; bit fields (that are 0 after zeroing bits specified by</span>
+<span class="sd">        ``ignore_flags``) in the input ``bitfield`` array. When</span>
+<span class="sd">        ``good_mask_value`` is non-zero or ``numpy.True_`` then values in the</span>
+<span class="sd">        output boolean mask array corresponding to &quot;good&quot; bit fields in</span>
+<span class="sd">        ``bitfield`` will be ``numpy.True_`` (if ``dtype`` is ``numpy.bool_``)</span>
+<span class="sd">        or 1 (if ``dtype`` is of numerical type) and values of corresponding</span>
+<span class="sd">        to &quot;bad&quot; flags will be ``numpy.False_`` (or 0). When</span>
+<span class="sd">        ``good_mask_value`` is zero or ``numpy.False_`` then the values</span>
+<span class="sd">        in the output boolean mask array corresponding to &quot;good&quot; bit fields</span>
+<span class="sd">        in ``bitfield`` will be ``numpy.False_`` (if ``dtype`` is</span>
+<span class="sd">        ``numpy.bool_``) or 0 (if ``dtype`` is of numerical type) and values</span>
+<span class="sd">        of corresponding to &quot;bad&quot; flags will be ``numpy.True_`` (or 1).</span>
+
+<span class="sd">    dtype : data-type (default = ``numpy.bool_``)</span>
+<span class="sd">        The desired data-type for the output binary mask array.</span>
+
+<span class="sd">    flag_name_map : BitFlagNameMap</span>
+<span class="sd">         A `BitFlagNameMap` object that provides mapping from mnemonic</span>
+<span class="sd">         bit flag names to integer bit values in order to translate mnemonic</span>
+<span class="sd">         flags to numeric values when ``bit_flags`` that are comma- or</span>
+<span class="sd">         &#39;+&#39;-separated list of menmonic bit flag names.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mask : ndarray</span>
+<span class="sd">        Returns an array of the same dimensionality as the input ``bitfield``</span>
+<span class="sd">        array whose elements can have two possible values,</span>
+<span class="sd">        e.g., ``numpy.True_`` or ``numpy.False_`` (or 1 or 0 for integer</span>
+<span class="sd">        ``dtype``) according to values of to the input ``bitfield`` elements,</span>
+<span class="sd">        ``ignore_flags`` parameter, and the ``good_mask_value`` parameter.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.nddata import bitmask</span>
+<span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">        &gt;&gt;&gt; dqarr = np.asarray([[0, 0, 1, 2, 0, 8, 12, 0],</span>
+<span class="sd">        ...                     [10, 4, 0, 0, 0, 16, 6, 0]])</span>
+<span class="sd">        &gt;&gt;&gt; flag_map = bitmask.extend_bit_flag_map(</span>
+<span class="sd">        ...     &#39;ST_DQ&#39;, CR=2, CLOUDY=4, RAINY=8, HOT=16, DEAD=32</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; bitmask.bitfield_to_boolean_mask(dqarr, ignore_flags=0,</span>
+<span class="sd">        ...                                  dtype=int)</span>
+<span class="sd">        array([[0, 0, 1, 1, 0, 1, 1, 0],</span>
+<span class="sd">               [1, 1, 0, 0, 0, 1, 1, 0]])</span>
+<span class="sd">        &gt;&gt;&gt; bitmask.bitfield_to_boolean_mask(dqarr, ignore_flags=0,</span>
+<span class="sd">        ...                                  dtype=bool)</span>
+<span class="sd">        array([[False, False,  True,  True, False,  True,  True, False],</span>
+<span class="sd">               [ True,  True, False, False, False,  True,  True, False]]...)</span>
+<span class="sd">        &gt;&gt;&gt; bitmask.bitfield_to_boolean_mask(dqarr, ignore_flags=6,</span>
+<span class="sd">        ...                                  good_mask_value=0, dtype=int)</span>
+<span class="sd">        array([[0, 0, 1, 0, 0, 1, 1, 0],</span>
+<span class="sd">               [1, 0, 0, 0, 0, 1, 0, 0]])</span>
+<span class="sd">        &gt;&gt;&gt; bitmask.bitfield_to_boolean_mask(dqarr, ignore_flags=~6,</span>
+<span class="sd">        ...                                  good_mask_value=0, dtype=int)</span>
+<span class="sd">        array([[0, 0, 0, 1, 0, 0, 1, 0],</span>
+<span class="sd">               [1, 1, 0, 0, 0, 0, 1, 0]])</span>
+<span class="sd">        &gt;&gt;&gt; bitmask.bitfield_to_boolean_mask(dqarr, ignore_flags=6, dtype=int,</span>
+<span class="sd">        ...                                  flip_bits=True, good_mask_value=0)</span>
+<span class="sd">        array([[0, 0, 0, 1, 0, 0, 1, 0],</span>
+<span class="sd">               [1, 1, 0, 0, 0, 0, 1, 0]])</span>
+<span class="sd">        &gt;&gt;&gt; bitmask.bitfield_to_boolean_mask(dqarr, ignore_flags=&#39;~(2+4)&#39;,</span>
+<span class="sd">        ...                                  good_mask_value=0, dtype=int)</span>
+<span class="sd">        array([[0, 0, 0, 1, 0, 0, 1, 0],</span>
+<span class="sd">               [1, 1, 0, 0, 0, 0, 1, 0]])</span>
+<span class="sd">        &gt;&gt;&gt; bitmask.bitfield_to_boolean_mask(dqarr, ignore_flags=[2, 4],</span>
+<span class="sd">        ...                                  flip_bits=True, good_mask_value=0,</span>
+<span class="sd">        ...                                  dtype=int)</span>
+<span class="sd">        array([[0, 0, 0, 1, 0, 0, 1, 0],</span>
+<span class="sd">               [1, 1, 0, 0, 0, 0, 1, 0]])</span>
+<span class="sd">        &gt;&gt;&gt; bitmask.bitfield_to_boolean_mask(dqarr, ignore_flags=&#39;~(CR,CLOUDY)&#39;,</span>
+<span class="sd">        ...                                  good_mask_value=0, dtype=int,</span>
+<span class="sd">        ...                                  flag_name_map=flag_map)</span>
+<span class="sd">        array([[0, 0, 0, 1, 0, 0, 1, 0],</span>
+<span class="sd">               [1, 1, 0, 0, 0, 0, 1, 0]])</span>
+<span class="sd">        &gt;&gt;&gt; bitmask.bitfield_to_boolean_mask(dqarr, ignore_flags=&#39;~(CR+CLOUDY)&#39;,</span>
+<span class="sd">        ...                                  good_mask_value=0, dtype=int,</span>
+<span class="sd">        ...                                  flag_name_map=flag_map)</span>
+<span class="sd">        array([[0, 0, 0, 1, 0, 0, 1, 0],</span>
+<span class="sd">               [1, 1, 0, 0, 0, 0, 1, 0]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bitfield</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">bitfield</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">bitfield</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Input bitfield array must be of integer type.&quot;</span><span class="p">)</span>
+
+    <span class="n">ignore_mask</span> <span class="o">=</span> <span class="n">interpret_bit_flags</span><span class="p">(</span><span class="n">ignore_flags</span><span class="p">,</span> <span class="n">flip_bits</span><span class="o">=</span><span class="n">flip_bits</span><span class="p">,</span>
+                                      <span class="n">flag_name_map</span><span class="o">=</span><span class="n">flag_name_map</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ignore_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">good_mask_value</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">bitfield</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">bitfield</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mask</span>
+
+    <span class="c1"># filter out bits beyond the maximum supported by the data type:</span>
+    <span class="n">ignore_mask</span> <span class="o">=</span> <span class="n">ignore_mask</span> <span class="o">&amp;</span> <span class="n">_SUPPORTED_FLAGS</span>
+
+    <span class="c1"># invert the &quot;ignore&quot; mask:</span>
+    <span class="n">ignore_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bitwise_not</span><span class="p">(</span><span class="n">ignore_mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">bitfield</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                                 <span class="n">casting</span><span class="o">=</span><span class="s1">&#39;unsafe&#39;</span><span class="p">)</span>
+
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">bitfield</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">bitwise_and</span><span class="p">(</span><span class="n">bitfield</span><span class="p">,</span> <span class="n">ignore_mask</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">casting</span><span class="o">=</span><span class="s1">&#39;unsafe&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">good_mask_value</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">subok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

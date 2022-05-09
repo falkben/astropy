@@ -1,0 +1,692 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Using the SpectralCoord Class &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Description of the Galactocentric Coordinate Frame" href="galactocentric.html" />
+    <link rel="prev" title="Accounting for Space Motion" href="apply_space_motion.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="galactocentric.html" title="Description of the Galactocentric Coordinate Frame">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="apply_space_motion.html" title="Accounting for Space Motion">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Astronomical Coordinate Systems (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code>)</a> &#187;</li>
+      
+      <li>Using the SpectralCoord Class</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="using-the-spectralcoord-class">
+<span id="astropy-spectralcoord"></span><h1>Using the SpectralCoord Class<a class="headerlink" href="#using-the-spectralcoord-class" title="Permalink to this headline">¶</a></h1>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> class is new in Astropy v4.1 and should be considered
+experimental at this time. Note that we do not fully support cases
+where the observer and target are moving relativistically relative to each
+other, so care should be taken in those cases. It is possible that there
+will be API changes in future versions of Astropy based on user feedback. If
+you have specific ideas for how it might be improved, please  let us know on
+the <a class="reference external" href="http://groups.google.com/group/astropy-dev">astropy-dev mailing list</a> or at <a class="reference external" href="http://feedback.astropy.org">http://feedback.astropy.org</a>.</p>
+</div>
+<p>The <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> class provides an interface for representing and
+transforming spectral coordinates such as frequencies, wavelengths, and photon
+energies, as well as equivalent Doppler velocities. While the plain <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>
+class can also represent these kinds of physical quantities, and allow
+conversion via dedicated equivalencies (such as <a class="reference internal" href="../units/equivalencies.html#astropy-units-spectral-equivalency"><span class="std std-ref">u.spectral</span></a> or the <a class="reference internal" href="../units/equivalencies.html#astropy-units-doppler-equivalencies"><span class="std std-ref">u.doppler_*</span></a> equivalencies), <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> (which is
+a sub-class of <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>) aims to make this more straightforward, and can also
+be made aware of the observer and target reference frames, allowing for example
+transformation from telescope-centric (or topocentric) frames to e.g.
+Barycentric or Local Standard of Rest (LSRK and LSRD) velocity frames.</p>
+<div class="section" id="creating-spectralcoord-objects">
+<h2>Creating SpectralCoord Objects<a class="headerlink" href="#creating-spectralcoord-objects" title="Permalink to this headline">¶</a></h2>
+<p>Since the <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> class is a sub-class of <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>, the simplest way
+to initialize it is to provide a value (or values) and a unit, or an existing
+<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SpectralCoord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span> <span class="o">=</span> <span class="n">SpectralCoord</span><span class="p">(</span><span class="mf">34.2</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;GHz&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span>
+<span class="go">&lt;SpectralCoord 34.2 GHz&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc2</span> <span class="o">=</span> <span class="n">SpectralCoord</span><span class="p">([</span><span class="mf">654.2</span><span class="p">,</span> <span class="mf">654.4</span><span class="p">,</span> <span class="mf">654.6</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">nm</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc2</span>
+<span class="go">&lt;SpectralCoord [654.2, 654.4, 654.6] nm&gt;</span>
+</pre></div>
+</div>
+<p>At this point, we are not making any assumptions about the observer frame, or
+the target that is being observed. As we will see in subsequent sections, more
+information can be provided when initializing <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> objects, but first
+we take a look at simple unit conversions with these objects.</p>
+</div>
+<div class="section" id="unit-conversion">
+<h2>Unit conversion<a class="headerlink" href="#unit-conversion" title="Permalink to this headline">¶</a></h2>
+<p>By default, unit conversions between spectral units will work without having to
+specify the <a class="reference internal" href="../units/equivalencies.html#astropy-units-spectral-equivalency"><span class="std std-ref">u.spectral</span></a> equivalency:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc2</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">micron</span><span class="p">)</span>
+<span class="go">&lt;SpectralCoord [0.6542, 0.6544, 0.6546] micron&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc2</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">eV</span><span class="p">)</span>
+<span class="go">&lt;SpectralCoord [1.89520328, 1.89462406, 1.89404519] eV&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc2</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">THz</span><span class="p">)</span>
+<span class="go">&lt;SpectralCoord [458.25811373, 458.11805929, 457.97809044] THz&gt;</span>
+</pre></div>
+</div>
+<p>As is the case with <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> and the <a class="reference internal" href="../units/equivalencies.html#astropy-units-doppler-equivalencies"><span class="std std-ref">Doppler equivalencies</span></a>, it is also possible to convert these
+absolute spectral coordinates into velocities, assuming a particular rest
+frequency or wavelength (such as that of a spectral line). For example, to
+convert the above values into velocities relative to the Halpha line at 656.65
+nm, assuming the optical Doppler convention, you can do:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc3</span> <span class="o">=</span> <span class="n">sc2</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">doppler_convention</span><span class="o">=</span><span class="s1">&#39;optical&#39;</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">doppler_rest</span><span class="o">=</span><span class="mf">656.65</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">nm</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc3</span>
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (doppler_rest=656.65 nm</span>
+<span class="go">    doppler_convention=optical)</span>
+<span class="go">  [-1118.5433977 , -1027.23373258,  -935.92406746] km / s&gt;</span>
+</pre></div>
+</div>
+<p>The rest value for the Doppler conversion as well as the convention to use are
+stored in the resulting <code class="docutils literal notranslate"><span class="pre">sc3</span></code> <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> object. You can then convert
+back to frequency without having to specify them again:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc3</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">THz</span><span class="p">)</span>
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (doppler_rest=656.65 nm</span>
+<span class="go">    doppler_convention=optical)</span>
+<span class="go">  [458.25811373, 458.11805929, 457.97809044] THz&gt;</span>
+</pre></div>
+</div>
+<p>or you can explicitly specify a different convention or rest value to use:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc3</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">doppler_convention</span><span class="o">=</span><span class="s1">&#39;relativistic&#39;</span><span class="p">)</span>
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (doppler_rest=656.65 nm</span>
+<span class="go">    doppler_convention=relativistic)</span>
+<span class="go">  [-1120.63005892, -1028.99362163,  -937.38499411] km / s&gt;</span>
+</pre></div>
+</div>
+<p>It is also possible to set <code class="docutils literal notranslate"><span class="pre">doppler_convention</span></code> and <code class="docutils literal notranslate"><span class="pre">doppler_rest</span></code> from the
+start, even when creating a <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> in frequency, energy, or
+wavelength:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc4</span> <span class="o">=</span> <span class="n">SpectralCoord</span><span class="p">(</span><span class="mi">343</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">GHz</span><span class="p">,</span>
+<span class="gp">... </span>                    <span class="n">doppler_convention</span><span class="o">=</span><span class="s1">&#39;radio&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                    <span class="n">doppler_rest</span><span class="o">=</span><span class="mf">342.91</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">GHz</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc4</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (doppler_rest=342.91 GHz</span>
+<span class="go">    doppler_convention=radio)</span>
+<span class="go">  -78.68338987 km / s&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="reference-frame-transformations">
+<h2>Reference frame transformations<a class="headerlink" href="#reference-frame-transformations" title="Permalink to this headline">¶</a></h2>
+<p>If you work with any kind of spectral data, you will often need to determine
+and/or apply velocity corrections due to different frames of reference, or apply
+or remove the effects of redshift. There are two main ways to do this using the
+<a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> class:</p>
+<ul class="simple">
+<li><p>You can specify or change the velocity offset or redshift
+between the observer and the target without having to specify the
+absolute observer and target, but rather specify a velocity difference.  For example, that you know that there
+is a velocity difference of 15km/s along the line of sight, or that you are
+observing a galaxy at z=3.2. This can be useful for quick analysis but
+will not determine any frame transformations (e.g. from topocentric to
+barycentric) for you.</p></li>
+<li><p>You can specify the absolute position of the observer and the target,
+as well as the date of observation, which means that <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> can
+then compute different frame transformations. If information about the
+observer and target are available, this is the recommended approach,
+although it requires you to specify more information when setting up the
+<a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a></p></li>
+</ul>
+<p>In the next two sections we will look at each of these in turn.</p>
+<div class="section" id="specifying-radial-velocity-or-redshift-manually">
+<h3>Specifying radial velocity or redshift manually<a class="headerlink" href="#specifying-radial-velocity-or-redshift-manually" title="Permalink to this headline">¶</a></h3>
+<p>As an example, we will consider an example of a <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> which represents
+frequencies which form the x-axis of a (small) spectrum. We happen to know that
+the target that was observed appears to be at a redshift of z=0.5, and we will
+assume that any frequency shifts due to the Earth’s motion are unimportant. In
+the reference frame of the telescope, the spectrometer provides 10 values
+between 500 and 900nm:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wavs</span> <span class="o">=</span> <span class="n">SpectralCoord</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span> <span class="mi">900</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">nm</span><span class="p">,</span> <span class="n">redshift</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wavs</span>  
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (observer to target:</span>
+<span class="go">      radial_velocity=115304.79153846153 km / s</span>
+<span class="go">      redshift=0.5)</span>
+<span class="go">  [500., 550., 600., 650., 700., 750., 800., 850., 900.] nm&gt;</span>
+</pre></div>
+</div>
+<p>We have set redshift=0.5 here so that we can keep track of what frame of reference
+our spectral values are in. The <code class="docutils literal notranslate"><span class="pre">radial_velocity</span></code> property gives the recession
+velocity equivalent to that redshift, and it is indeed large enough that we don’t need
+to worry about the rotation of the Earth on itself around the Sun (which would be
+at most a ~30km/s contribution).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In the context of <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a>, we use the full relativistic relation
+between redshift and velocity, i.e. <span class="math notranslate nohighlight">\(1 + z = \sqrt{(1 + v/c)/(1 - v/c)}\)</span></p>
+</div>
+<p>We now want to shift the wavelengths so that they would be in the rest frame of
+the galaxy. We can do this using the
+<a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord.to_rest" title="astropy.coordinates.SpectralCoord.to_rest"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_rest()</span></code></a> method:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wavs_rest</span> <span class="o">=</span> <span class="n">wavs</span><span class="o">.</span><span class="n">to_rest</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wavs_rest</span>
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (observer to target:</span>
+<span class="go">      radial_velocity=0.0 km / s</span>
+<span class="go">      redshift=0.0)</span>
+<span class="go">  [333.33333333, 366.66666667, 400.        , 433.33333333, 466.66666667,</span>
+<span class="go">   500.        , 533.33333333, 566.66666667, 600.        ] nm&gt;</span>
+</pre></div>
+</div>
+<p>The wavelengths have decreased by 1/3, which is what we expect for z=0.5. Note
+that the <code class="docutils literal notranslate"><span class="pre">redshift</span></code> and <code class="docutils literal notranslate"><span class="pre">radial_velocity</span></code> properties are now zero, since we
+are in the reference frame of the target. We can also use the
+<a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord.with_radial_velocity_shift" title="astropy.coordinates.SpectralCoord.with_radial_velocity_shift"><code class="xref py py-meth docutils literal notranslate"><span class="pre">with_radial_velocity_shift()</span></code></a> method to more
+generically apply redshift and velocity corrections. The simplest way to use
+this method is to give a single value that will be applied to the target - if
+this value does not have units, it is interpreted as a redshift:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wavs_orig</span> <span class="o">=</span> <span class="n">wavs_rest</span><span class="o">.</span><span class="n">with_radial_velocity_shift</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wavs_orig</span>  
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (observer to target:</span>
+<span class="go">      radial_velocity=115304.79153846153 km / s</span>
+<span class="go">      redshift=0.5)</span>
+<span class="go">  [500., 550., 600., 650., 700., 750., 800., 850., 900.] nm&gt;</span>
+</pre></div>
+</div>
+<p>This returns an object equivalent to the one we started with, since we’ve
+re-applied a redshift of 0.5. We could also provide a velocity as a <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">wavs_rest</span><span class="o">.</span><span class="n">with_radial_velocity_shift</span><span class="p">(</span><span class="mi">100000</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (observer to target:</span>
+<span class="go">      radial_velocity=100000.0 km / s</span>
+<span class="go">      redshift=0.41458078170200463)</span>
+<span class="go">  [471.52692723, 518.67961996, 565.83231268, 612.9850054 , 660.13769813,</span>
+<span class="go">   707.29039085, 754.44308357, 801.5957763 , 848.74846902] nm&gt;</span>
+</pre></div>
+</div>
+<p>which shifts the values to a frame of reference at a redshift of approximately
+0.33 (that is, if the spectrum did contain a contribution from an object at
+z=0.33, these would be the rest wavelengths for that object.</p>
+</div>
+<div class="section" id="specifying-an-observer-and-a-target-explicitly">
+<h3>Specifying an observer and a target explicitly<a class="headerlink" href="#specifying-an-observer-and-a-target-explicitly" title="Permalink to this headline">¶</a></h3>
+<p>To use the more advanced functionality in <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a>, including the ability
+to easily transform between different well-defined velocity frames, you will
+need to give it information about the location (and optionally velocity) of
+the observer and target. This is done by passing either coordinate frame objects
+or <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> objects. To take a concrete example, let’s assume that we are now
+observe the source T Tau using the ALMA telescope. To create an observer object
+corresponding to this, we can make use of the <a class="reference internal" href="../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation" title="astropy.coordinates.EarthLocation"><code class="xref py py-class docutils literal notranslate"><span class="pre">EarthLocation</span></code></a> class:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">location</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="o">.</span><span class="n">of_site</span><span class="p">(</span><span class="s1">&#39;ALMA&#39;</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">location</span>  
+<span class="go">&lt;EarthLocation (2225015.30883296, -5440016.41799762, -2481631.27428014) m&gt;</span>
+</pre></div>
+</div>
+<p>The three values in meters are geocentric coordinates, i.e. the 3D coordinates
+relative to the center of the Earth. See <a class="reference internal" href="../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation" title="astropy.coordinates.EarthLocation"><code class="xref py py-class docutils literal notranslate"><span class="pre">EarthLocation</span></code></a> for more details about
+the different ways of creating these kinds of objects.</p>
+<p>Once you have done this, you will need to convert <code class="docutils literal notranslate"><span class="pre">location</span></code> to a coordinate
+object using the <a class="reference internal" href="../api/astropy.coordinates.EarthLocation.html#astropy.coordinates.EarthLocation.get_itrs" title="astropy.coordinates.EarthLocation.get_itrs"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_itrs()</span></code></a> method,
+which takes the observation time (which is important to know for any kind of
+velocity frame transformation):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">alma</span> <span class="o">=</span> <span class="n">location</span><span class="o">.</span><span class="n">get_itrs</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">Time</span><span class="p">(</span><span class="s1">&#39;2019-04-24T02:32:10&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">alma</span>  
+<span class="go">&lt;ITRS Coordinate (obstime=2019-04-24T02:32:10.000): (x, y, z) in m</span>
+<span class="go">    (2225015.30883296, -5440016.41799762, -2481631.27428014)&gt;</span>
+</pre></div>
+</div>
+<p>ITRS here stands for International Terrestrial Reference System which is a 3D
+coordinate frame centered on the Earth’s center and rotating with the Earth, so
+the observatory will be stationary in this frame of reference.</p>
+<p>For the target, the simplest way is to use the <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> class:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ttau</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s1">&#39;04h21m59.43s +19d32m06.4&#39;</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;icrs&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">radial_velocity</span><span class="o">=</span><span class="mf">23.9</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">distance</span><span class="o">=</span><span class="mf">144.321</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In this case we specified a radial velocity and a distance for the target (using
+the <a class="reference external" href="http://simbad.u-strasbg.fr/simbad/sim-id?Ident=T+Tauri">T Tauri SIMBAD entry</a>, but it is also
+possible to not specify these, which means the target is assumed to be
+stationary in the frame in which it is observed, and are assumed to be at large
+distance from the Sun (such that any parallax effects would be unimportant if
+relevant). The radial velocity is assumed to be in the frame used to define the
+target location, so it is relative to the ICRS origin (the Solar System
+barycenter) in the above case.</p>
+<p>We now define a set of frequencies corresponding to the channels in which fluxes
+have been measured (for the purposes of the example here we will assume we have only
+11 frequencies):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_ttau</span> <span class="o">=</span> <span class="n">SpectralCoord</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">GHz</span><span class="p">,</span>
+<span class="gp">... </span>                        <span class="n">observer</span><span class="o">=</span><span class="n">alma</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">ttau</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc_ttau</span>  
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (observer: &lt;ITRS Coordinate (obstime=2019-04-24T02:32:10.000): (x, y, z) in m</span>
+<span class="go">                  (2225015.30883296, -5440016.41799762, -2481631.27428014)</span>
+<span class="go">               (v_x, v_y, v_z) in km / s</span>
+<span class="go">                  (0., 0., 0.)&gt;</span>
+<span class="go">    target: &lt;ICRS Coordinate: (ra, dec, distance) in (deg, deg, pc)</span>
+<span class="go">                (65.497625, 19.53511111, 144.321)</span>
+<span class="go">             (radial_velocity) in km / s</span>
+<span class="go">                (23.9,)&gt;</span>
+<span class="go">    observer to target (computed from above):</span>
+<span class="go">      radial_velocity=41.03594953774002 km / s</span>
+<span class="go">      redshift=0.00013689056329480032)</span>
+<span class="go">  [200., 210., 220., 230., 240., 250., 260., 270., 280., 290., 300.] GHz&gt;</span>
+</pre></div>
+</div>
+<p>We can already see above that <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> has computed the difference in
+velocity between the observatory and T Tau, which includes the motion of the
+observatory around the Earth, the motion of the Earth around the Solar System
+barycenter, and the radial velocity of T Tau relative to the Solar System
+barycenter. We can get this value directly with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_ttau</span><span class="o">.</span><span class="n">radial_velocity</span>  
+<span class="go">&lt;Quantity 41.03594948 km / s&gt;</span>
+</pre></div>
+</div>
+<p>If you work with any kind of spectral data, you will often need to determine
+and/or apply velocity corrections due to different frames of reference. For
+example if you have observations of the same object on the sky taken at
+different dates, it is common to transform these to a common velocity frame of
+reference, so that your spectral coordinates are those that would have applied
+if the observer had been stationary relative to e.g. the Solar System
+Barycenter. You may also want to transform your spectral coordinates so that
+they would be in a frame at rest relative to the local standard of rest (LSR),
+the center of the Milky Way, the Local Group, or even the Cosmic Microwave
+Background (CMB) dipole.</p>
+<p>We can transform our frequencies for the observations of T Tau to different
+velocity frames using the
+<a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord.with_observer_stationary_relative_to" title="astropy.coordinates.SpectralCoord.with_observer_stationary_relative_to"><code class="xref py py-meth docutils literal notranslate"><span class="pre">with_observer_stationary_relative_to()</span></code></a>
+method. This method can take the name of an existing coordinate/velocity frame,
+a <a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame" title="astropy.coordinates.BaseCoordinateFrame"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseCoordinateFrame</span></code></a> instance, or any arbitrary
+3D position and velocity coordinate object defined either as a
+<a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame" title="astropy.coordinates.BaseCoordinateFrame"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseCoordinateFrame</span></code></a> or a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object. Most
+commonly-used frames are accessible using strings. For example to transform to a
+velocity frame stationary with respect to the center of the Earth (so removing
+the effect of the Earth’s rotation), we can use the <code class="docutils literal notranslate"><span class="pre">'gcrs'</span></code> which stands for
+<em>Geocentric Celestial Reference System</em> (GCRS):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_ttau</span><span class="o">.</span><span class="n">with_observer_stationary_relative_to</span><span class="p">(</span><span class="s1">&#39;gcrs&#39;</span><span class="p">)</span>  
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (observer: &lt;GCRS Coordinate (obstime=2019-04-24T02:32:10.000, obsgeoloc=(0., 0., 0.) m, obsgeovel=(0., 0., 0.) m / s): (x, y, z) in m</span>
+<span class="go">                  (-5878853.86171412, -192921.84773269, -2470794.19765021)</span>
+<span class="go">               (v_x, v_y, v_z) in km / s</span>
+<span class="go">                  (4.33251262e-09, 8.96175625e-08, -1.49258412e-08)&gt;</span>
+<span class="go">    target: &lt;ICRS Coordinate: (ra, dec, distance) in (deg, deg, pc)</span>
+<span class="go">                (65.497625, 19.53511111, 144.321)</span>
+<span class="go">             (radial_velocity) in km / s</span>
+<span class="go">                (23.9,)&gt;</span>
+<span class="go">    observer to target (computed from above):</span>
+<span class="go">      radial_velocity=40.674086368345165 km / s</span>
+<span class="go">      redshift=0.00013568335316072044)</span>
+<span class="go">  [200.00024141, 210.00025348, 220.00026555, 230.00027762, 240.00028969,</span>
+<span class="go">   250.00030176, 260.00031383, 270.0003259 , 280.00033797, 290.00035004,</span>
+<span class="go">   300.00036211] GHz&gt;</span>
+</pre></div>
+</div>
+<p>As you can see, the frequencies have changed slightly, which is because we have
+removed the Doppler shift caused by the Earth’s rotation (this can also be seen
+in the <code class="docutils literal notranslate"><span class="pre">radial_velocity</span></code> property, which has changed by ~0.35 km/s. To use a
+velocity reference frame relative to the Solar System barycenter, which is the
+origin of the <em>International Celestial Reference System</em> (ICRS) system, we can use:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_ttau</span><span class="o">.</span><span class="n">with_observer_stationary_relative_to</span><span class="p">(</span><span class="s1">&#39;icrs&#39;</span><span class="p">)</span>  
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (observer: &lt;ICRS Coordinate: (x, y, z) in m</span>
+<span class="go">                  (-1.25867767e+11, -7.48979688e+10, -3.24757657e+10)</span>
+<span class="go">               (v_x, v_y, v_z) in km / s</span>
+<span class="go">                  (0., 0., 0.)&gt;</span>
+<span class="go">    target: &lt;ICRS Coordinate: (ra, dec, distance) in (deg, deg, pc)</span>
+<span class="go">                (65.497625, 19.53511111, 144.321)</span>
+<span class="go">             (radial_velocity) in km / s</span>
+<span class="go">                (23.9,)&gt;</span>
+<span class="go">    observer to target (computed from above):</span>
+<span class="go">      radial_velocity=23.9 km / s</span>
+<span class="go">      redshift=7.97249967898761e-05)</span>
+<span class="go">  [200.0114322 , 210.01200381, 220.01257542, 230.01314703, 240.01371864,</span>
+<span class="go">   250.01429025, 260.01486186, 270.01543347, 280.01600508, 290.01657669,</span>
+<span class="go">   300.0171483 ] GHz&gt;</span>
+</pre></div>
+</div>
+<p>Note that in this case the total radial velocity between the observer and the
+target matches what we specified when we set up the target, since it was defined
+relative to the ICRS origin (the Solar System barycenter). The observer location
+is still as before, but the observer velocity is now ~10-20 km/s in x, y, and z,
+which is because the observer is now stationary relative to the barycenter so has
+a significant velocity relative to the surface of the Earth.</p>
+<p>We can also transform the frequencies to the Kinematic Local Standard of Rest
+(LSRK) frame of reference, which is a reference frame commonly used in some
+branches of astronomy (such as radio astronomy):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_ttau</span><span class="o">.</span><span class="n">with_observer_stationary_relative_to</span><span class="p">(</span><span class="s1">&#39;lsrk&#39;</span><span class="p">)</span>  
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (observer: &lt;LSRK Coordinate: (x, y, z) in m</span>
+<span class="go">                  (-1.25867767e+11, -7.48979688e+10, -3.24757657e+10)</span>
+<span class="go">               (v_x, v_y, v_z) in km / s</span>
+<span class="go">                  (0., 0., 0.)&gt;</span>
+<span class="go">    target: &lt;ICRS Coordinate: (ra, dec, distance) in (deg, deg, pc)</span>
+<span class="go">                (65.497625, 19.53511111, 144.321)</span>
+<span class="go">             (radial_velocity) in km / s</span>
+<span class="go">                (23.9,)&gt;</span>
+<span class="go">    observer to target (computed from above):</span>
+<span class="go">      radial_velocity=12.50698856018455 km / s</span>
+<span class="go">      redshift=4.171969349386906e-05)</span>
+<span class="go">  [200.01903338, 210.01998505, 220.02093672, 230.02188839, 240.02284006,</span>
+<span class="go">   250.02379172, 260.02474339, 270.02569506, 280.02664673, 290.0275984 ,</span>
+<span class="go">   300.02855007] GHz&gt;</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="#spectralcoord-common-frames"><span class="std std-ref">Common velocity frames</span></a> for a list of common velocity frames
+available as strings on the <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> class.</p>
+<p>Since we can give any arbitrary <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> to the
+<a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord.with_observer_stationary_relative_to" title="astropy.coordinates.SpectralCoord.with_observer_stationary_relative_to"><code class="xref py py-meth docutils literal notranslate"><span class="pre">with_observer_stationary_relative_to()</span></code></a>
+method, we can also specify the target itself, to find the frequencies in the
+rest frame of the target:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_ttau_targetframe</span> <span class="o">=</span> <span class="n">sc_ttau</span><span class="o">.</span><span class="n">with_observer_stationary_relative_to</span><span class="p">(</span><span class="n">sc_ttau</span><span class="o">.</span><span class="n">target</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc_ttau_targetframe</span>  
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (observer: &lt;ICRS Coordinate: (x, y, z) in m</span>
+<span class="go">                  (-1.25867767e+11, -7.48979688e+10, -3.24757657e+10)</span>
+<span class="go">               (v_x, v_y, v_z) in km / s</span>
+<span class="go">                  (9.34149908, 20.49579745, 7.99178839)&gt;</span>
+<span class="go">    target: &lt;ICRS Coordinate: (ra, dec, distance) in (deg, deg, pc)</span>
+<span class="go">                (65.497625, 19.53511111, 144.321)</span>
+<span class="go">             (radial_velocity) in km / s</span>
+<span class="go">                (23.9,)&gt;</span>
+<span class="go">    observer to target (computed from above):</span>
+<span class="go">      radial_velocity=0.0 km / s</span>
+<span class="go">      redshift=0.0)</span>
+<span class="go">  [200.02737811, 210.02874702, 220.03011592, 230.03148483, 240.03285374,</span>
+<span class="go">   250.03422264, 260.03559155, 270.03696045, 280.03832936, 290.03969826,</span>
+<span class="go">   300.04106717] GHz&gt;</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">radial_velocity</span></code>, which is the velocity offset between observer and
+target, is now zero.</p>
+<p><a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> is intended to be versatile and be useful for representing any spectral
+values - not just the x-axis of a spectrum, but also for example the
+frequencies of spectral features. For example, if we now consider that we found a
+spectral feature that appears to have components at the following frequencies
+in the frame of reference of the telescope:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_feat</span> <span class="o">=</span> <span class="n">SpectralCoord</span><span class="p">([</span><span class="mf">115.26</span><span class="p">,</span> <span class="mf">115.266</span><span class="p">,</span> <span class="mf">115.267</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">GHz</span><span class="p">,</span>
+<span class="gp">... </span>                        <span class="n">observer</span><span class="o">=</span><span class="n">alma</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">ttau</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>We can convert these to the rest frame of the target using:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_feat_rest</span> <span class="o">=</span> <span class="n">sc_feat</span><span class="o">.</span><span class="n">with_observer_stationary_relative_to</span><span class="p">(</span><span class="n">sc_feat</span><span class="o">.</span><span class="n">target</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc_feat_rest</span>  
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (observer: &lt;ICRS Coordinate: (x, y, z) in m</span>
+<span class="go">                  (-1.25867767e+11, -7.48979688e+10, -3.24757657e+10)</span>
+<span class="go">               (v_x, v_y, v_z) in km / s</span>
+<span class="go">                  (9.34149908, 20.49579745, 7.99178839)&gt;</span>
+<span class="go">    target: &lt;ICRS Coordinate: (ra, dec, distance) in (deg, deg, pc)</span>
+<span class="go">                (65.497625, 19.53511111, 144.321)</span>
+<span class="go">             (radial_velocity) in km / s</span>
+<span class="go">                (23.9,)&gt;</span>
+<span class="go">    observer to target (computed from above):</span>
+<span class="go">      radial_velocity=0.0 km / s</span>
+<span class="go">      redshift=0.0)</span>
+<span class="go">  [115.27577801, 115.28177883, 115.28277896] GHz&gt;</span>
+</pre></div>
+</div>
+<p>The frequencies are very close to the rest frequency of the 12CO J=1-0 molecular line transition,
+which is 115.2712018 GHz. However, they are not exactly the same, so if the features we see are
+indeed from 12CO, then they are Doppler shifted compared to what we consider the rest frame of
+T Tau. We can convert these frequencies to velocities assuming the Doppler shift equation
+(in this case with the radio convention):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_feat_rest</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">doppler_convention</span><span class="o">=</span><span class="s1">&#39;radio&#39;</span><span class="p">,</span> <span class="n">doppler_rest</span><span class="o">=</span><span class="mf">115.27120180</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">GHz</span><span class="p">)</span>  
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (observer: &lt;ICRS Coordinate: (x, y, z) in m</span>
+<span class="go">                  (-1.25867767e+11, -7.48979688e+10, -3.24757657e+10)</span>
+<span class="go">               (v_x, v_y, v_z) in km / s</span>
+<span class="go">                  (9.34149908, 20.49579745, 7.99178839)&gt;</span>
+<span class="go">    target: &lt;ICRS Coordinate: (ra, dec, distance) in (deg, deg, pc)</span>
+<span class="go">                (65.497625, 19.53511111, 144.321)</span>
+<span class="go">             (radial_velocity) in km / s</span>
+<span class="go">                (23.9,)&gt;</span>
+<span class="go">    observer to target (computed from above):</span>
+<span class="go">      radial_velocity=0.0 km / s</span>
+<span class="go">      redshift=0.0</span>
+<span class="go">    doppler_rest=115.2712018 GHz</span>
+<span class="go">    doppler_convention=radio)</span>
+<span class="go">  [-11.90160353, -27.50828545, -30.1093991 ] km / s&gt;</span>
+</pre></div>
+</div>
+<p>Note that these resulting velocities are different from the <code class="docutils literal notranslate"><span class="pre">radial_velocity</span></code>
+property (which is still zero here) - the latter is the difference in velocity
+between observer and target, while the former are how much the spectral values
+are Doppler shifted by relative to the rest frequency or wavelength.</p>
+<p>So if the features are indeed from 12CO, they have velocities of approximately -11.9, -27.5 and
+-30.1 km/s relative to the T tau rest frame.</p>
+</div>
+</div>
+<div class="section" id="common-velocity-frames">
+<span id="spectralcoord-common-frames"></span><h2>Common velocity frames<a class="headerlink" href="#common-velocity-frames" title="Permalink to this headline">¶</a></h2>
+<p>Any valid astropy coordinate frame can be passed to the
+<a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord.with_observer_stationary_relative_to" title="astropy.coordinates.SpectralCoord.with_observer_stationary_relative_to"><code class="xref py py-meth docutils literal notranslate"><span class="pre">with_observer_stationary_relative_to()</span></code></a>
+method, including string aliases such as <code class="docutils literal notranslate"><span class="pre">icrs</span></code>. Below we list some of the
+frames commonly used to define spectral coordinates in:</p>
+<p>The velocity frames available as constants on the <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> class are:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 73%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Frame name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">'gcrs'</span></code></p></td>
+<td><p>Geocentric frame (defined as stationary relative to the GCRS origin)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">'icrs'</span></code></p></td>
+<td><p>Barycentric frame (defined as stationary relative to the ICRS origin)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">'hcrs'</span></code></p></td>
+<td><p>Heliocentric frame (defined as stationary relative to the HCRS origin)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">'lsrk</span></code></p></td>
+<td><p>Kinematic Local Standard of Rest (LSRK),
+defined as having a velocity of 20 km/s towards
+18h +30d (B1900) relative to the Solar System
+Barycenter <a class="footnote-reference brackets" href="#id5" id="id1">1</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">'lsrd'</span></code></p></td>
+<td><p>Dynamical Local Standard of Rest (LSRD),
+defined as having a velocity of U=9 km/s,
+V=12 km/s, and W=7 km/s in Galactic coordinates
+(equivalent to 16.552945 km/s towards l=53.13
+and b=25.02) <a class="footnote-reference brackets" href="#id6" id="id2">2</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">'lsr'</span></code></p></td>
+<td><p>A more recent definition of the Local Standard
+of rest, with U=11.1 km/s,
+V=12.24 km/s, and W=7.25 km/s in Galactic coordinates <a class="footnote-reference brackets" href="#id7" id="id3">3</a>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="defining-custom-velocity-frames">
+<h2>Defining custom velocity frames<a class="headerlink" href="#defining-custom-velocity-frames" title="Permalink to this headline">¶</a></h2>
+<p>As mentioned in the earlier examples on this page, it is possible to pass any
+arbitrary <a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame" title="astropy.coordinates.BaseCoordinateFrame"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseCoordinateFrame</span></code></a> or <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object
+to the <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord.with_observer_stationary_relative_to" title="astropy.coordinates.SpectralCoord.with_observer_stationary_relative_to"><code class="xref py py-meth docutils literal notranslate"><span class="pre">with_observer_stationary_relative_to()</span></code></a> method,
+and the observer will be updated to be stationary relative to those coordinates.
+As an example, we can define an object that can be used to define a velocity
+frame that moves with the local group of galaxies. There is not a unique definition
+of this, but for the purposes of this example we use the IAU 1976-recommended
+value which states that the Solar System barycenter is moving at 300 km/s towards
+l=90 and b=0 in the velocity frame of the local group of galaxies <a class="footnote-reference brackets" href="#id8" id="id4">4</a>. Given
+this value, we can define the velocity frame using:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">Galactic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">localgroup_frame</span> <span class="o">=</span> <span class="n">Galactic</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="n">v</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">,</span>
+<span class="gp">... </span>                            <span class="n">U</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">V</span><span class="o">=-</span><span class="mi">300</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">W</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+<span class="gp">... </span>                            <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                            <span class="n">differential_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that here we specify the velocity as -300, because what we need here is the
+velocity of the local group relative to the Solar System barycenter. With this
+object, we can then transform a <a class="reference internal" href="../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord" title="astropy.coordinates.SpectralCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SpectralCoord</span></code></a> so that the observer is stationary
+in that frame of reference:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_ttau</span><span class="o">.</span><span class="n">with_observer_stationary_relative_to</span><span class="p">(</span><span class="n">localgroup_frame</span><span class="p">)</span>  
+<span class="go">&lt;SpectralCoord</span>
+<span class="go">   (observer: &lt;Galactic Coordinate: (u, v, w) in m</span>
+<span class="go">                  (8.8038652e+10, -5.31344273e+10, 1.09238291e+11)</span>
+<span class="go">               (U, V, W) in km / s</span>
+<span class="go">                  (-1.42108547e-14, -300., 2.84217094e-14)&gt;</span>
+<span class="go">    target: &lt;ICRS Coordinate: (ra, dec, distance) in (deg, deg, pc)</span>
+<span class="go">                (65.497625, 19.53511111, 144.321)</span>
+<span class="go">             (radial_velocity) in km / s</span>
+<span class="go">                (23.9,)&gt;</span>
+<span class="go">    observer to target (computed from above):</span>
+<span class="go">      radial_velocity=42.33062895275233 km / s</span>
+<span class="go">      redshift=0.00014120974955456056)</span>
+<span class="go">  [199.99913628, 209.9990931 , 219.99904991, 229.99900673, 239.99896354,</span>
+<span class="go">   249.99892036, 259.99887717, 269.99883398, 279.9987908 , 289.99874761,</span>
+<span class="go">   299.99870443] GHz&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
+<dl class="footnote brackets">
+<dt class="label" id="id5"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
+<dd><p>Meeks, M. L. 1976, <em>Methods of experimental physics. Vol._12.
+Astrophysics. Part C: Radio observations</em>, Section 6.1 by Gordon, M. A.
+<a class="reference external" href="https://ui.adsabs.harvard.edu/abs/1976mep..book.....M">[ADS]</a>.</p>
+</dd>
+<dt class="label" id="id6"><span class="brackets"><a class="fn-backref" href="#id2">2</a></span></dt>
+<dd><p>Delhaye, J. 1965, <em>Galactic Structure</em>. Edited by Adriaan Blaauw and
+Maarten Schmidt. Published by the University of Chicago Press, p61
+<a class="reference external" href="https://ui.adsabs.harvard.edu/abs/1965gast.book...61D">[ADS]</a>.</p>
+</dd>
+<dt class="label" id="id7"><span class="brackets"><a class="fn-backref" href="#id3">3</a></span></dt>
+<dd><p>Schönrich, R., Binney, J., &amp; Dehnen, W. 2010, MNRAS, 403, 1829
+<a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2010MNRAS.403.1829S">[ADS]</a>.</p>
+</dd>
+<dt class="label" id="id8"><span class="brackets"><a class="fn-backref" href="#id4">4</a></span></dt>
+<dd><p><em>Transactions of the IAU Vol. XVI B Proceedings of the 16th General
+Assembly, Reports of Meetings of Commissions: Comptes Rendus
+Des Séances Des Commissions, Commission 28</em>.
+<a class="reference external" href="https://doi.org/10.1017/S0251107X00002406">[DOI]</a></p>
+</dd>
+</dl>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Using the SpectralCoord Class</a><ul>
+<li><a class="reference internal" href="#creating-spectralcoord-objects">Creating SpectralCoord Objects</a></li>
+<li><a class="reference internal" href="#unit-conversion">Unit conversion</a></li>
+<li><a class="reference internal" href="#reference-frame-transformations">Reference frame transformations</a><ul>
+<li><a class="reference internal" href="#specifying-radial-velocity-or-redshift-manually">Specifying radial velocity or redshift manually</a></li>
+<li><a class="reference internal" href="#specifying-an-observer-and-a-target-explicitly">Specifying an observer and a target explicitly</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#common-velocity-frames">Common velocity frames</a></li>
+<li><a class="reference internal" href="#defining-custom-velocity-frames">Defining custom velocity frames</a></li>
+<li><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/coordinates/spectralcoord.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

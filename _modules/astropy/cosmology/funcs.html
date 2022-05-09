@@ -1,0 +1,467 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.cosmology.funcs &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.cosmology.funcs</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Convenience functions for `astropy.cosmology`.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">Quantity</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.exceptions</span> <span class="kn">import</span> <span class="n">AstropyUserWarning</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">cu</span>
+<span class="kn">from</span> <span class="nn">.core</span> <span class="kn">import</span> <span class="n">CosmologyError</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;z_at_value&#39;</span><span class="p">]</span>
+
+<span class="n">__doctest_requires__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;*&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;scipy&#39;</span><span class="p">]}</span>
+
+
+<span class="k">def</span> <span class="nf">_z_at_scalar_value</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">fval</span><span class="p">,</span> <span class="n">zmin</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">zmax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">ztol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">maxfun</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+                       <span class="n">method</span><span class="o">=</span><span class="s1">&#39;Brent&#39;</span><span class="p">,</span> <span class="n">bracket</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the redshift ``z`` at which ``func(z) = fval``.</span>
+<span class="sd">    See :func:`astropy.cosmology.funcs.z_at_value`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize_scalar</span>
+
+    <span class="n">opt</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="n">maxfun</span><span class="p">}</span>
+    <span class="c1"># Assume custom methods support the same options as default; otherwise user</span>
+    <span class="c1"># will see warnings.</span>
+    <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">method</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;bounded&#39;</span><span class="p">:</span>
+        <span class="n">opt</span><span class="p">[</span><span class="s1">&#39;xatol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ztol</span>
+        <span class="k">if</span> <span class="n">bracket</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Option &#39;bracket&#39; is ignored by method </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="n">bracket</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">opt</span><span class="p">[</span><span class="s1">&#39;xtol&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ztol</span>
+
+    <span class="c1"># fval falling inside the interval of bracketing function values does not</span>
+    <span class="c1"># guarantee it has a unique solution, but for Standard Cosmological</span>
+    <span class="c1"># quantities normally should (being monotonic or having a single extremum).</span>
+    <span class="c1"># In these cases keep solver from returning solutions outside of bracket.</span>
+    <span class="n">fval_zmin</span><span class="p">,</span> <span class="n">fval_zmax</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">zmin</span><span class="p">),</span> <span class="n">func</span><span class="p">(</span><span class="n">zmax</span><span class="p">)</span>
+    <span class="n">nobracket</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">fval</span> <span class="o">-</span> <span class="n">fval_zmin</span><span class="p">)</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">fval_zmax</span> <span class="o">-</span> <span class="n">fval</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">bracket</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">nobracket</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fval_brac</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">bracket</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">fval</span> <span class="o">-</span> <span class="n">fval_brac</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">fval_brac</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">fval</span><span class="p">):</span>
+                <span class="n">nobracket</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">zmin</span><span class="p">,</span> <span class="n">zmax</span> <span class="o">=</span> <span class="n">bracket</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bracket</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">fval_zmin</span><span class="p">,</span> <span class="n">fval_zmax</span> <span class="o">=</span> <span class="n">fval_brac</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="k">if</span> <span class="n">nobracket</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;fval is not bracketed by func(zmin)=</span><span class="si">{</span><span class="n">fval_zmin</span><span class="si">}</span><span class="s2"> and &quot;</span>
+                      <span class="sa">f</span><span class="s2">&quot;func(zmax)=</span><span class="si">{</span><span class="n">fval_zmax</span><span class="si">}</span><span class="s2">. This means either there is no &quot;</span>
+                      <span class="s2">&quot;solution, or that there is more than one solution &quot;</span>
+                      <span class="s2">&quot;between zmin and zmax satisfying fval = func(z).&quot;</span><span class="p">,</span>
+                      <span class="n">AstropyUserWarning</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fval_zmin</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">):</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">fval</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">fval_zmin</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">fval</span>
+
+    <span class="c1"># &#39;Brent&#39; and &#39;Golden&#39; ignore `bounds`, force solution inside zlim</span>
+    <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">z</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">z</span> <span class="o">&gt;</span> <span class="n">zmax</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">1.e300</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">z</span> <span class="o">-</span> <span class="n">zmax</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">z</span> <span class="o">&lt;</span> <span class="n">zmin</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">1.e300</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">zmin</span> <span class="o">-</span> <span class="n">z</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fval_zmin</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">func</span><span class="p">(</span><span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">val</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">func</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="o">-</span> <span class="n">val</span><span class="p">)</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">minimize_scalar</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="n">zmin</span><span class="p">,</span> <span class="n">zmax</span><span class="p">),</span>
+                          <span class="n">bracket</span><span class="o">=</span><span class="n">bracket</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">opt</span><span class="p">)</span>
+
+    <span class="c1"># Scipy docs state that `OptimizeResult` always has &#39;status&#39; and &#39;message&#39;</span>
+    <span class="c1"># attributes, but only `_minimize_scalar_bounded()` seems to have really</span>
+    <span class="c1"># implemented them.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">res</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Solver returned </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;message&#39;</span><span class="p">,</span> <span class="s1">&#39;Unsuccessful&#39;</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                      <span class="sa">f</span><span class="s2">&quot;Precision </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">fun</span><span class="si">}</span><span class="s2"> reached after </span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">nfev</span><span class="si">}</span><span class="s2"> function calls.&quot;</span><span class="p">,</span>
+                      <span class="n">AstropyUserWarning</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">zmax</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">CosmologyError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Best guess z=</span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s2"> is very close to the upper z limit </span><span class="si">{</span><span class="n">zmax</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Try re-running with a different zmax.&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">zmin</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">CosmologyError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Best guess z=</span><span class="si">{</span><span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s2"> is very close to the lower z limit </span><span class="si">{</span><span class="n">zmin</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Try re-running with a different zmin.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span>
+
+
+<div class="viewcode-block" id="z_at_value"><a class="viewcode-back" href="../../../api/astropy.cosmology.z_at_value.html#astropy.cosmology.z_at_value">[docs]</a><span class="k">def</span> <span class="nf">z_at_value</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">fval</span><span class="p">,</span> <span class="n">zmin</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">zmax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">ztol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">maxfun</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+               <span class="n">method</span><span class="o">=</span><span class="s1">&#39;Brent&#39;</span><span class="p">,</span> <span class="n">bracket</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Find the redshift ``z`` at which ``func(z) = fval``.</span>
+
+<span class="sd">    This finds the redshift at which one of the cosmology functions or</span>
+<span class="sd">    methods (for example Planck13.distmod) is equal to a known value.</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">       Make sure you understand the behavior of the function that you are</span>
+<span class="sd">       trying to invert! Depending on the cosmology, there may not be a</span>
+<span class="sd">       unique solution. For example, in the standard Lambda CDM cosmology,</span>
+<span class="sd">       there are two redshifts which give an angular diameter distance of</span>
+<span class="sd">       1500 Mpc, z ~ 0.7 and z ~ 3.8. To force ``z_at_value`` to find the</span>
+<span class="sd">       solution you are interested in, use the ``zmin`` and ``zmax`` keywords</span>
+<span class="sd">       to limit the search range (see the example below).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    func : function or method</span>
+<span class="sd">        A function that takes a redshift as input.</span>
+
+<span class="sd">    fval : `~astropy.units.Quantity`</span>
+<span class="sd">        The (scalar or array) value of ``func(z)`` to recover.</span>
+
+<span class="sd">    zmin : float or array-like[&#39;dimensionless&#39;] or quantity-like, optional</span>
+<span class="sd">        The lower search limit for ``z``.  Beware of divergences</span>
+<span class="sd">        in some cosmological functions, such as distance moduli,</span>
+<span class="sd">        at z=0 (default 1e-8).</span>
+
+<span class="sd">    zmax : float or array-like[&#39;dimensionless&#39;] or quantity-like, optional</span>
+<span class="sd">        The upper search limit for ``z`` (default 1000).</span>
+
+<span class="sd">    ztol : float or array-like[&#39;dimensionless&#39;], optional</span>
+<span class="sd">        The relative error in ``z`` acceptable for convergence.</span>
+
+<span class="sd">    maxfun : int or array-like, optional</span>
+<span class="sd">        The maximum number of function evaluations allowed in the</span>
+<span class="sd">        optimization routine (default 500).</span>
+
+<span class="sd">    method : str or callable, optional</span>
+<span class="sd">        Type of solver to pass to the minimizer. The built-in options provided</span>
+<span class="sd">        by :func:`~scipy.optimize.minimize_scalar` are &#39;Brent&#39; (default),</span>
+<span class="sd">        &#39;Golden&#39; and &#39;Bounded&#39; with names case insensitive - see documentation</span>
+<span class="sd">        there for details. It also accepts a custom solver by passing any</span>
+<span class="sd">        user-provided callable object that meets the requirements listed</span>
+<span class="sd">        therein under the Notes on &quot;Custom minimizers&quot; - or in more detail in</span>
+<span class="sd">        :doc:`scipy:tutorial/optimize` - although their use is currently</span>
+<span class="sd">        untested.</span>
+
+<span class="sd">        .. versionadded:: 4.3</span>
+
+<span class="sd">    bracket : sequence or object array[sequence], optional</span>
+<span class="sd">        For methods &#39;Brent&#39; and &#39;Golden&#39;, ``bracket`` defines the bracketing</span>
+<span class="sd">        interval and can either have three items (z1, z2, z3) so that</span>
+<span class="sd">        z1 &lt; z2 &lt; z3 and ``func(z2) &lt; func (z1), func(z3)`` or two items z1</span>
+<span class="sd">        and z3 which are assumed to be a starting interval for a downhill</span>
+<span class="sd">        bracket search. For non-monotonic functions such as angular diameter</span>
+<span class="sd">        distance this may be used to start the search on the desired side of</span>
+<span class="sd">        the maximum, but see Examples below for usage notes.</span>
+
+<span class="sd">        .. versionadded:: 4.3</span>
+
+<span class="sd">    verbose : bool, optional</span>
+<span class="sd">        Print diagnostic output from solver (default `False`).</span>
+
+<span class="sd">        .. versionadded:: 4.3</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    z : `~astropy.units.Quantity` [&#39;redshift&#39;]</span>
+<span class="sd">        The redshift ``z`` satisfying ``zmin &lt; z &lt; zmax`` and ``func(z) =</span>
+<span class="sd">        fval`` within ``ztol``. Has units of cosmological redshift.</span>
+
+<span class="sd">    Warns</span>
+<span class="sd">    -----</span>
+<span class="sd">    :class:`~astropy.utils.exceptions.AstropyUserWarning`</span>
+<span class="sd">        If ``fval`` is not bracketed by ``func(zmin)=fval(zmin)`` and</span>
+<span class="sd">        ``func(zmax)=fval(zmax)``.</span>
+
+<span class="sd">        If the solver was not successful.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    :class:`astropy.cosmology.CosmologyError`</span>
+<span class="sd">        If the result is very close to either ``zmin`` or ``zmax``.</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If ``bracket`` is not an array nor a 2 (or 3) element sequence.</span>
+<span class="sd">    TypeError</span>
+<span class="sd">        If ``bracket`` is not an object array. 2 (or 3) element sequences will</span>
+<span class="sd">        be turned into object arrays, so this error should only occur if a</span>
+<span class="sd">        non-object array is used for ``bracket``.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    This works for any arbitrary input cosmology, but is inefficient if you</span>
+<span class="sd">    want to invert a large number of values for the same cosmology. In this</span>
+<span class="sd">    case, it is faster to instead generate an array of values at many</span>
+<span class="sd">    closely-spaced redshifts that cover the relevant redshift range, and then</span>
+<span class="sd">    use interpolation to find the redshift at each value you are interested</span>
+<span class="sd">    in. For example, to efficiently find the redshifts corresponding to 10^6</span>
+<span class="sd">    values of the distance modulus in a Planck13 cosmology, you could do the</span>
+<span class="sd">    following:</span>
+
+<span class="sd">    &gt;&gt;&gt; import astropy.units as u</span>
+<span class="sd">    &gt;&gt;&gt; from astropy.cosmology import Planck13, z_at_value</span>
+
+<span class="sd">    Generate 10^6 distance moduli between 24 and 44 for which we</span>
+<span class="sd">    want to find the corresponding redshifts:</span>
+
+<span class="sd">    &gt;&gt;&gt; Dvals = (24 + np.random.rand(1000000) * 20) * u.mag</span>
+
+<span class="sd">    Make a grid of distance moduli covering the redshift range we</span>
+<span class="sd">    need using 50 equally log-spaced values between zmin and</span>
+<span class="sd">    zmax. We use log spacing to adequately sample the steep part of</span>
+<span class="sd">    the curve at low distance moduli:</span>
+
+<span class="sd">    &gt;&gt;&gt; zmin = z_at_value(Planck13.distmod, Dvals.min())</span>
+<span class="sd">    &gt;&gt;&gt; zmax = z_at_value(Planck13.distmod, Dvals.max())</span>
+<span class="sd">    &gt;&gt;&gt; zgrid = np.geomspace(zmin, zmax, 50)</span>
+<span class="sd">    &gt;&gt;&gt; Dgrid = Planck13.distmod(zgrid)</span>
+
+<span class="sd">    Finally interpolate to find the redshift at each distance modulus:</span>
+
+<span class="sd">    &gt;&gt;&gt; zvals = np.interp(Dvals.value, Dgrid.value, zgrid)</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; import astropy.units as u</span>
+<span class="sd">    &gt;&gt;&gt; from astropy.cosmology import Planck13, Planck18, z_at_value</span>
+
+<span class="sd">    The age and lookback time are monotonic with redshift, and so a</span>
+<span class="sd">    unique solution can be found:</span>
+
+<span class="sd">    &gt;&gt;&gt; z_at_value(Planck13.age, 2 * u.Gyr)               # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 3.19812268 redshift&gt;</span>
+
+<span class="sd">    The angular diameter is not monotonic however, and there are two</span>
+<span class="sd">    redshifts that give a value of 1500 Mpc. You can use the zmin and</span>
+<span class="sd">    zmax keywords to find the one you are interested in:</span>
+
+<span class="sd">    &gt;&gt;&gt; z_at_value(Planck18.angular_diameter_distance,</span>
+<span class="sd">    ...            1500 * u.Mpc, zmax=1.5)                # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 0.68044452 redshift&gt;</span>
+<span class="sd">    &gt;&gt;&gt; z_at_value(Planck18.angular_diameter_distance,</span>
+<span class="sd">    ...            1500 * u.Mpc, zmin=2.5)                # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 3.7823268 redshift&gt;</span>
+
+<span class="sd">    Alternatively the ``bracket`` option may be used to initialize the</span>
+<span class="sd">    function solver on a desired region, but one should be aware that this</span>
+<span class="sd">    does not guarantee it will remain close to this starting bracket.</span>
+<span class="sd">    For the example of angular diameter distance, which has a maximum near</span>
+<span class="sd">    a redshift of 1.6 in this cosmology, defining a bracket on either side</span>
+<span class="sd">    of this maximum will often return a solution on the same side:</span>
+
+<span class="sd">    &gt;&gt;&gt; z_at_value(Planck18.angular_diameter_distance,</span>
+<span class="sd">    ...            1500 * u.Mpc, bracket=(1.0, 1.2))  # doctest: +FLOAT_CMP +IGNORE_WARNINGS</span>
+<span class="sd">    &lt;Quantity 0.68044452 redshift&gt;</span>
+
+<span class="sd">    But this is not ascertained especially if the bracket is chosen too wide</span>
+<span class="sd">    and/or too close to the turning point:</span>
+
+<span class="sd">    &gt;&gt;&gt; z_at_value(Planck18.angular_diameter_distance,</span>
+<span class="sd">    ...            1500 * u.Mpc, bracket=(0.1, 1.5))           # doctest: +SKIP</span>
+<span class="sd">    &lt;Quantity 3.7823268 redshift&gt;                              # doctest: +SKIP</span>
+
+<span class="sd">    Likewise, even for the same minimizer and same starting conditions different</span>
+<span class="sd">    results can be found depending on architecture or library versions:</span>
+
+<span class="sd">    &gt;&gt;&gt; z_at_value(Planck18.angular_diameter_distance,</span>
+<span class="sd">    ...            1500 * u.Mpc, bracket=(2.0, 2.5))           # doctest: +SKIP</span>
+<span class="sd">    &lt;Quantity 3.7823268 redshift&gt;                              # doctest: +SKIP</span>
+
+<span class="sd">    &gt;&gt;&gt; z_at_value(Planck18.angular_diameter_distance,</span>
+<span class="sd">    ...            1500 * u.Mpc, bracket=(2.0, 2.5))           # doctest: +SKIP</span>
+<span class="sd">    &lt;Quantity 0.68044452 redshift&gt;                             # doctest: +SKIP</span>
+
+<span class="sd">    It is therefore generally safer to use the 3-parameter variant to ensure</span>
+<span class="sd">    the solution stays within the bracketing limits:</span>
+
+<span class="sd">    &gt;&gt;&gt; z_at_value(Planck18.angular_diameter_distance, 1500 * u.Mpc,</span>
+<span class="sd">    ...            bracket=(0.1, 1.0, 1.5))               # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 0.68044452 redshift&gt;</span>
+
+<span class="sd">    Also note that the luminosity distance and distance modulus (two</span>
+<span class="sd">    other commonly inverted quantities) are monotonic in flat and open</span>
+<span class="sd">    universes, but not in closed universes.</span>
+
+<span class="sd">    All the arguments except ``func``, ``method`` and ``verbose`` accept array</span>
+<span class="sd">    inputs. This does NOT use interpolation tables or any method to speed up</span>
+<span class="sd">    evaluations, rather providing a convenient means to broadcast arguments</span>
+<span class="sd">    over an element-wise scalar evaluation.</span>
+
+<span class="sd">    The most common use case for non-scalar input is to evaluate &#39;func&#39; for an</span>
+<span class="sd">    array of ``fval``:</span>
+
+<span class="sd">    &gt;&gt;&gt; z_at_value(Planck13.age, [2, 7] * u.Gyr)          # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity [3.19812061, 0.75620443] redshift&gt;</span>
+
+<span class="sd">    ``fval`` can be any shape:</span>
+
+<span class="sd">    &gt;&gt;&gt; z_at_value(Planck13.age, [[2, 7], [1, 3]]*u.Gyr)  # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity [[3.19812061, 0.75620443],</span>
+<span class="sd">               [5.67661227, 2.19131955]] redshift&gt;</span>
+
+<span class="sd">    Other arguments can be arrays. For non-monotic functions  -- for example,</span>
+<span class="sd">    the angular diameter distance -- this can be useful to find all solutions.</span>
+
+<span class="sd">    &gt;&gt;&gt; z_at_value(Planck13.angular_diameter_distance, 1500 * u.Mpc,</span>
+<span class="sd">    ...            zmin=[0, 2.5], zmax=[2, 4])            # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity [0.68127747, 3.79149062] redshift&gt;</span>
+
+<span class="sd">    The ``bracket`` argument can likewise be be an array. However, since</span>
+<span class="sd">    bracket must already be a sequence (or None), it MUST be given as an</span>
+<span class="sd">    object `numpy.ndarray`. Importantly, the depth of the array must be such</span>
+<span class="sd">    that each bracket subsequence is an object. Errors or unexpected results</span>
+<span class="sd">    will happen otherwise. A convenient means to ensure the right depth is by</span>
+<span class="sd">    including a length-0 tuple as a bracket and then truncating the object</span>
+<span class="sd">    array to remove the placeholder. This can be seen in the following</span>
+<span class="sd">    example:</span>
+
+<span class="sd">    &gt;&gt;&gt; bracket=np.array([(1.0, 1.2),(2.0, 2.5), ()], dtype=object)[:-1]</span>
+<span class="sd">    &gt;&gt;&gt; z_at_value(Planck18.angular_diameter_distance, 1500 * u.Mpc,</span>
+<span class="sd">    ...            bracket=bracket)  # doctest: +SKIP</span>
+<span class="sd">    &lt;Quantity [0.68044452, 3.7823268] redshift&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># `fval` can be a Quantity, which isn&#39;t (yet) compatible w/ `numpy.nditer`</span>
+    <span class="c1"># so we strip it of units for broadcasting and restore the units when</span>
+    <span class="c1"># passing the elements to `_z_at_scalar_value`.</span>
+    <span class="n">fval</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">fval</span><span class="p">)</span>
+    <span class="n">unit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fval</span><span class="p">,</span> <span class="s1">&#39;unit&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># can be unitless</span>
+    <span class="n">zmin</span> <span class="o">=</span> <span class="n">Quantity</span><span class="p">(</span><span class="n">zmin</span><span class="p">,</span> <span class="n">cu</span><span class="o">.</span><span class="n">redshift</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>  <span class="c1"># must be unitless</span>
+    <span class="n">zmax</span> <span class="o">=</span> <span class="n">Quantity</span><span class="p">(</span><span class="n">zmax</span><span class="p">,</span> <span class="n">cu</span><span class="o">.</span><span class="n">redshift</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="c1"># bracket must be an object array (assumed to be correct) or a &#39;scalar&#39;</span>
+    <span class="c1"># bracket: 2 or 3 elt sequence</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bracket</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>  <span class="c1"># &#39;scalar&#39; bracket</span>
+        <span class="k">if</span> <span class="n">bracket</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">bracket</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`bracket` is not an array &quot;</span>
+                             <span class="s2">&quot;nor a 2 (or 3) element sequence.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># munge bracket into a 1-elt object array</span>
+            <span class="n">bracket</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bracket</span><span class="p">,</span> <span class="p">()],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)[:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">bracket</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`bracket` has dtype </span><span class="si">{</span><span class="n">bracket</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">, not &#39;O&#39;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># make multi-dimensional iterator for all but `method`, `verbose`</span>
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">nditer</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">fval</span><span class="p">,</span> <span class="n">zmin</span><span class="p">,</span> <span class="n">zmax</span><span class="p">,</span> <span class="n">ztol</span><span class="p">,</span> <span class="n">maxfun</span><span class="p">,</span> <span class="n">bracket</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+        <span class="n">flags</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;refs_ok&#39;</span><span class="p">],</span>
+        <span class="n">op_flags</span><span class="o">=</span><span class="p">[</span><span class="o">*</span><span class="p">[[</span><span class="s1">&#39;readonly&#39;</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span>  <span class="c1"># ← inputs  output ↓</span>
+                  <span class="p">[</span><span class="s1">&#39;writeonly&#39;</span><span class="p">,</span> <span class="s1">&#39;allocate&#39;</span><span class="p">,</span> <span class="s1">&#39;no_subtype&#39;</span><span class="p">]],</span>
+        <span class="n">op_dtypes</span><span class="o">=</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="kc">None</span><span class="p">,)</span><span class="o">*</span><span class="mi">6</span><span class="p">,</span> <span class="n">fval</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+        <span class="n">casting</span><span class="o">=</span><span class="s2">&quot;no&quot;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">it</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">fv</span><span class="p">,</span> <span class="n">zmn</span><span class="p">,</span> <span class="n">zmx</span><span class="p">,</span> <span class="n">zt</span><span class="p">,</span> <span class="n">mfe</span><span class="p">,</span> <span class="n">bkt</span><span class="p">,</span> <span class="n">zs</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>  <span class="c1"># ← eltwise unpack &amp; eval ↓</span>
+            <span class="n">zs</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">_z_at_scalar_value</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">fv</span> <span class="o">*</span> <span class="n">unit</span><span class="p">,</span> <span class="n">zmin</span><span class="o">=</span><span class="n">zmn</span><span class="p">,</span> <span class="n">zmax</span><span class="o">=</span><span class="n">zmx</span><span class="p">,</span>
+                                         <span class="n">ztol</span><span class="o">=</span><span class="n">zt</span><span class="p">,</span> <span class="n">maxfun</span><span class="o">=</span><span class="n">mfe</span><span class="p">,</span> <span class="n">bracket</span><span class="o">=</span><span class="n">bkt</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+                                         <span class="c1"># not broadcasted</span>
+                                         <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="c1"># since bracket is an object array, the output will be too, so it is</span>
+        <span class="c1"># cast to the same type as the function value.</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">it</span><span class="o">.</span><span class="n">operands</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># zs</span>
+
+    <span class="k">return</span> <span class="n">result</span> <span class="o">&lt;&lt;</span> <span class="n">cu</span><span class="o">.</span><span class="n">redshift</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

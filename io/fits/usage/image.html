@@ -1,0 +1,360 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Data &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Table Data" href="table.html" />
+    <link rel="prev" title="FITS Headers" href="headers.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="table.html" title="Table Data">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="headers.html" title="FITS Headers">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../index.html" accesskey="U">FITS File Handling (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.fits</span></code>)</a> &#187;</li>
+      
+      <li>Image Data</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="image-data">
+<h1>Image Data<a class="headerlink" href="#image-data" title="Permalink to this headline">¶</a></h1>
+<p>In this chapter, we will discuss the data component in an image HDU.</p>
+<div class="section" id="image-data-as-an-array">
+<h2>Image Data as an Array<a class="headerlink" href="#image-data-as-an-array" title="Permalink to this headline">¶</a></h2>
+<p>A FITS primary HDU or an image extension HDU may contain image data. The
+following discussions apply to both of these HDU classes. For most cases in
+<code class="docutils literal notranslate"><span class="pre">astropy</span></code>, it is a <code class="docutils literal notranslate"><span class="pre">numpy</span></code> array, having the shape specified by the NAXIS
+keywords and the data type specified by the BITPIX keyword — unless the data is
+scaled, in which case see the next section. Here is a quick cross reference
+between allowed BITPIX values in FITS images and the <code class="docutils literal notranslate"><span class="pre">numpy</span></code> data types:</p>
+<pre class="literal-block"><strong>BITPIX</strong>    <strong>Numpy Data Type</strong>
+8         numpy.uint8 (note it is UNsigned integer)
+16        numpy.int16
+32        numpy.int32
+64        numpy.int64
+-32       numpy.float32
+-64       numpy.float64</pre>
+<p>To recap, in <code class="docutils literal notranslate"><span class="pre">numpy</span></code> the arrays are 0-indexed and the axes are
+ordered from slow to fast. So, if a FITS image has NAXIS1=300 and NAXIS2=400,
+the <code class="docutils literal notranslate"><span class="pre">numpy</span></code> array of its data will have the shape of (400, 300).</p>
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+<p>Here is a summary of reading and updating image data values:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fits_image_filename</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">get_testdata_filepath</span><span class="p">(</span><span class="s1">&#39;test0.fits&#39;</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fits_image_filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">hdul</span><span class="p">:</span>  <span class="c1"># open a FITS file</span>
+<span class="gp">... </span>    <span class="n">data</span> <span class="o">=</span> <span class="n">hdul</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>  <span class="c1"># assume the first extension is an image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>   <span class="c1"># get the pixel value at x=5, y=2</span>
+<span class="go">313</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># get values of the subsection from x=11 to 20, y=31 to 40 (inclusive)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">[</span><span class="mi">30</span><span class="p">:</span><span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">:</span><span class="mi">20</span><span class="p">]</span>
+<span class="go">array([[314, 314, 313, 312, 313, 313, 313, 313, 313, 312],</span>
+<span class="go">       [314, 314, 312, 313, 313, 311, 313, 312, 312, 314],</span>
+<span class="go">       [314, 315, 313, 313, 313, 313, 315, 312, 314, 312],</span>
+<span class="go">       [314, 313, 313, 314, 311, 313, 313, 313, 313, 313],</span>
+<span class="go">       [313, 314, 312, 314, 312, 314, 314, 315, 313, 313],</span>
+<span class="go">       [312, 311, 311, 312, 312, 312, 312, 313, 311, 312],</span>
+<span class="go">       [314, 314, 314, 314, 312, 313, 314, 314, 314, 311],</span>
+<span class="go">       [314, 313, 312, 313, 313, 314, 312, 312, 311, 314],</span>
+<span class="go">       [313, 313, 313, 314, 313, 313, 315, 313, 312, 313],</span>
+<span class="go">       [314, 313, 313, 314, 313, 312, 312, 314, 310, 314]], dtype=int16)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="mi">999</span>  <span class="c1"># update a pixel value</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">[</span><span class="mi">30</span><span class="p">:</span><span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">:</span><span class="mi">20</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># update values of a subsection</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>    <span class="c1"># copy the 3rd row to the 4th row</span>
+</pre></div>
+</div>
+<p>Here are some more complicated examples by using the concept of the “mask
+array.” The first example is to change all negative pixel values in <code class="docutils literal notranslate"><span class="pre">data</span></code> to
+zero. The second one is to take logarithm of the pixel values which are
+positive:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">[</span><span class="n">data</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">[</span><span class="n">data</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">data</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>These examples show the concise nature of <code class="docutils literal notranslate"><span class="pre">numpy</span></code> array operations.</p>
+</div>
+</div>
+<div class="section" id="scaled-data">
+<h2>Scaled Data<a class="headerlink" href="#scaled-data" title="Permalink to this headline">¶</a></h2>
+<p>Sometimes an image is scaled; that is, the data stored in the file is not the
+image’s physical (true) values, but linearly transformed according to the
+equation:</p>
+<pre class="literal-block">physical value = BSCALE * (storage value) + BZERO</pre>
+<p>BSCALE and BZERO are stored as keywords of the same names in the header of the
+same HDU. The most common use of a scaled image is to store unsigned 16-bit
+integer data because the FITS standard does not allow it. In this case, the
+stored data is signed 16-bit integer (BITPIX=16) with BZERO=32768
+(<span class="math notranslate nohighlight">\(2^{15}\)</span>), BSCALE=1.</p>
+<div class="section" id="reading-scaled-image-data">
+<h3>Reading Scaled Image Data<a class="headerlink" href="#reading-scaled-image-data" title="Permalink to this headline">¶</a></h3>
+<p>Images are scaled only when either of the BSCALE/BZERO keywords are present in
+the header and either of their values is not the default value (BSCALE=1,
+BZERO=0).</p>
+<p>For unscaled data, the data attribute of an HDU in <code class="docutils literal notranslate"><span class="pre">astropy</span></code> is a <code class="docutils literal notranslate"><span class="pre">numpy</span></code>
+array of the same data type specified by the BITPIX keyword. For a scaled
+image, the <code class="docutils literal notranslate"><span class="pre">.data</span></code> attribute will be the physical data (i.e., already
+transformed from the storage data and may not be the same data type as
+prescribed in BITPIX). This means an extra step of copying is needed and thus
+the corresponding memory requirement. This also means that the advantage of
+memory mapping is reduced for scaled data.</p>
+<p>For floating point storage data, the scaled data will have the same data type.
+For integer data type, the scaled data will always be single precision floating
+point (<code class="docutils literal notranslate"><span class="pre">numpy.float32</span></code>).</p>
+<div class="section" id="example">
+<h4>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<p>Here is an example of what happens to scaled data, before and after the data is
+touched:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fits_scaledimage_filename</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">get_testdata_filepath</span><span class="p">(</span><span class="s1">&#39;scale.fits&#39;</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdul</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fits_scaledimage_filename</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span> <span class="o">=</span> <span class="n">hdul</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;bitpix&#39;</span><span class="p">]</span>
+<span class="go">16</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;bzero&#39;</span><span class="p">]</span>
+<span class="go">1500.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>  <span class="c1"># once data is touched, it is scaled  </span>
+<span class="go">557.7563</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">name</span>
+<span class="go">&#39;float32&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;bitpix&#39;</span><span class="p">]</span>  <span class="c1"># BITPIX is also updated</span>
+<span class="go">-32</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># BZERO and BSCALE are removed after the scaling</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;bzero&#39;</span><span class="p">]</span>
+<span class="gt">Traceback (most recent call last):</span>
+    <span class="o">...</span>
+<span class="gr">KeyError</span>: <span class="n">&quot;Keyword &#39;BZERO&#39; not found.&quot;</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>An important caveat to be aware of when dealing with scaled data in
+<code class="docutils literal notranslate"><span class="pre">astropy</span></code>, is that when accessing the data via the <code class="docutils literal notranslate"><span class="pre">.data</span></code> attribute,
+the data is automatically scaled with the BZERO and BSCALE parameters. If
+the file was opened in “update” mode, it will be saved with the rescaled
+data. This surprising behavior is a compromise to err on the side of not
+losing data: if some floating point calculations were made on the data,
+rescaling it when saving could result in a loss of information.</p>
+<p>To prevent this automatic scaling, open the file with the
+<code class="docutils literal notranslate"><span class="pre">do_not_scale_image_data=True</span></code> argument to <code class="docutils literal notranslate"><span class="pre">fits.open()</span></code>. This is
+especially useful for updating some header values, while ensuring that the
+data is not modified.</p>
+<p>You may also manually reapply scale parameters by using <code class="docutils literal notranslate"><span class="pre">hdu.scale()</span></code>
+(see below). Alternately, you may open files with the <code class="docutils literal notranslate"><span class="pre">scale_back=True</span></code>
+argument. This assures that the original scaling is preserved when saving
+even when the physical values are updated. In other words, it reapplies
+the scaling to the new physical values upon saving.</p>
+</div>
+</div>
+</div>
+<div class="section" id="writing-scaled-image-data">
+<h3>Writing Scaled Image Data<a class="headerlink" href="#writing-scaled-image-data" title="Permalink to this headline">¶</a></h3>
+<p>With the extra processing and memory requirement, we discourage the use of
+scaled data as much as possible. However, <code class="docutils literal notranslate"><span class="pre">astropy</span></code> does provide ways to
+write scaled data with the <a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.scale" title="astropy.io.fits.ImageHDU.scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scale</span></code></a> method.</p>
+<div class="section" id="id1">
+<h4>Examples<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
+<p>To write scaled data with the <a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.scale" title="astropy.io.fits.ImageHDU.scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scale</span></code></a> method:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># scale the data to Int16 with user specified bscale/bzero</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="s1">&#39;int16&#39;</span><span class="p">,</span> <span class="n">bzero</span><span class="o">=</span><span class="mi">32768</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># scale the data to Int32 with the min/max of the data range, emits</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># RuntimeWarning: overflow encountered in short_scalars</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="s1">&#39;int32&#39;</span><span class="p">,</span> <span class="s1">&#39;minmax&#39;</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># scale the data, using the original BSCALE/BZERO, emits</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># RuntimeWarning: invalid value encountered in add</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="s1">&#39;int32&#39;</span><span class="p">,</span> <span class="s1">&#39;old&#39;</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdul</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The first example above shows how to store an unsigned short integer array.</p>
+<p>Caution must be exercised when using the <a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.scale" title="astropy.io.fits.ImageHDU.scale"><code class="xref py py-meth docutils literal notranslate"><span class="pre">scale()</span></code></a> method.
+The <a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.data" title="astropy.io.fits.ImageHDU.data"><code class="xref py py-attr docutils literal notranslate"><span class="pre">data</span></code></a> attribute of an image HDU, after the
+<a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.scale" title="astropy.io.fits.ImageHDU.scale"><code class="xref py py-meth docutils literal notranslate"><span class="pre">scale()</span></code></a> call, will become the storage values, not the physical
+values. So, only call <a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.scale" title="astropy.io.fits.ImageHDU.scale"><code class="xref py py-meth docutils literal notranslate"><span class="pre">scale()</span></code></a> just before writing out to FITS
+files (i.e., calls of <a class="reference internal" href="../api/hdulists.html#astropy.io.fits.HDUList.writeto" title="astropy.io.fits.HDUList.writeto"><code class="xref py py-meth docutils literal notranslate"><span class="pre">writeto()</span></code></a>, <a class="reference internal" href="../api/hdulists.html#astropy.io.fits.HDUList.flush" title="astropy.io.fits.HDUList.flush"><code class="xref py py-meth docutils literal notranslate"><span class="pre">flush()</span></code></a>, or
+<a class="reference internal" href="../api/hdulists.html#astropy.io.fits.HDUList.close" title="astropy.io.fits.HDUList.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a>). No further use of the data should be exercised. Here is
+an example of what happens to the <a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.data" title="astropy.io.fits.ImageHDU.data"><code class="xref py py-attr docutils literal notranslate"><span class="pre">data</span></code></a> attribute after the
+<a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.scale" title="astropy.io.fits.ImageHDU.scale"><code class="xref py py-meth docutils literal notranslate"><span class="pre">scale()</span></code></a> call:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">PrimaryHDU</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>  
+<span class="go">[0. 1. 2. 3.]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="s1">&#39;int16&#39;</span><span class="p">,</span> <span class="n">bzero</span><span class="o">=</span><span class="mi">32768</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>  <span class="c1"># now the data has storage values</span>
+<span class="go">[-32768 -32767 -32766 -32765]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hdu</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="s1">&#39;new.fits&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="data-sections">
+<span id="id2"></span><h2>Data Sections<a class="headerlink" href="#data-sections" title="Permalink to this headline">¶</a></h2>
+<p>When a FITS image HDU’s <a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.data" title="astropy.io.fits.ImageHDU.data"><code class="xref py py-attr docutils literal notranslate"><span class="pre">data</span></code></a> is accessed, either the whole
+data is copied into memory (in cases of NOT using memory mapping or if the data
+is scaled) or a virtual memory space equivalent to the data size is allocated
+(in the case of memory mapping of non-scaled data). If there are several very
+large image HDUs being accessed at the same time, the system may run out of
+memory.</p>
+<p>If a user does not need the entire image(s) at the same time (e.g., processing
+the images(s) ten rows at a time), the <a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.section" title="astropy.io.fits.ImageHDU.section"><code class="xref py py-attr docutils literal notranslate"><span class="pre">section</span></code></a> attribute of an
+HDU can be used to alleviate such memory problems.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">astropy</span></code>’s improved support for memory-mapping, the sections feature is
+not as necessary as it used to be for handling large images stored in local files.
+However, it remains very useful in the following circumstances:</p>
+<ul class="simple">
+<li><p>If the image’s data is scaled with non-trivial BSCALE/BZERO values, accessing the
+data in sections may still be necessary under the current implementation.</p></li>
+<li><p>Memory mapping is insufficient for loading images larger than 2 to 4 GB on a 32-bit
+system — in such cases it may be necessary to use sections.</p></li>
+<li><p>Memory mapping does not work for accessing remote FITS files.
+In this case sections may be your only option. See <a class="reference internal" href="cloud.html#fits-io-cloud"><span class="std std-ref">Obtaining subsets from cloud-hosted FITS files</span></a>.</p></li>
+</ul>
+<div class="section" id="id3">
+<h3>Example<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>Here is an example of getting the median image from three input images of the
+size 5000x5000.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">hdul1</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;file1.fits&#39;</span><span class="p">)</span>
+<span class="n">hdul2</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;file2.fits&#39;</span><span class="p">)</span>
+<span class="n">hdul3</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;file3.fits&#39;</span><span class="p">)</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">5000</span><span class="p">,</span> <span class="mi">5000</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">50</span><span class="p">):</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">100</span>
+    <span class="n">x1</span> <span class="o">=</span> <span class="n">hdul1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">section</span><span class="p">[</span><span class="n">j</span><span class="p">:</span><span class="n">k</span><span class="p">,:]</span>
+    <span class="n">x2</span> <span class="o">=</span> <span class="n">hdul2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">section</span><span class="p">[</span><span class="n">j</span><span class="p">:</span><span class="n">k</span><span class="p">,:]</span>
+    <span class="n">x3</span> <span class="o">=</span> <span class="n">hdul3</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">section</span><span class="p">[</span><span class="n">j</span><span class="p">:</span><span class="n">k</span><span class="p">,:]</span>
+    <span class="n">output</span><span class="p">[</span><span class="n">j</span><span class="p">:</span><span class="n">k</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">([</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Data in each <a class="reference internal" href="../api/images.html#astropy.io.fits.ImageHDU.section" title="astropy.io.fits.ImageHDU.section"><code class="xref py py-attr docutils literal notranslate"><span class="pre">section</span></code></a> does not need to be contiguous for
+memory savings to be possible. <code class="docutils literal notranslate"><span class="pre">astropy</span></code> will do its best to join together
+discontiguous sections of the array while reading as little as possible into
+main memory.</p>
+<p>Sections cannot currently be assigned. Any modifications made to a data
+section are not saved back to the original file.</p>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Image Data</a><ul>
+<li><a class="reference internal" href="#image-data-as-an-array">Image Data as an Array</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#scaled-data">Scaled Data</a><ul>
+<li><a class="reference internal" href="#reading-scaled-image-data">Reading Scaled Image Data</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#writing-scaled-image-data">Writing Scaled Image Data</a><ul>
+<li><a class="reference internal" href="#id1">Examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data-sections">Data Sections</a><ul>
+<li><a class="reference internal" href="#id3">Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../../../_sources/io/fits/usage/image.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

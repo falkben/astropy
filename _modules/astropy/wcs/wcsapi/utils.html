@@ -1,0 +1,217 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.wcs.wcsapi.utils &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" >Module code</a> &#187;</li>
+      <li><a href="../../wcs.html" accesskey="U">astropy.wcs</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.wcs.wcsapi.utils</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">import</span> <span class="nn">importlib</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;deserialize_class&#39;</span><span class="p">,</span> <span class="s1">&#39;wcs_info_str&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="deserialize_class"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.deserialize_class.html#astropy.wcs.wcsapi.deserialize_class">[docs]</a><span class="k">def</span> <span class="nf">deserialize_class</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="n">construct</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Deserialize classes recursively.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">tpl</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Expected a tuple of three values&quot;</span><span class="p">)</span>
+
+    <span class="n">module</span><span class="p">,</span> <span class="n">klass</span> <span class="o">=</span> <span class="n">tpl</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+    <span class="n">klass</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">klass</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">deserialize_class</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="n">arg</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">tpl</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">deserialize_class</span><span class="p">(</span><span class="n">val</span><span class="p">))</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="ow">in</span> <span class="n">tpl</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">construct</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">klass</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">klass</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span></div>
+
+
+<div class="viewcode-block" id="wcs_info_str"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.wcs_info_str.html#astropy.wcs.wcsapi.wcs_info_str">[docs]</a><span class="k">def</span> <span class="nf">wcs_info_str</span><span class="p">(</span><span class="n">wcs</span><span class="p">):</span>
+
+    <span class="c1"># Overall header</span>
+
+    <span class="n">s</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">wcs</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1"> Transformation</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+    <span class="n">s</span> <span class="o">+=</span> <span class="p">(</span><span class="s1">&#39;This transformation has </span><span class="si">{}</span><span class="s1"> pixel and </span><span class="si">{}</span><span class="s1"> world dimensions</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span><span class="p">,</span> <span class="n">wcs</span><span class="o">.</span><span class="n">world_n_dim</span><span class="p">))</span>
+    <span class="n">s</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;Array shape (Numpy order): </span><span class="si">{</span><span class="n">wcs</span><span class="o">.</span><span class="n">array_shape</span><span class="si">}</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+
+    <span class="c1"># Pixel dimensions table</span>
+
+    <span class="n">array_shape</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">array_shape</span> <span class="ow">or</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span>
+    <span class="n">pixel_shape</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="ow">or</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span>
+
+    <span class="c1"># Find largest between header size and value length</span>
+    <span class="n">pixel_dim_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span><span class="p">)))</span>
+    <span class="n">pixel_nam_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_axis_names</span><span class="p">))</span>
+    <span class="n">pixel_siz_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">array_shape</span><span class="p">))))</span>
+
+    <span class="n">s</span> <span class="o">+=</span> <span class="p">((</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pixel_dim_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;Pixel Dim&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+            <span class="p">(</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pixel_nam_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;Axis Name&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+            <span class="p">(</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pixel_siz_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;Data size&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+            <span class="s1">&#39;Bounds</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">ipix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">((</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pixel_dim_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;g}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ipix</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+                <span class="p">(</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pixel_nam_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">pixel_axis_names</span><span class="p">[</span><span class="n">ipix</span><span class="p">]</span> <span class="ow">or</span> <span class="s1">&#39;None&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+                <span class="p">(</span><span class="s2">&quot; &quot;</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span> <span class="k">if</span> <span class="n">pixel_shape</span><span class="p">[</span><span class="n">ipix</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span>
+                <span class="p">(</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pixel_siz_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;g}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pixel_shape</span><span class="p">[</span><span class="n">ipix</span><span class="p">]))</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+                <span class="s1">&#39;</span><span class="si">{:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_bounds</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_bounds</span><span class="p">[</span><span class="n">ipix</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">))</span>
+
+    <span class="n">s</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+
+    <span class="c1"># World dimensions table</span>
+
+    <span class="c1"># Find largest between header size and value length</span>
+    <span class="n">world_dim_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">world_n_dim</span><span class="p">)))</span>
+    <span class="n">world_nam_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">wcs</span><span class="o">.</span><span class="n">world_axis_names</span><span class="p">))</span>
+    <span class="n">world_typ_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">wcs</span><span class="o">.</span><span class="n">world_axis_physical_types</span><span class="p">))</span>
+
+    <span class="n">s</span> <span class="o">+=</span> <span class="p">((</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">world_dim_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;World Dim&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+            <span class="p">(</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">world_nam_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;Axis Name&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+            <span class="p">(</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">world_typ_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;Physical Type&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+            <span class="s1">&#39;Units</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">iwrl</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">world_n_dim</span><span class="p">):</span>
+
+        <span class="n">name</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">world_axis_names</span><span class="p">[</span><span class="n">iwrl</span><span class="p">]</span> <span class="ow">or</span> <span class="s1">&#39;None&#39;</span>
+        <span class="n">typ</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">world_axis_physical_types</span><span class="p">[</span><span class="n">iwrl</span><span class="p">]</span> <span class="ow">or</span> <span class="s1">&#39;None&#39;</span>
+        <span class="n">unit</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">world_axis_units</span><span class="p">[</span><span class="n">iwrl</span><span class="p">]</span> <span class="ow">or</span> <span class="s1">&#39;unknown&#39;</span>
+
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">((</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">world_dim_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;d}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iwrl</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+                <span class="p">(</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">world_nam_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+                <span class="p">(</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">world_typ_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">typ</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+                <span class="s1">&#39;</span><span class="si">{:s}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">unit</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">))</span>
+    <span class="n">s</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+
+    <span class="c1"># Axis correlation matrix</span>
+
+    <span class="n">pixel_dim_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">world_n_dim</span><span class="p">)))</span>
+
+    <span class="n">s</span> <span class="o">+=</span> <span class="s1">&#39;Correlation between pixel and world axes:</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+
+    <span class="n">s</span> <span class="o">+=</span> <span class="p">(</span><span class="s1">&#39; &#39;</span> <span class="o">*</span> <span class="n">world_dim_width</span> <span class="o">+</span> <span class="s1">&#39;  &#39;</span> <span class="o">+</span>
+            <span class="p">(</span><span class="s1">&#39;{0:^&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;Pixel Dim&#39;</span><span class="p">)</span> <span class="o">+</span>
+            <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="n">s</span> <span class="o">+=</span> <span class="p">((</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">world_dim_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;World Dim&#39;</span><span class="p">)</span> <span class="o">+</span>
+            <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;  &#39;</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pixel_dim_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;d}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ipix</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">ipix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span><span class="p">)])</span> <span class="o">+</span>
+            <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="n">matrix</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">axis_correlation_matrix</span>
+    <span class="n">matrix_str</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;U3&#39;</span><span class="p">)</span>
+    <span class="n">matrix_str</span><span class="p">[</span><span class="n">matrix</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;yes&#39;</span>
+    <span class="n">matrix_str</span><span class="p">[</span><span class="o">~</span><span class="n">matrix</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;no&#39;</span>
+
+    <span class="k">for</span> <span class="n">iwrl</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">world_n_dim</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">((</span><span class="s1">&#39;{0:&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">world_dim_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;d}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iwrl</span><span class="p">)</span> <span class="o">+</span>
+                <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;  &#39;</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39;{0:&gt;&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pixel_dim_width</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;s}&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matrix_str</span><span class="p">[</span><span class="n">iwrl</span><span class="p">,</span> <span class="n">ipix</span><span class="p">])</span>
+                        <span class="k">for</span> <span class="n">ipix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span><span class="p">)])</span> <span class="o">+</span>
+                <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Make sure we get rid of the extra whitespace at the end of some lines</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">l</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()])</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,292 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>World Coordinate System (astropy.wcs) &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Shared Python Interface for World Coordinate Systems" href="wcsapi.html" />
+    <link rel="prev" title="solar_system_ephemeris" href="../api/astropy.coordinates.solar_system_ephemeris.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="wcsapi.html" title="Shared Python Interface for World Coordinate Systems">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../api/astropy.coordinates.solar_system_ephemeris.html" title="solar_system_ephemeris">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      
+      <li>World Coordinate System (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.wcs</span></code>)</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="world-coordinate-system-astropy-wcs">
+<span id="astropy-wcs"></span><h1>World Coordinate System (<a class="reference internal" href="reference_api.html#module-astropy.wcs" title="astropy.wcs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.wcs</span></code></a>)<a class="headerlink" href="#world-coordinate-system-astropy-wcs" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>World Coordinate Systems (WCSs) describe the geometric transformations
+between one set of coordinates and another. A common application is to
+map the pixels in an image onto the celestial sphere. Another common
+application is to map pixels to wavelength in a spectrum.</p>
+<p><a class="reference internal" href="reference_api.html#module-astropy.wcs" title="astropy.wcs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.wcs</span></code></a> contains utilities for managing World Coordinate System
+(WCS) transformations defined in several elaborate <a class="reference external" href="https://fits.gsfc.nasa.gov/fits_wcs.html">FITS WCS standard</a> conventions.
+These transformations work both forward (from pixel to world) and backward
+(from world to pixel).</p>
+<p>For historical reasons and to support legacy software, <a class="reference internal" href="reference_api.html#module-astropy.wcs" title="astropy.wcs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.wcs</span></code></a> maintains
+two separate application interfaces. The <code class="docutils literal notranslate"><span class="pre">High-Level</span> <span class="pre">API</span></code> should be used by
+most applications. It abstracts out the underlying object and works transparently
+with other packages which support the
+<a class="reference external" href="https://zenodo.org/record/1188875#.XnpOtJNKjyI">Common Python Interface for WCS</a>,
+allowing for a more flexible approach to the problem and avoiding the <a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2015A%26C....12..133T/abstract">limitations
+of the FITS WCS standard</a>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">Low</span> <span class="pre">Level</span> <span class="pre">API</span></code> is the original <a class="reference internal" href="reference_api.html#module-astropy.wcs" title="astropy.wcs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.wcs</span></code></a> API and originally developed as <code class="docutils literal notranslate"><span class="pre">pywcs</span></code>.
+It ties applications to the <a class="reference internal" href="reference_api.html#module-astropy.wcs" title="astropy.wcs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.wcs</span></code></a> package and limits the transformations to the three distinct
+types supported by it:</p>
+<ul class="simple">
+<li><p>Core WCS, as defined in the <a class="reference external" href="https://fits.gsfc.nasa.gov/fits_wcs.html">FITS WCS standard</a>, based on Mark
+Calabretta’s <a class="reference external" href="https://www.atnf.csiro.au/people/mcalabre/WCS/wcslib/index.html">wcslib</a>.  (Also includes <code class="docutils literal notranslate"><span class="pre">TPV</span></code> and <code class="docutils literal notranslate"><span class="pre">TPD</span></code>
+distortion, but not <code class="docutils literal notranslate"><span class="pre">SIP</span></code>).</p></li>
+<li><p>Simple Imaging Polynomial (<a class="reference external" href="https://irsa.ipac.caltech.edu/data/SPITZER/docs/files/spitzer/shupeADASS.pdf">SIP</a>) convention. (See <a class="reference internal" href="note_sip.html"><span class="doc">note about SIP in headers</span></a>.)</p></li>
+<li><p>Table lookup distortions as defined in the FITS WCS <a class="reference external" href="https://www.atnf.csiro.au/people/mcalabre/WCS/dcs_20040422.pdf">distortion
+paper</a>.</p></li>
+</ul>
+<div class="section" id="pixel-conventions-and-definitions">
+<span id="pixel-conventions"></span><h3>Pixel Conventions and Definitions<a class="headerlink" href="#pixel-conventions-and-definitions" title="Permalink to this headline">¶</a></h3>
+<p>Both APIs assume that integer pixel values fall at the center of pixels (as assumed in
+the <a class="reference external" href="https://fits.gsfc.nasa.gov/fits_wcs.html">FITS WCS standard</a>, see Section 2.1.4 of <a class="reference external" href="https://doi.org/10.1051/0004-6361:20053818">Greisen et al., 2002,
+A&amp;A 446, 747</a>).</p>
+<p>However, there’s a difference in what is considered to be the first pixel. The
+<code class="docutils literal notranslate"><span class="pre">High</span> <span class="pre">Level</span> <span class="pre">API</span></code> follows the Python and C convention that the first pixel is
+the 0-th one, i.e. the first pixel spans pixel values -0.5 to + 0.5. The
+<code class="docutils literal notranslate"><span class="pre">Low</span> <span class="pre">Level</span> <span class="pre">API</span></code> takes an additional <code class="docutils literal notranslate"><span class="pre">origin</span></code> argument with values of 0 or 1
+indicating whether the input arrays are 0- or 1-based.
+The Low-level interface assumes Cartesian order (x, y) of the input coordinates,
+however the Common Interface for World Coordinate System accepts both conventions.
+The order of the pixel coordinates ((x, y) vs (row, column)) in the Common API
+depends on the method or property used, and this can normally be determined from
+the property or method name. Properties and methods containing “pixel” assume (x, y)
+ordering, while properties and methods containing “array” assume (row, column) ordering.</p>
+</div>
+</div>
+<div class="section" id="a-simple-example">
+<h2>A Simple Example<a class="headerlink" href="#a-simple-example" title="Permalink to this headline">¶</a></h2>
+<p>One example of the use of the high-level WCS API is to use the
+<a class="reference internal" href="../api/astropy.wcs.WCS.html#astropy.wcs.WCS.pixel_to_world" title="astropy.wcs.wcs.WCS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pixel_to_world</span></code></a> to yield the simplest WCS
+with default values, converting from pixel to world coordinates:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">WCS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.utils.data</span> <span class="kn">import</span> <span class="n">get_pkg_data_filename</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fn</span> <span class="o">=</span> <span class="n">get_pkg_data_filename</span><span class="p">(</span><span class="s1">&#39;data/j94f05bgq_flt.fits&#39;</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="s1">&#39;astropy.wcs.tests&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">w</span> <span class="o">=</span> <span class="n">WCS</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sky</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">pixel_to_world</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">sky</span><span class="p">)</span>  
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec) in deg</span>
+<span class="go">    (5.52844243, -72.05207809)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Similarly, another use of the high-level API is to use the
+<a class="reference internal" href="../api/astropy.wcs.WCS.html#astropy.wcs.WCS.world_to_pixel" title="astropy.wcs.wcs.WCS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">world_to_pixel</span></code></a> to yield another simple WCS, while
+converting from world to pixel coordinates:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.io</span> <span class="kn">import</span> <span class="n">fits</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">WCS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.utils.data</span> <span class="kn">import</span> <span class="n">get_pkg_data_filename</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fn</span> <span class="o">=</span> <span class="n">get_pkg_data_filename</span><span class="p">(</span><span class="s1">&#39;data/j94f05bgq_flt.fits&#39;</span><span class="p">,</span> <span class="n">package</span><span class="o">=</span><span class="s1">&#39;astropy.wcs.tests&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">w</span> <span class="o">=</span> <span class="n">WCS</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">world_to_pixel</span><span class="p">(</span><span class="n">sky</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>  
+<span class="go">30.00000214673885 39.999999958235094</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="using-astropy-wcs">
+<h2>Using <a class="reference internal" href="reference_api.html#module-astropy.wcs" title="astropy.wcs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.wcs</span></code></a><a class="headerlink" href="#using-astropy-wcs" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="wcsapi.html">Shared Python Interface for World Coordinate Systems</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="wcsapi.html#background">Background</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wcsapi.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wcsapi.html#basic-usage">Basic usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wcsapi.html#advanced-usage">Advanced usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wcsapi.html#extending-the-physical-types-in-fits-wcs">Extending the physical types in FITS-WCS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wcsapi.html#slicing-of-wcs-objects">Slicing of WCS objects</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="legacy_interface.html">Legacy Interface</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="legacy_interface.html#astropy-wcs-api">astropy.wcs API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="legacy_interface.html#core-wcslib-api">Core wcslib API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="supported_projections.html">Supported Projections</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="examples-creating-a-wcs-programmatically">
+<h2>Examples creating a WCS programmatically<a class="headerlink" href="#examples-creating-a-wcs-programmatically" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="example_create_imaging.html">Example of Imaging WCS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="example_cube_wcs.html">Example of Cube WCS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="loading_from_fits.html">Loading From a FITS File</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="wcs-tools">
+<span id="wcslint"></span><h2>WCS Tools<a class="headerlink" href="#wcs-tools" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="wcstools.html">Subsetting and Pixel Scales</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wcstools.html#matplotlib-plots-with-correct-wcs-projection">Matplotlib plots with correct WCS projection</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="relax-constants">
+<h2>Relax Constants<a class="headerlink" href="#relax-constants" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="relax.html">Header-reading relaxation constants</a></li>
+<li class="toctree-l1"><a class="reference internal" href="relax.html#header-writing-relaxation-constants">Header-writing relaxation constants</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="other-information">
+<h2>Other Information<a class="headerlink" href="#other-information" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="history.html">astropy.wcs History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validation.html">Validation and Bounds checking</a></li>
+</ul>
+</div>
+<span class="target" id="astropy-wcs-performance"></span></div>
+<div class="section" id="reference-api">
+<span id="wcs-reference-api"></span><h2>Reference/API<a class="headerlink" href="#reference-api" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="reference_api.html">Reference/API</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.atnf.csiro.au/people/mcalabre/WCS/wcslib/index.html">wcslib</a></p></li>
+</ul>
+</div>
+<div class="section" id="acknowledgments-and-licenses">
+<h2>Acknowledgments and Licenses<a class="headerlink" href="#acknowledgments-and-licenses" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="https://www.atnf.csiro.au/people/mcalabre/WCS/wcslib/index.html">wcslib</a> is licenced under the <a class="reference external" href="http://www.gnu.org/licenses/lgpl.html">GNU Lesser General Public License</a>.</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">World Coordinate System (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.wcs</span></code>)</a><ul>
+<li><a class="reference internal" href="#introduction">Introduction</a><ul>
+<li><a class="reference internal" href="#pixel-conventions-and-definitions">Pixel Conventions and Definitions</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#a-simple-example">A Simple Example</a></li>
+<li><a class="reference internal" href="#using-astropy-wcs">Using <code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.wcs</span></code></a></li>
+<li><a class="reference internal" href="#examples-creating-a-wcs-programmatically">Examples creating a WCS programmatically</a></li>
+<li><a class="reference internal" href="#wcs-tools">WCS Tools</a></li>
+<li><a class="reference internal" href="#relax-constants">Relax Constants</a></li>
+<li><a class="reference internal" href="#other-information">Other Information</a></li>
+<li><a class="reference internal" href="#reference-api">Reference/API</a></li>
+<li><a class="reference internal" href="#see-also">See Also</a></li>
+<li><a class="reference internal" href="#acknowledgments-and-licenses">Acknowledgments and Licenses</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/wcs/index.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,1640 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.table.operations &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" >Module code</a> &#187;</li>
+      <li><a href="../table.html" accesskey="U">astropy.table</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.table.operations</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">High-level table operations:</span>
+
+<span class="sd">- join()</span>
+<span class="sd">- setdiff()</span>
+<span class="sd">- hstack()</span>
+<span class="sd">- vstack()</span>
+<span class="sd">- dstack()</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">Counter</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy.utils</span> <span class="kn">import</span> <span class="n">metadata</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.masked</span> <span class="kn">import</span> <span class="n">Masked</span>
+<span class="kn">from</span> <span class="nn">.table</span> <span class="kn">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">QTable</span><span class="p">,</span> <span class="n">Row</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">MaskedColumn</span>
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">Quantity</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_np_utils</span>
+<span class="kn">from</span> <span class="nn">.np_utils</span> <span class="kn">import</span> <span class="n">TableMergeError</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="s1">&#39;setdiff&#39;</span><span class="p">,</span> <span class="s1">&#39;hstack&#39;</span><span class="p">,</span> <span class="s1">&#39;vstack&#39;</span><span class="p">,</span> <span class="s1">&#39;unique&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;join_skycoord&#39;</span><span class="p">,</span> <span class="s1">&#39;join_distance&#39;</span><span class="p">]</span>
+
+<span class="n">__doctest_requires__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;join_skycoord&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;scipy&#39;</span><span class="p">],</span> <span class="s1">&#39;join_distance&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;scipy&#39;</span><span class="p">]}</span>
+
+
+<span class="k">def</span> <span class="nf">_merge_table_meta</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">tables</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="o">=</span><span class="s1">&#39;warn&#39;</span><span class="p">):</span>
+    <span class="n">out_meta</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">meta</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="n">out_meta</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">out_meta</span><span class="p">,</span> <span class="n">table</span><span class="o">.</span><span class="n">meta</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="o">=</span><span class="n">metadata_conflicts</span><span class="p">)</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">out_meta</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_get_list_of_tables</span><span class="p">(</span><span class="n">tables</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check that tables is a Table or sequence of Tables.  Returns the</span>
+<span class="sd">    corresponding list of Tables.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Make sure we have a list of things</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+        <span class="n">tables</span> <span class="o">=</span> <span class="p">[</span><span class="n">tables</span><span class="p">]</span>
+
+    <span class="c1"># Make sure there is something to stack</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;no values provided to stack.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Convert inputs (Table, Row, or anything column-like) to Tables.</span>
+    <span class="c1"># Special case that Quantity converts to a QTable.</span>
+    <span class="k">for</span> <span class="n">ii</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tables</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Table</span><span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Row</span><span class="p">):</span>
+            <span class="n">tables</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">):</span>
+            <span class="n">tables</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">QTable</span><span class="p">([</span><span class="n">val</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">tables</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">Table</span><span class="p">([</span><span class="n">val</span><span class="p">])</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Cannot convert </span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s1"> to table column.&#39;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+
+    <span class="k">return</span> <span class="n">tables</span>
+
+
+<span class="k">def</span> <span class="nf">_get_out_class</span><span class="p">(</span><span class="n">objs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    From a list of input objects ``objs`` get merged output object class.</span>
+
+<span class="sd">    This is just taken as the deepest subclass. This doesn&#39;t handle complicated</span>
+<span class="sd">    inheritance schemes, but as a special case, classes which share ``info``</span>
+<span class="sd">    are taken to be compatible.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out_class</span> <span class="o">=</span> <span class="n">objs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="vm">__class__</span>
+    <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">objs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">out_class</span><span class="p">):</span>
+            <span class="n">out_class</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span>
+
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="ow">not</span> <span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">out_class</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="n">out_class</span><span class="o">.</span><span class="n">info</span> <span class="ow">is</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">info</span><span class="p">)</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">objs</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;unmergeable object classes </span><span class="si">{}</span><span class="s1">&#39;</span>
+                         <span class="o">.</span><span class="n">format</span><span class="p">([</span><span class="n">obj</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">objs</span><span class="p">]))</span>
+
+    <span class="k">return</span> <span class="n">out_class</span>
+
+
+<div class="viewcode-block" id="join_skycoord"><a class="viewcode-back" href="../../../api/astropy.table.join_skycoord.html#astropy.table.join_skycoord">[docs]</a><span class="k">def</span> <span class="nf">join_skycoord</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">distance_func</span><span class="o">=</span><span class="s1">&#39;search_around_sky&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper function to join on SkyCoord columns using distance matching.</span>
+
+<span class="sd">    This function is intended for use in ``table.join()`` to allow performing a</span>
+<span class="sd">    table join where the key columns are both ``SkyCoord`` objects, matched by</span>
+<span class="sd">    computing the distance between points and accepting values below</span>
+<span class="sd">    ``distance``.</span>
+
+<span class="sd">    The distance cross-matching is done using either</span>
+<span class="sd">    `~astropy.coordinates.search_around_sky` or</span>
+<span class="sd">    `~astropy.coordinates.search_around_3d`, depending on the value of</span>
+<span class="sd">    ``distance_func``.  The default is ``&#39;search_around_sky&#39;``.</span>
+
+<span class="sd">    One can also provide a function object for ``distance_func``, in which case</span>
+<span class="sd">    it must be a function that follows the same input and output API as</span>
+<span class="sd">    `~astropy.coordinates.search_around_sky`. In this case the function will</span>
+<span class="sd">    be called with ``(skycoord1, skycoord2, distance)`` as arguments.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    distance : `~astropy.units.Quantity` [&#39;angle&#39;, &#39;length&#39;]</span>
+<span class="sd">        Maximum distance between points to be considered a join match.</span>
+<span class="sd">        Must have angular or distance units.</span>
+<span class="sd">    distance_func : str or function</span>
+<span class="sd">        Specifies the function for performing the cross-match based on</span>
+<span class="sd">        ``distance``. If supplied as a string this specifies the name of a</span>
+<span class="sd">        function in `astropy.coordinates`. If supplied as a function then that</span>
+<span class="sd">        function is called directly.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    join_func : function</span>
+<span class="sd">        Function that accepts two ``SkyCoord`` columns (col1, col2) and returns</span>
+<span class="sd">        the tuple (ids1, ids2) of pair-matched unique identifiers.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    This example shows an inner join of two ``SkyCoord`` columns, taking any</span>
+<span class="sd">    sources within 0.2 deg to be a match.  Note the new ``sc_id`` column which</span>
+<span class="sd">    is added and provides a unique source identifier for the matches.</span>
+
+<span class="sd">      &gt;&gt;&gt; from astropy.coordinates import SkyCoord</span>
+<span class="sd">      &gt;&gt;&gt; import astropy.units as u</span>
+<span class="sd">      &gt;&gt;&gt; from astropy.table import Table, join_skycoord</span>
+<span class="sd">      &gt;&gt;&gt; from astropy import table</span>
+
+<span class="sd">      &gt;&gt;&gt; sc1 = SkyCoord([0, 1, 1.1, 2], [0, 0, 0, 0], unit=&#39;deg&#39;)</span>
+<span class="sd">      &gt;&gt;&gt; sc2 = SkyCoord([0.5, 1.05, 2.1], [0, 0, 0], unit=&#39;deg&#39;)</span>
+
+<span class="sd">      &gt;&gt;&gt; join_func = join_skycoord(0.2 * u.deg)</span>
+<span class="sd">      &gt;&gt;&gt; join_func(sc1, sc2)  # Associate each coordinate with unique source ID</span>
+<span class="sd">      (array([3, 1, 1, 2]), array([4, 1, 2]))</span>
+
+<span class="sd">      &gt;&gt;&gt; t1 = Table([sc1], names=[&#39;sc&#39;])</span>
+<span class="sd">      &gt;&gt;&gt; t2 = Table([sc2], names=[&#39;sc&#39;])</span>
+<span class="sd">      &gt;&gt;&gt; t12 = table.join(t1, t2, join_funcs={&#39;sc&#39;: join_skycoord(0.2 * u.deg)})</span>
+<span class="sd">      &gt;&gt;&gt; print(t12)  # Note new `sc_id` column with the IDs from join_func()</span>
+<span class="sd">      sc_id   sc_1    sc_2</span>
+<span class="sd">            deg,deg deg,deg</span>
+<span class="sd">      ----- ------- --------</span>
+<span class="sd">          1 1.0,0.0 1.05,0.0</span>
+<span class="sd">          1 1.1,0.0 1.05,0.0</span>
+<span class="sd">          2 2.0,0.0  2.1,0.0</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">distance_func</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">astropy.coordinates</span> <span class="k">as</span> <span class="nn">coords</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">distance_func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">distance_func</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;distance_func must be a function in astropy.coordinates&#39;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">err</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">isfunction</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">isfunction</span><span class="p">(</span><span class="n">distance_func</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;distance_func must be a str or function&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">join_func</span><span class="p">(</span><span class="n">sc1</span><span class="p">,</span> <span class="n">sc2</span><span class="p">):</span>
+
+        <span class="c1"># Call the appropriate SkyCoord method to find pairs within distance</span>
+        <span class="n">idxs1</span><span class="p">,</span> <span class="n">idxs2</span><span class="p">,</span> <span class="n">d2d</span><span class="p">,</span> <span class="n">d3d</span> <span class="o">=</span> <span class="n">distance_func</span><span class="p">(</span><span class="n">sc1</span><span class="p">,</span> <span class="n">sc2</span><span class="p">,</span> <span class="n">distance</span><span class="p">)</span>
+
+        <span class="c1"># Now convert that into unique identifiers for each near-pair. This is</span>
+        <span class="c1"># taken to be transitive, so that if points 1 and 2 are &quot;near&quot; and points</span>
+        <span class="c1"># 1 and 3 are &quot;near&quot;, then 1, 2, and 3 are all given the same identifier.</span>
+        <span class="c1"># This identifier will then be used in the table join matching.</span>
+
+        <span class="c1"># Identifiers for each column, initialized to all zero.</span>
+        <span class="n">ids1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sc1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">ids2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sc2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="c1"># Start the identifier count at 1</span>
+        <span class="n">id_</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">idx1</span><span class="p">,</span> <span class="n">idx2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">idxs1</span><span class="p">,</span> <span class="n">idxs2</span><span class="p">):</span>
+            <span class="c1"># If this col1 point is previously identified then set corresponding</span>
+            <span class="c1"># col2 point to same identifier.  Likewise for col2 and col1.</span>
+            <span class="k">if</span> <span class="n">ids1</span><span class="p">[</span><span class="n">idx1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ids2</span><span class="p">[</span><span class="n">idx2</span><span class="p">]</span> <span class="o">=</span> <span class="n">ids1</span><span class="p">[</span><span class="n">idx1</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">ids2</span><span class="p">[</span><span class="n">idx2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ids1</span><span class="p">[</span><span class="n">idx1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ids2</span><span class="p">[</span><span class="n">idx2</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Not yet seen so set identifier for col1 and col2</span>
+                <span class="n">ids1</span><span class="p">[</span><span class="n">idx1</span><span class="p">]</span> <span class="o">=</span> <span class="n">id_</span>
+                <span class="n">ids2</span><span class="p">[</span><span class="n">idx2</span><span class="p">]</span> <span class="o">=</span> <span class="n">id_</span>
+                <span class="n">id_</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Fill in unique identifiers for points with no near neighbor</span>
+        <span class="k">for</span> <span class="n">ids</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ids1</span><span class="p">,</span> <span class="n">ids2</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">ids</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">ids</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">id_</span>
+                <span class="n">id_</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># End of enclosure join_func()</span>
+        <span class="k">return</span> <span class="n">ids1</span><span class="p">,</span> <span class="n">ids2</span>
+
+    <span class="k">return</span> <span class="n">join_func</span></div>
+
+
+<div class="viewcode-block" id="join_distance"><a class="viewcode-back" href="../../../api/astropy.table.join_distance.html#astropy.table.join_distance">[docs]</a><span class="k">def</span> <span class="nf">join_distance</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">kdtree_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper function to join table columns using distance matching.</span>
+
+<span class="sd">    This function is intended for use in ``table.join()`` to allow performing</span>
+<span class="sd">    a table join where the key columns are matched by computing the distance</span>
+<span class="sd">    between points and accepting values below ``distance``. This numerical</span>
+<span class="sd">    &quot;fuzzy&quot; match can apply to 1-D or 2-D columns, where in the latter case</span>
+<span class="sd">    the distance is a vector distance.</span>
+
+<span class="sd">    The distance cross-matching is done using `scipy.spatial.cKDTree`. If</span>
+<span class="sd">    necessary you can tweak the default behavior by providing ``dict`` values</span>
+<span class="sd">    for the ``kdtree_args`` or ``query_args``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    distance : float or `~astropy.units.Quantity` [&#39;length&#39;]</span>
+<span class="sd">        Maximum distance between points to be considered a join match</span>
+<span class="sd">    kdtree_args : dict, None</span>
+<span class="sd">        Optional extra args for `~scipy.spatial.cKDTree`</span>
+<span class="sd">    query_args : dict, None</span>
+<span class="sd">        Optional extra args for `~scipy.spatial.cKDTree.query_ball_tree`</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    join_func : function</span>
+<span class="sd">        Function that accepts (skycoord1, skycoord2) and returns the tuple</span>
+<span class="sd">        (ids1, ids2) of pair-matched unique identifiers.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">      &gt;&gt;&gt; from astropy.table import Table, join_distance</span>
+<span class="sd">      &gt;&gt;&gt; from astropy import table</span>
+
+<span class="sd">      &gt;&gt;&gt; c1 = [0, 1, 1.1, 2]</span>
+<span class="sd">      &gt;&gt;&gt; c2 = [0.5, 1.05, 2.1]</span>
+
+<span class="sd">      &gt;&gt;&gt; t1 = Table([c1], names=[&#39;col&#39;])</span>
+<span class="sd">      &gt;&gt;&gt; t2 = Table([c2], names=[&#39;col&#39;])</span>
+<span class="sd">      &gt;&gt;&gt; t12 = table.join(t1, t2, join_type=&#39;outer&#39;, join_funcs={&#39;col&#39;: join_distance(0.2)})</span>
+<span class="sd">      &gt;&gt;&gt; print(t12)</span>
+<span class="sd">      col_id col_1 col_2</span>
+<span class="sd">      ------ ----- -----</span>
+<span class="sd">           1   1.0  1.05</span>
+<span class="sd">           1   1.1  1.05</span>
+<span class="sd">           2   2.0   2.1</span>
+<span class="sd">           3   0.0    --</span>
+<span class="sd">           4    --   0.5</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">scipy.spatial</span> <span class="kn">import</span> <span class="n">cKDTree</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s1">&#39;scipy is required to use join_distance()&#39;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
+
+    <span class="k">if</span> <span class="n">kdtree_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">kdtree_args</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">query_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">query_args</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">join_func</span><span class="p">(</span><span class="n">col1</span><span class="p">,</span> <span class="n">col2</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">col1</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">col2</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;columns for isclose_join must be 1- or 2-dimensional&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">):</span>
+            <span class="c1"># Convert to np.array with common unit</span>
+            <span class="n">col1</span> <span class="o">=</span> <span class="n">col1</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+            <span class="n">col2</span> <span class="o">=</span> <span class="n">col2</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+            <span class="n">dist</span> <span class="o">=</span> <span class="n">distance</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Convert to np.array to allow later in-place shape changing</span>
+            <span class="n">col1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">col1</span><span class="p">)</span>
+            <span class="n">col2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">col2</span><span class="p">)</span>
+            <span class="n">dist</span> <span class="o">=</span> <span class="n">distance</span>
+
+        <span class="c1"># Ensure columns are pure np.array and are 2-D for use with KDTree</span>
+        <span class="k">if</span> <span class="n">col1</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">col1</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">col1</span><span class="o">.</span><span class="n">shape</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span>
+        <span class="k">if</span> <span class="n">col2</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">col2</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">col2</span><span class="o">.</span><span class="n">shape</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span>
+
+        <span class="c1"># Cross-match col1 and col2 within dist using KDTree</span>
+        <span class="n">kd1</span> <span class="o">=</span> <span class="n">cKDTree</span><span class="p">(</span><span class="n">col1</span><span class="p">,</span> <span class="o">**</span><span class="n">kdtree_args</span><span class="p">)</span>
+        <span class="n">kd2</span> <span class="o">=</span> <span class="n">cKDTree</span><span class="p">(</span><span class="n">col2</span><span class="p">,</span> <span class="o">**</span><span class="n">kdtree_args</span><span class="p">)</span>
+        <span class="n">nears</span> <span class="o">=</span> <span class="n">kd1</span><span class="o">.</span><span class="n">query_ball_tree</span><span class="p">(</span><span class="n">kd2</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">dist</span><span class="p">,</span> <span class="o">**</span><span class="n">query_args</span><span class="p">)</span>
+
+        <span class="c1"># Output of above is nears which is a list of lists, where the outer</span>
+        <span class="c1"># list corresponds to each item in col1, and where the inner lists are</span>
+        <span class="c1"># indexes into col2 of elements within the distance tolerance.  This</span>
+        <span class="c1"># identifies col1 / col2 near pairs.</span>
+
+        <span class="c1"># Now convert that into unique identifiers for each near-pair. This is</span>
+        <span class="c1"># taken to be transitive, so that if points 1 and 2 are &quot;near&quot; and points</span>
+        <span class="c1"># 1 and 3 are &quot;near&quot;, then 1, 2, and 3 are all given the same identifier.</span>
+        <span class="c1"># This identifier will then be used in the table join matching.</span>
+
+        <span class="c1"># Identifiers for each column, initialized to all zero.</span>
+        <span class="n">ids1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">col1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">ids2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">col2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="c1"># Start the identifier count at 1</span>
+        <span class="n">id_</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">idx1</span><span class="p">,</span> <span class="n">idxs2</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nears</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">idx2</span> <span class="ow">in</span> <span class="n">idxs2</span><span class="p">:</span>
+                <span class="c1"># If this col1 point is previously identified then set corresponding</span>
+                <span class="c1"># col2 point to same identifier.  Likewise for col2 and col1.</span>
+                <span class="k">if</span> <span class="n">ids1</span><span class="p">[</span><span class="n">idx1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">ids2</span><span class="p">[</span><span class="n">idx2</span><span class="p">]</span> <span class="o">=</span> <span class="n">ids1</span><span class="p">[</span><span class="n">idx1</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="n">ids2</span><span class="p">[</span><span class="n">idx2</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">ids1</span><span class="p">[</span><span class="n">idx1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ids2</span><span class="p">[</span><span class="n">idx2</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Not yet seen so set identifier for col1 and col2</span>
+                    <span class="n">ids1</span><span class="p">[</span><span class="n">idx1</span><span class="p">]</span> <span class="o">=</span> <span class="n">id_</span>
+                    <span class="n">ids2</span><span class="p">[</span><span class="n">idx2</span><span class="p">]</span> <span class="o">=</span> <span class="n">id_</span>
+                    <span class="n">id_</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Fill in unique identifiers for points with no near neighbor</span>
+        <span class="k">for</span> <span class="n">ids</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ids1</span><span class="p">,</span> <span class="n">ids2</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">ids</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">ids</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">id_</span>
+                <span class="n">id_</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># End of enclosure join_func()</span>
+        <span class="k">return</span> <span class="n">ids1</span><span class="p">,</span> <span class="n">ids2</span>
+
+    <span class="k">return</span> <span class="n">join_func</span></div>
+
+
+<div class="viewcode-block" id="join"><a class="viewcode-back" href="../../../api/astropy.table.join.html#astropy.table.join">[docs]</a><span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">join_type</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+         <span class="n">keys_left</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keys_right</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+         <span class="n">uniq_col_name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{col_name}</span><span class="s1">_</span><span class="si">{table_name}</span><span class="s1">&#39;</span><span class="p">,</span>
+         <span class="n">table_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">],</span> <span class="n">metadata_conflicts</span><span class="o">=</span><span class="s1">&#39;warn&#39;</span><span class="p">,</span>
+         <span class="n">join_funcs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform a join of the left table with the right table on specified keys.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    left : `~astropy.table.Table`-like object</span>
+<span class="sd">        Left side table in the join. If not a Table, will call ``Table(left)``</span>
+<span class="sd">    right : `~astropy.table.Table`-like object</span>
+<span class="sd">        Right side table in the join. If not a Table, will call ``Table(right)``</span>
+<span class="sd">    keys : str or list of str</span>
+<span class="sd">        Name(s) of column(s) used to match rows of left and right tables.</span>
+<span class="sd">        Default is to use all columns which are common to both tables.</span>
+<span class="sd">    join_type : str</span>
+<span class="sd">        Join type (&#39;inner&#39; | &#39;outer&#39; | &#39;left&#39; | &#39;right&#39; | &#39;cartesian&#39;), default is &#39;inner&#39;</span>
+<span class="sd">    keys_left : str or list of str or list of column-like, optional</span>
+<span class="sd">        Left column(s) used to match rows instead of ``keys`` arg. This can be</span>
+<span class="sd">        be a single left table column name or list of column names, or a list of</span>
+<span class="sd">        column-like values with the same lengths as the left table.</span>
+<span class="sd">    keys_right : str or list of str or list of column-like, optional</span>
+<span class="sd">        Same as ``keys_left``, but for the right side of the join.</span>
+<span class="sd">    uniq_col_name : str or None</span>
+<span class="sd">        String generate a unique output column name in case of a conflict.</span>
+<span class="sd">        The default is &#39;{col_name}_{table_name}&#39;.</span>
+<span class="sd">    table_names : list of str or None</span>
+<span class="sd">        Two-element list of table names used when generating unique output</span>
+<span class="sd">        column names.  The default is [&#39;1&#39;, &#39;2&#39;].</span>
+<span class="sd">    metadata_conflicts : str</span>
+<span class="sd">        How to proceed with metadata conflicts. This should be one of:</span>
+<span class="sd">            * ``&#39;silent&#39;``: silently pick the last conflicting meta-data value</span>
+<span class="sd">            * ``&#39;warn&#39;``: pick the last conflicting meta-data value, but emit a warning (default)</span>
+<span class="sd">            * ``&#39;error&#39;``: raise an exception.</span>
+<span class="sd">    join_funcs : dict, None</span>
+<span class="sd">        Dict of functions to use for matching the corresponding key column(s).</span>
+<span class="sd">        See `~astropy.table.join_skycoord` for an example and details.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    joined_table : `~astropy.table.Table` object</span>
+<span class="sd">        New table containing the result of the join operation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Try converting inputs to Table as needed</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">Table</span><span class="p">):</span>
+        <span class="n">left</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">left</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">right</span><span class="p">,</span> <span class="n">Table</span><span class="p">):</span>
+        <span class="n">right</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">right</span><span class="p">)</span>
+
+    <span class="n">col_name_map</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">_join</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">join_type</span><span class="p">,</span>
+                <span class="n">uniq_col_name</span><span class="p">,</span> <span class="n">table_names</span><span class="p">,</span> <span class="n">col_name_map</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="p">,</span>
+                <span class="n">join_funcs</span><span class="p">,</span>
+                <span class="n">keys_left</span><span class="o">=</span><span class="n">keys_left</span><span class="p">,</span> <span class="n">keys_right</span><span class="o">=</span><span class="n">keys_right</span><span class="p">)</span>
+
+    <span class="c1"># Merge the column and table meta data. Table subclasses might override</span>
+    <span class="c1"># these methods for custom merge behavior.</span>
+    <span class="n">_merge_table_meta</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">[</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">],</span> <span class="n">metadata_conflicts</span><span class="o">=</span><span class="n">metadata_conflicts</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="setdiff"><a class="viewcode-back" href="../../../api/astropy.table.setdiff.html#astropy.table.setdiff">[docs]</a><span class="k">def</span> <span class="nf">setdiff</span><span class="p">(</span><span class="n">table1</span><span class="p">,</span> <span class="n">table2</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Take a set difference of table rows.</span>
+
+<span class="sd">    The row set difference will contain all rows in ``table1`` that are not</span>
+<span class="sd">    present in ``table2``. If the keys parameter is not defined, all columns in</span>
+<span class="sd">    ``table1`` will be included in the output table.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    table1 : `~astropy.table.Table`</span>
+<span class="sd">        ``table1`` is on the left side of the set difference.</span>
+<span class="sd">    table2 : `~astropy.table.Table`</span>
+<span class="sd">        ``table2`` is on the right side of the set difference.</span>
+<span class="sd">    keys : str or list of str</span>
+<span class="sd">        Name(s) of column(s) used to match rows of left and right tables.</span>
+<span class="sd">        Default is to use all columns in ``table1``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    diff_table : `~astropy.table.Table`</span>
+<span class="sd">        New table containing the set difference between tables. If the set</span>
+<span class="sd">        difference is none, an empty table will be returned.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    To get a set difference between two tables::</span>
+
+<span class="sd">      &gt;&gt;&gt; from astropy.table import setdiff, Table</span>
+<span class="sd">      &gt;&gt;&gt; t1 = Table({&#39;a&#39;: [1, 4, 9], &#39;b&#39;: [&#39;c&#39;, &#39;d&#39;, &#39;f&#39;]}, names=(&#39;a&#39;, &#39;b&#39;))</span>
+<span class="sd">      &gt;&gt;&gt; t2 = Table({&#39;a&#39;: [1, 5, 9], &#39;b&#39;: [&#39;c&#39;, &#39;b&#39;, &#39;f&#39;]}, names=(&#39;a&#39;, &#39;b&#39;))</span>
+<span class="sd">      &gt;&gt;&gt; print(t1)</span>
+<span class="sd">       a   b</span>
+<span class="sd">      --- ---</span>
+<span class="sd">        1   c</span>
+<span class="sd">        4   d</span>
+<span class="sd">        9   f</span>
+<span class="sd">      &gt;&gt;&gt; print(t2)</span>
+<span class="sd">       a   b</span>
+<span class="sd">      --- ---</span>
+<span class="sd">        1   c</span>
+<span class="sd">        5   b</span>
+<span class="sd">        9   f</span>
+<span class="sd">      &gt;&gt;&gt; print(setdiff(t1, t2))</span>
+<span class="sd">       a   b</span>
+<span class="sd">      --- ---</span>
+<span class="sd">        4   d</span>
+
+<span class="sd">      &gt;&gt;&gt; print(setdiff(t2, t1))</span>
+<span class="sd">       a   b</span>
+<span class="sd">      --- ---</span>
+<span class="sd">        5   b</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="n">table1</span><span class="o">.</span><span class="n">colnames</span>
+
+    <span class="c1"># Check that all keys are in table1 and table2</span>
+    <span class="k">for</span> <span class="n">tbl</span><span class="p">,</span> <span class="n">tbl_str</span> <span class="ow">in</span> <span class="p">((</span><span class="n">table1</span><span class="p">,</span> <span class="s1">&#39;table1&#39;</span><span class="p">),</span> <span class="p">(</span><span class="n">table2</span><span class="p">,</span> <span class="s1">&#39;table2&#39;</span><span class="p">)):</span>
+        <span class="n">diff_keys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">tbl</span><span class="o">.</span><span class="n">colnames</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">diff_keys</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The </span><span class="si">{}</span><span class="s2"> columns are missing from </span><span class="si">{}</span><span class="s2">, cannot take &quot;</span>
+                             <span class="s2">&quot;a set difference.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">diff_keys</span><span class="p">,</span> <span class="n">tbl_str</span><span class="p">))</span>
+
+    <span class="c1"># Make a light internal copy of both tables</span>
+    <span class="n">t1</span> <span class="o">=</span> <span class="n">table1</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">copy_data</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">t1</span><span class="o">.</span><span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">t1</span><span class="o">.</span><span class="n">keep_columns</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+    <span class="n">t1</span><span class="p">[</span><span class="s1">&#39;__index1__&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table1</span><span class="p">))</span>  <span class="c1"># Keep track of rows indices</span>
+
+    <span class="c1"># Make a light internal copy to avoid touching table2</span>
+    <span class="n">t2</span> <span class="o">=</span> <span class="n">table2</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">copy_data</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">t2</span><span class="o">.</span><span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">t2</span><span class="o">.</span><span class="n">keep_columns</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+    <span class="c1"># Dummy column to recover rows after join</span>
+    <span class="n">t2</span><span class="p">[</span><span class="s1">&#39;__index2__&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>  <span class="c1"># dummy column</span>
+
+    <span class="n">t12</span> <span class="o">=</span> <span class="n">_join</span><span class="p">(</span><span class="n">t1</span><span class="p">,</span> <span class="n">t2</span><span class="p">,</span> <span class="n">join_type</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="n">keys</span><span class="p">,</span>
+                <span class="n">metadata_conflicts</span><span class="o">=</span><span class="s1">&#39;silent&#39;</span><span class="p">)</span>
+
+    <span class="c1"># If t12 index2 is masked then that means some rows were in table1 but not table2.</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">t12</span><span class="p">[</span><span class="s1">&#39;__index2__&#39;</span><span class="p">],</span> <span class="s1">&#39;mask&#39;</span><span class="p">):</span>
+        <span class="c1"># Define bool mask of table1 rows not in table2</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">t12</span><span class="p">[</span><span class="s1">&#39;__index2__&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mask</span>
+        <span class="c1"># Get the row indices of table1 for those rows</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">t12</span><span class="p">[</span><span class="s1">&#39;__index1__&#39;</span><span class="p">][</span><span class="n">diff</span><span class="p">]</span>
+        <span class="c1"># Select corresponding table1 rows straight from table1 to ensure</span>
+        <span class="c1"># correct table and column types.</span>
+        <span class="n">t12_diff</span> <span class="o">=</span> <span class="n">table1</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">t12_diff</span> <span class="o">=</span> <span class="n">table1</span><span class="p">[[]]</span>
+
+    <span class="k">return</span> <span class="n">t12_diff</span></div>
+
+
+<div class="viewcode-block" id="dstack"><a class="viewcode-back" href="../../../api/astropy.table.dstack.html#astropy.table.dstack">[docs]</a><span class="k">def</span> <span class="nf">dstack</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="n">join_type</span><span class="o">=</span><span class="s1">&#39;outer&#39;</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="o">=</span><span class="s1">&#39;warn&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stack columns within tables depth-wise</span>
+
+<span class="sd">    A ``join_type`` of &#39;exact&#39; means that the tables must all have exactly</span>
+<span class="sd">    the same column names (though the order can vary).  If ``join_type``</span>
+<span class="sd">    is &#39;inner&#39; then the intersection of common columns will be the output.</span>
+<span class="sd">    A value of &#39;outer&#39; (default) means the output will have the union of</span>
+<span class="sd">    all columns, with table values being masked where no common values are</span>
+<span class="sd">    available.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tables : `~astropy.table.Table` or `~astropy.table.Row` or list thereof</span>
+<span class="sd">        Table(s) to stack along depth-wise with the current table</span>
+<span class="sd">        Table columns should have same shape and name for depth-wise stacking</span>
+<span class="sd">    join_type : str</span>
+<span class="sd">        Join type (&#39;inner&#39; | &#39;exact&#39; | &#39;outer&#39;), default is &#39;outer&#39;</span>
+<span class="sd">    metadata_conflicts : str</span>
+<span class="sd">        How to proceed with metadata conflicts. This should be one of:</span>
+<span class="sd">            * ``&#39;silent&#39;``: silently pick the last conflicting meta-data value</span>
+<span class="sd">            * ``&#39;warn&#39;``: pick the last conflicting meta-data value, but emit a warning (default)</span>
+<span class="sd">            * ``&#39;error&#39;``: raise an exception.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    stacked_table : `~astropy.table.Table` object</span>
+<span class="sd">        New table containing the stacked data from the input tables.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    To stack two tables along rows do::</span>
+
+<span class="sd">      &gt;&gt;&gt; from astropy.table import dstack, Table</span>
+<span class="sd">      &gt;&gt;&gt; t1 = Table({&#39;a&#39;: [1., 2.], &#39;b&#39;: [3., 4.]}, names=(&#39;a&#39;, &#39;b&#39;))</span>
+<span class="sd">      &gt;&gt;&gt; t2 = Table({&#39;a&#39;: [5., 6.], &#39;b&#39;: [7., 8.]}, names=(&#39;a&#39;, &#39;b&#39;))</span>
+<span class="sd">      &gt;&gt;&gt; print(t1)</span>
+<span class="sd">       a   b</span>
+<span class="sd">      --- ---</span>
+<span class="sd">      1.0 3.0</span>
+<span class="sd">      2.0 4.0</span>
+<span class="sd">      &gt;&gt;&gt; print(t2)</span>
+<span class="sd">       a   b</span>
+<span class="sd">      --- ---</span>
+<span class="sd">      5.0 7.0</span>
+<span class="sd">      6.0 8.0</span>
+<span class="sd">      &gt;&gt;&gt; print(dstack([t1, t2]))</span>
+<span class="sd">          a          b</span>
+<span class="sd">      ---------- ----------</span>
+<span class="sd">      1.0 .. 5.0 3.0 .. 7.0</span>
+<span class="sd">      2.0 .. 6.0 4.0 .. 8.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_check_join_type</span><span class="p">(</span><span class="n">join_type</span><span class="p">,</span> <span class="s1">&#39;dstack&#39;</span><span class="p">)</span>
+
+    <span class="n">tables</span> <span class="o">=</span> <span class="n">_get_list_of_tables</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># no point in stacking a single table</span>
+
+    <span class="n">n_rows</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">n_rows</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Table lengths must all match for dstack&#39;</span><span class="p">)</span>
+    <span class="n">n_row</span> <span class="o">=</span> <span class="n">n_rows</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="n">vstack</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="n">join_type</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">col</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="c1"># Reshape to so each original column is now in a row.</span>
+        <span class="c1"># If entries are not 0-dim then those additional shape dims</span>
+        <span class="c1"># are just carried along.</span>
+        <span class="c1"># [x x x y y y] =&gt; [[x x x],</span>
+        <span class="c1">#                   [y y y]]</span>
+        <span class="n">new_shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tables</span><span class="p">),</span> <span class="n">n_row</span><span class="p">)</span> <span class="o">+</span> <span class="n">col</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tables</span><span class="p">),</span> <span class="n">n_row</span><span class="p">)</span> <span class="o">+</span> <span class="n">col</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_shape</span><span class="p">)</span>
+
+        <span class="c1"># Transpose the table and row axes to get to</span>
+        <span class="c1"># [[x, y],</span>
+        <span class="c1">#  [x, y]</span>
+        <span class="c1">#  [x, y]]</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="n">axes</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># This temporarily makes `out` be corrupted (columns of different</span>
+        <span class="c1"># length) but it all works out in the end.</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">col</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">axes</span><span class="p">),</span> <span class="n">validated</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="vstack"><a class="viewcode-back" href="../../../api/astropy.table.vstack.html#astropy.table.vstack">[docs]</a><span class="k">def</span> <span class="nf">vstack</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="n">join_type</span><span class="o">=</span><span class="s1">&#39;outer&#39;</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="o">=</span><span class="s1">&#39;warn&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stack tables vertically (along rows)</span>
+
+<span class="sd">    A ``join_type`` of &#39;exact&#39; means that the tables must all have exactly</span>
+<span class="sd">    the same column names (though the order can vary).  If ``join_type``</span>
+<span class="sd">    is &#39;inner&#39; then the intersection of common columns will be the output.</span>
+<span class="sd">    A value of &#39;outer&#39; (default) means the output will have the union of</span>
+<span class="sd">    all columns, with table values being masked where no common values are</span>
+<span class="sd">    available.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tables : `~astropy.table.Table` or `~astropy.table.Row` or list thereof</span>
+<span class="sd">        Table(s) to stack along rows (vertically) with the current table</span>
+<span class="sd">    join_type : str</span>
+<span class="sd">        Join type (&#39;inner&#39; | &#39;exact&#39; | &#39;outer&#39;), default is &#39;outer&#39;</span>
+<span class="sd">    metadata_conflicts : str</span>
+<span class="sd">        How to proceed with metadata conflicts. This should be one of:</span>
+<span class="sd">            * ``&#39;silent&#39;``: silently pick the last conflicting meta-data value</span>
+<span class="sd">            * ``&#39;warn&#39;``: pick the last conflicting meta-data value, but emit a warning (default)</span>
+<span class="sd">            * ``&#39;error&#39;``: raise an exception.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    stacked_table : `~astropy.table.Table` object</span>
+<span class="sd">        New table containing the stacked data from the input tables.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    To stack two tables along rows do::</span>
+
+<span class="sd">      &gt;&gt;&gt; from astropy.table import vstack, Table</span>
+<span class="sd">      &gt;&gt;&gt; t1 = Table({&#39;a&#39;: [1, 2], &#39;b&#39;: [3, 4]}, names=(&#39;a&#39;, &#39;b&#39;))</span>
+<span class="sd">      &gt;&gt;&gt; t2 = Table({&#39;a&#39;: [5, 6], &#39;b&#39;: [7, 8]}, names=(&#39;a&#39;, &#39;b&#39;))</span>
+<span class="sd">      &gt;&gt;&gt; print(t1)</span>
+<span class="sd">       a   b</span>
+<span class="sd">      --- ---</span>
+<span class="sd">        1   3</span>
+<span class="sd">        2   4</span>
+<span class="sd">      &gt;&gt;&gt; print(t2)</span>
+<span class="sd">       a   b</span>
+<span class="sd">      --- ---</span>
+<span class="sd">        5   7</span>
+<span class="sd">        6   8</span>
+<span class="sd">      &gt;&gt;&gt; print(vstack([t1, t2]))</span>
+<span class="sd">       a   b</span>
+<span class="sd">      --- ---</span>
+<span class="sd">        1   3</span>
+<span class="sd">        2   4</span>
+<span class="sd">        5   7</span>
+<span class="sd">        6   8</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_check_join_type</span><span class="p">(</span><span class="n">join_type</span><span class="p">,</span> <span class="s1">&#39;vstack&#39;</span><span class="p">)</span>
+
+    <span class="n">tables</span> <span class="o">=</span> <span class="n">_get_list_of_tables</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span>  <span class="c1"># validates input</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># no point in stacking a single table</span>
+    <span class="n">col_name_map</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="n">_vstack</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="n">join_type</span><span class="p">,</span> <span class="n">col_name_map</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="p">)</span>
+
+    <span class="c1"># Merge table metadata</span>
+    <span class="n">_merge_table_meta</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">tables</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="o">=</span><span class="n">metadata_conflicts</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="hstack"><a class="viewcode-back" href="../../../api/astropy.table.hstack.html#astropy.table.hstack">[docs]</a><span class="k">def</span> <span class="nf">hstack</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="n">join_type</span><span class="o">=</span><span class="s1">&#39;outer&#39;</span><span class="p">,</span>
+           <span class="n">uniq_col_name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{col_name}</span><span class="s1">_</span><span class="si">{table_name}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">table_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+           <span class="n">metadata_conflicts</span><span class="o">=</span><span class="s1">&#39;warn&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stack tables along columns (horizontally)</span>
+
+<span class="sd">    A ``join_type`` of &#39;exact&#39; means that the tables must all</span>
+<span class="sd">    have exactly the same number of rows.  If ``join_type`` is &#39;inner&#39; then</span>
+<span class="sd">    the intersection of rows will be the output.  A value of &#39;outer&#39; (default)</span>
+<span class="sd">    means the output will have the union of all rows, with table values being</span>
+<span class="sd">    masked where no common values are available.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tables : `~astropy.table.Table` or `~astropy.table.Row` or list thereof</span>
+<span class="sd">        Tables to stack along columns (horizontally) with the current table</span>
+<span class="sd">    join_type : str</span>
+<span class="sd">        Join type (&#39;inner&#39; | &#39;exact&#39; | &#39;outer&#39;), default is &#39;outer&#39;</span>
+<span class="sd">    uniq_col_name : str or None</span>
+<span class="sd">        String generate a unique output column name in case of a conflict.</span>
+<span class="sd">        The default is &#39;{col_name}_{table_name}&#39;.</span>
+<span class="sd">    table_names : list of str or None</span>
+<span class="sd">        Two-element list of table names used when generating unique output</span>
+<span class="sd">        column names.  The default is [&#39;1&#39;, &#39;2&#39;, ..].</span>
+<span class="sd">    metadata_conflicts : str</span>
+<span class="sd">        How to proceed with metadata conflicts. This should be one of:</span>
+<span class="sd">            * ``&#39;silent&#39;``: silently pick the last conflicting meta-data value</span>
+<span class="sd">            * ``&#39;warn&#39;``: pick the last conflicting meta-data value,</span>
+<span class="sd">              but emit a warning (default)</span>
+<span class="sd">            * ``&#39;error&#39;``: raise an exception.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    stacked_table : `~astropy.table.Table` object</span>
+<span class="sd">        New table containing the stacked data from the input tables.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    Table.add_columns, Table.replace_column, Table.update</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    To stack two tables horizontally (along columns) do::</span>
+
+<span class="sd">      &gt;&gt;&gt; from astropy.table import Table, hstack</span>
+<span class="sd">      &gt;&gt;&gt; t1 = Table({&#39;a&#39;: [1, 2], &#39;b&#39;: [3, 4]}, names=(&#39;a&#39;, &#39;b&#39;))</span>
+<span class="sd">      &gt;&gt;&gt; t2 = Table({&#39;c&#39;: [5, 6], &#39;d&#39;: [7, 8]}, names=(&#39;c&#39;, &#39;d&#39;))</span>
+<span class="sd">      &gt;&gt;&gt; print(t1)</span>
+<span class="sd">       a   b</span>
+<span class="sd">      --- ---</span>
+<span class="sd">        1   3</span>
+<span class="sd">        2   4</span>
+<span class="sd">      &gt;&gt;&gt; print(t2)</span>
+<span class="sd">       c   d</span>
+<span class="sd">      --- ---</span>
+<span class="sd">        5   7</span>
+<span class="sd">        6   8</span>
+<span class="sd">      &gt;&gt;&gt; print(hstack([t1, t2]))</span>
+<span class="sd">       a   b   c   d</span>
+<span class="sd">      --- --- --- ---</span>
+<span class="sd">        1   3   5   7</span>
+<span class="sd">        2   4   6   8</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_check_join_type</span><span class="p">(</span><span class="n">join_type</span><span class="p">,</span> <span class="s1">&#39;hstack&#39;</span><span class="p">)</span>
+
+    <span class="n">tables</span> <span class="o">=</span> <span class="n">_get_list_of_tables</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span>  <span class="c1"># validates input</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># no point in stacking a single table</span>
+    <span class="n">col_name_map</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="n">_hstack</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="n">join_type</span><span class="p">,</span> <span class="n">uniq_col_name</span><span class="p">,</span> <span class="n">table_names</span><span class="p">,</span>
+                  <span class="n">col_name_map</span><span class="p">)</span>
+
+    <span class="n">_merge_table_meta</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">tables</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="o">=</span><span class="n">metadata_conflicts</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="unique"><a class="viewcode-back" href="../../../api/astropy.table.unique.html#astropy.table.unique">[docs]</a><span class="k">def</span> <span class="nf">unique</span><span class="p">(</span><span class="n">input_table</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">silent</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">keep</span><span class="o">=</span><span class="s1">&#39;first&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the unique rows of a table.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_table : table-like</span>
+<span class="sd">    keys : str or list of str</span>
+<span class="sd">        Name(s) of column(s) used to create unique rows.</span>
+<span class="sd">        Default is to use all columns.</span>
+<span class="sd">    keep : {&#39;first&#39;, &#39;last&#39;, &#39;none&#39;}</span>
+<span class="sd">        Whether to keep the first or last row for each set of</span>
+<span class="sd">        duplicates. If &#39;none&#39;, all rows that are duplicate are</span>
+<span class="sd">        removed, leaving only rows that are already unique in</span>
+<span class="sd">        the input.</span>
+<span class="sd">        Default is &#39;first&#39;.</span>
+<span class="sd">    silent : bool</span>
+<span class="sd">        If `True`, masked value column(s) are silently removed from</span>
+<span class="sd">        ``keys``. If `False`, an exception is raised when ``keys``</span>
+<span class="sd">        contains masked value column(s).</span>
+<span class="sd">        Default is `False`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    unique_table : `~astropy.table.Table` object</span>
+<span class="sd">        New table containing only the unique rows of ``input_table``.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from astropy.table import unique, Table</span>
+<span class="sd">    &gt;&gt;&gt; import numpy as np</span>
+<span class="sd">    &gt;&gt;&gt; table = Table(data=[[1,2,3,2,3,3],</span>
+<span class="sd">    ... [2,3,4,5,4,6],</span>
+<span class="sd">    ... [3,4,5,6,7,8]],</span>
+<span class="sd">    ... names=[&#39;col1&#39;, &#39;col2&#39;, &#39;col3&#39;],</span>
+<span class="sd">    ... dtype=[np.int32, np.int32, np.int32])</span>
+<span class="sd">    &gt;&gt;&gt; table</span>
+<span class="sd">    &lt;Table length=6&gt;</span>
+<span class="sd">     col1  col2  col3</span>
+<span class="sd">    int32 int32 int32</span>
+<span class="sd">    ----- ----- -----</span>
+<span class="sd">        1     2     3</span>
+<span class="sd">        2     3     4</span>
+<span class="sd">        3     4     5</span>
+<span class="sd">        2     5     6</span>
+<span class="sd">        3     4     7</span>
+<span class="sd">        3     6     8</span>
+<span class="sd">    &gt;&gt;&gt; unique(table, keys=&#39;col1&#39;)</span>
+<span class="sd">    &lt;Table length=3&gt;</span>
+<span class="sd">     col1  col2  col3</span>
+<span class="sd">    int32 int32 int32</span>
+<span class="sd">    ----- ----- -----</span>
+<span class="sd">        1     2     3</span>
+<span class="sd">        2     3     4</span>
+<span class="sd">        3     4     5</span>
+<span class="sd">    &gt;&gt;&gt; unique(table, keys=[&#39;col1&#39;], keep=&#39;last&#39;)</span>
+<span class="sd">    &lt;Table length=3&gt;</span>
+<span class="sd">     col1  col2  col3</span>
+<span class="sd">    int32 int32 int32</span>
+<span class="sd">    ----- ----- -----</span>
+<span class="sd">        1     2     3</span>
+<span class="sd">        2     5     6</span>
+<span class="sd">        3     6     8</span>
+<span class="sd">    &gt;&gt;&gt; unique(table, keys=[&#39;col1&#39;, &#39;col2&#39;])</span>
+<span class="sd">    &lt;Table length=5&gt;</span>
+<span class="sd">     col1  col2  col3</span>
+<span class="sd">    int32 int32 int32</span>
+<span class="sd">    ----- ----- -----</span>
+<span class="sd">        1     2     3</span>
+<span class="sd">        2     3     4</span>
+<span class="sd">        2     5     6</span>
+<span class="sd">        3     4     5</span>
+<span class="sd">        3     6     8</span>
+<span class="sd">    &gt;&gt;&gt; unique(table, keys=[&#39;col1&#39;, &#39;col2&#39;], keep=&#39;none&#39;)</span>
+<span class="sd">    &lt;Table length=4&gt;</span>
+<span class="sd">     col1  col2  col3</span>
+<span class="sd">    int32 int32 int32</span>
+<span class="sd">    ----- ----- -----</span>
+<span class="sd">        1     2     3</span>
+<span class="sd">        2     3     4</span>
+<span class="sd">        2     5     6</span>
+<span class="sd">        3     6     8</span>
+<span class="sd">    &gt;&gt;&gt; unique(table, keys=[&#39;col1&#39;], keep=&#39;none&#39;)</span>
+<span class="sd">    &lt;Table length=1&gt;</span>
+<span class="sd">     col1  col2  col3</span>
+<span class="sd">    int32 int32 int32</span>
+<span class="sd">    ----- ----- -----</span>
+<span class="sd">        1     2     3</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">keep</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;first&#39;</span><span class="p">,</span> <span class="s1">&#39;last&#39;</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;&#39;keep&#39; should be one of &#39;first&#39;, &#39;last&#39;, &#39;none&#39;&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">keys</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="n">input_table</span><span class="o">.</span><span class="n">colnames</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">keys</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;duplicate key names&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Check for columns with masked values</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">[:]:</span>
+        <span class="n">col</span> <span class="o">=</span> <span class="n">input_table</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="s1">&#39;mask&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">mask</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">silent</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;cannot use columns with masked values as keys; &quot;</span>
+                    <span class="s2">&quot;remove column &#39;</span><span class="si">{}</span><span class="s2">&#39; from keys and rerun &quot;</span>
+                    <span class="s2">&quot;unique()&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+            <span class="k">del</span> <span class="n">keys</span><span class="p">[</span><span class="n">keys</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">key</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;no column remained in ``keys``; &quot;</span>
+                         <span class="s2">&quot;unique() cannot work with masked value &quot;</span>
+                         <span class="s2">&quot;key columns&quot;</span><span class="p">)</span>
+
+    <span class="n">grouped_table</span> <span class="o">=</span> <span class="n">input_table</span><span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">grouped_table</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">indices</span>
+    <span class="k">if</span> <span class="n">keep</span> <span class="o">==</span> <span class="s1">&#39;first&#39;</span><span class="p">:</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">keep</span> <span class="o">==</span> <span class="s1">&#39;last&#39;</span><span class="p">:</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">grouped_table</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span></div>
+
+
+<span class="k">def</span> <span class="nf">get_col_name_map</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">common_names</span><span class="p">,</span> <span class="n">uniq_col_name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{col_name}</span><span class="s1">_</span><span class="si">{table_name}</span><span class="s1">&#39;</span><span class="p">,</span>
+                     <span class="n">table_names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the column names mapping when merging the list of tables</span>
+<span class="sd">    ``arrays``.  It is assumed that col names in ``common_names`` are to be</span>
+<span class="sd">    merged into a single column while the rest will be uniquely represented</span>
+<span class="sd">    in the output.  The args ``uniq_col_name`` and ``table_names`` specify</span>
+<span class="sd">    how to rename columns in case of conflicts.</span>
+
+<span class="sd">    Returns a dict mapping each output column name to the input(s).  This takes the form</span>
+<span class="sd">    {outname : (col_name_0, col_name_1, ...), ... }.  For key columns all of input names</span>
+<span class="sd">    will be present, while for the other non-key columns the value will be (col_name_0,</span>
+<span class="sd">    None, ..) or (None, col_name_1, ..) etc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">col_name_map</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">))</span>
+    <span class="n">col_name_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">table_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">table_names</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">))]</span>
+
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">array</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">arrays</span><span class="p">):</span>
+        <span class="n">table_name</span> <span class="o">=</span> <span class="n">table_names</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">array</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+            <span class="n">out_name</span> <span class="o">=</span> <span class="n">name</span>
+
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">common_names</span><span class="p">:</span>
+                <span class="c1"># If name is in the list of common_names then insert into</span>
+                <span class="c1"># the column name list, but just once.</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">col_name_list</span><span class="p">:</span>
+                    <span class="n">col_name_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># If name is not one of the common column outputs, and it collides</span>
+                <span class="c1"># with the names in one of the other arrays, then rename</span>
+                <span class="n">others</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span>
+                <span class="n">others</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">name</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">colnames</span> <span class="k">for</span> <span class="n">other</span> <span class="ow">in</span> <span class="n">others</span><span class="p">):</span>
+                    <span class="n">out_name</span> <span class="o">=</span> <span class="n">uniq_col_name</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">table_name</span><span class="p">,</span> <span class="n">col_name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">col_name_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out_name</span><span class="p">)</span>
+
+            <span class="n">col_name_map</span><span class="p">[</span><span class="n">out_name</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="c1"># Check for duplicate output column names</span>
+    <span class="n">col_name_count</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">col_name_list</span><span class="p">)</span>
+    <span class="n">repeated_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">col_name_count</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">repeated_names</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">TableMergeError</span><span class="p">(</span><span class="s1">&#39;Merging column names resulted in duplicates: </span><span class="si">{}</span><span class="s1">.  &#39;</span>
+                              <span class="s1">&#39;Change uniq_col_name or table_names args to fix this.&#39;</span>
+                              <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">repeated_names</span><span class="p">))</span>
+
+    <span class="c1"># Convert col_name_map to a regular dict with tuple (immutable) values</span>
+    <span class="n">col_name_map</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">col_name_map</span><span class="p">[</span><span class="n">name</span><span class="p">])</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">col_name_list</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">col_name_map</span>
+
+
+<span class="k">def</span> <span class="nf">get_descrs</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">col_name_map</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the dtypes descrs resulting from merging the list of arrays&#39; dtypes,</span>
+<span class="sd">    using the column name mapping ``col_name_map``.</span>
+
+<span class="sd">    Return a list of descrs for the output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">out_descrs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">out_name</span><span class="p">,</span> <span class="n">in_names</span> <span class="ow">in</span> <span class="n">col_name_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="c1"># List of input arrays that contribute to this output column</span>
+        <span class="n">in_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">arr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">arr</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">in_names</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+
+        <span class="c1"># List of names of the columns that contribute to this output column.</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">in_names</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+
+        <span class="c1"># Output dtype is the superset of all dtypes in in_arrays</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">dtype</span> <span class="o">=</span> <span class="n">common_dtype</span><span class="p">(</span><span class="n">in_cols</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">TableMergeError</span> <span class="k">as</span> <span class="n">tme</span><span class="p">:</span>
+            <span class="c1"># Beautify the error message when we are trying to merge columns with incompatible</span>
+            <span class="c1"># types by including the name of the columns that originated the error.</span>
+            <span class="k">raise</span> <span class="n">TableMergeError</span><span class="p">(</span><span class="s2">&quot;The &#39;</span><span class="si">{}</span><span class="s2">&#39; columns have incompatible types: </span><span class="si">{}</span><span class="s2">&quot;</span>
+                                  <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tme</span><span class="o">.</span><span class="n">_incompat_types</span><span class="p">))</span> <span class="kn">from</span> <span class="nn">tme</span>
+
+        <span class="c1"># Make sure all input shapes are the same</span>
+        <span class="n">uniq_shapes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">in_cols</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">uniq_shapes</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TableMergeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Key columns </span><span class="si">{</span><span class="n">names</span><span class="si">!r}</span><span class="s1"> have different shape&#39;</span><span class="p">)</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">uniq_shapes</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">out_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">out_name</span><span class="p">)</span>
+        <span class="n">out_descrs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">out_name</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">out_descrs</span>
+
+
+<span class="k">def</span> <span class="nf">common_dtype</span><span class="p">(</span><span class="n">cols</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Use numpy to find the common dtype for a list of columns.</span>
+
+<span class="sd">    Only allow columns within the following fundamental numpy data types:</span>
+<span class="sd">    np.bool_, np.object_, np.number, np.character, np.void</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">metadata</span><span class="o">.</span><span class="n">common_dtype</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">metadata</span><span class="o">.</span><span class="n">MergeConflictError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="n">tme</span> <span class="o">=</span> <span class="n">TableMergeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Columns have incompatible types </span><span class="si">{</span><span class="n">err</span><span class="o">.</span><span class="n">_incompat_types</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">tme</span><span class="o">.</span><span class="n">_incompat_types</span> <span class="o">=</span> <span class="n">err</span><span class="o">.</span><span class="n">_incompat_types</span>
+        <span class="k">raise</span> <span class="n">tme</span> <span class="kn">from</span> <span class="nn">err</span>
+
+
+<span class="k">def</span> <span class="nf">_get_join_sort_idxs</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">):</span>
+    <span class="c1"># Go through each of the key columns in order and make columns for</span>
+    <span class="c1"># a new structured array that represents the lexical ordering of those</span>
+    <span class="c1"># key columns. This structured array is then argsort&#39;ed. The trick here</span>
+    <span class="c1"># is that some columns (e.g. Time) may need to be expanded into multiple</span>
+    <span class="c1"># columns for ordering here.</span>
+
+    <span class="n">ii</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Index for uniquely naming the sort columns</span>
+    <span class="n">sort_keys_dtypes</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># sortable_table dtypes as list of (name, dtype_str, shape) tuples</span>
+    <span class="n">sort_keys</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># sortable_table (structured ndarray) column names</span>
+    <span class="n">sort_left</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># sortable ndarrays from left table</span>
+    <span class="n">sort_right</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># sortable ndarray from right table</span>
+
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+        <span class="c1"># get_sortable_arrays() returns a list of ndarrays that can be lexically</span>
+        <span class="c1"># sorted to represent the order of the column. In most cases this is just</span>
+        <span class="c1"># a single element of the column itself.</span>
+        <span class="n">left_sort_cols</span> <span class="o">=</span> <span class="n">left</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">get_sortable_arrays</span><span class="p">()</span>
+        <span class="n">right_sort_cols</span> <span class="o">=</span> <span class="n">right</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">get_sortable_arrays</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">left_sort_cols</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">right_sort_cols</span><span class="p">):</span>
+            <span class="c1"># Should never happen because cols are screened beforehand for compatibility</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;mismatch in sort cols lengths&#39;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">left_sort_col</span><span class="p">,</span> <span class="n">right_sort_col</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">left_sort_cols</span><span class="p">,</span> <span class="n">right_sort_cols</span><span class="p">):</span>
+            <span class="c1"># Check for consistency of shapes. Mismatch should never happen.</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="n">left_sort_col</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="k">if</span> <span class="n">shape</span> <span class="o">!=</span> <span class="n">right_sort_col</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;mismatch in shape of left vs. right sort array&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">shape</span> <span class="o">!=</span> <span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;sort key column </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s1"> must be 1-d&#39;</span><span class="p">)</span>
+
+            <span class="n">sort_key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span>
+            <span class="n">sort_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sort_key</span><span class="p">)</span>
+            <span class="n">sort_left</span><span class="p">[</span><span class="n">sort_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">left_sort_col</span>
+            <span class="n">sort_right</span><span class="p">[</span><span class="n">sort_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">right_sort_col</span>
+
+            <span class="c1"># Build up dtypes for the structured array that gets sorted.</span>
+            <span class="n">dtype_str</span> <span class="o">=</span> <span class="n">common_dtype</span><span class="p">([</span><span class="n">left_sort_col</span><span class="p">,</span> <span class="n">right_sort_col</span><span class="p">])</span>
+            <span class="n">sort_keys_dtypes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">sort_key</span><span class="p">,</span> <span class="n">dtype_str</span><span class="p">))</span>
+            <span class="n">ii</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># Make the empty sortable table and fill it</span>
+    <span class="n">len_left</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">left</span><span class="p">)</span>
+    <span class="n">sortable_table</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">len_left</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">right</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">sort_keys_dtypes</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">sort_keys</span><span class="p">:</span>
+        <span class="n">sortable_table</span><span class="p">[</span><span class="n">key</span><span class="p">][:</span><span class="n">len_left</span><span class="p">]</span> <span class="o">=</span> <span class="n">sort_left</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">sortable_table</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">len_left</span><span class="p">:]</span> <span class="o">=</span> <span class="n">sort_right</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="c1"># Finally do the (lexical) argsort and make a new sorted version</span>
+    <span class="n">idx_sort</span> <span class="o">=</span> <span class="n">sortable_table</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">sort_keys</span><span class="p">)</span>
+    <span class="n">sorted_table</span> <span class="o">=</span> <span class="n">sortable_table</span><span class="p">[</span><span class="n">idx_sort</span><span class="p">]</span>
+
+    <span class="c1"># Get indexes of unique elements (i.e. the group boundaries)</span>
+    <span class="n">diffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="kc">True</span><span class="p">],</span> <span class="n">sorted_table</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">!=</span> <span class="n">sorted_table</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="kc">True</span><span class="p">]))</span>
+    <span class="n">idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">diffs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">idxs</span><span class="p">,</span> <span class="n">idx_sort</span>
+
+
+<span class="k">def</span> <span class="nf">_apply_join_funcs</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">join_funcs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply join_funcs</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Make light copies of left and right, then add new index columns.</span>
+    <span class="n">left</span> <span class="o">=</span> <span class="n">left</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">copy_data</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">right</span> <span class="o">=</span> <span class="n">right</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">copy_data</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">join_func</span> <span class="ow">in</span> <span class="n">join_funcs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">ids1</span><span class="p">,</span> <span class="n">ids2</span> <span class="o">=</span> <span class="n">join_func</span><span class="p">(</span><span class="n">left</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">right</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="c1"># Define a unique id_key name, and keep adding underscores until we have</span>
+        <span class="c1"># a name not yet present.</span>
+        <span class="n">id_key</span> <span class="o">=</span> <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_id&#39;</span>
+        <span class="k">while</span> <span class="n">id_key</span> <span class="ow">in</span> <span class="n">left</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="n">id_key</span> <span class="ow">in</span> <span class="n">right</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">id_key</span> <span class="o">=</span> <span class="n">id_key</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;_id&#39;</span>
+
+        <span class="n">keys</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">id_key</span> <span class="k">if</span> <span class="n">orig_key</span> <span class="o">==</span> <span class="n">key</span> <span class="k">else</span> <span class="n">orig_key</span> <span class="k">for</span> <span class="n">orig_key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">)</span>
+        <span class="n">left</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="n">ids1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">id_key</span><span class="p">)</span>  <span class="c1"># [id_key] = ids1</span>
+        <span class="n">right</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="n">ids2</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">id_key</span><span class="p">)</span>  <span class="c1"># [id_key] = ids2</span>
+
+    <span class="k">return</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span>
+
+
+<span class="k">def</span> <span class="nf">_join</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">join_type</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span>
+          <span class="n">uniq_col_name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{col_name}</span><span class="s1">_</span><span class="si">{table_name}</span><span class="s1">&#39;</span><span class="p">,</span>
+          <span class="n">table_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">],</span>
+          <span class="n">col_name_map</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="o">=</span><span class="s1">&#39;warn&#39;</span><span class="p">,</span>
+          <span class="n">join_funcs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="n">keys_left</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keys_right</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform a join of the left and right Tables on specified keys.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    left : Table</span>
+<span class="sd">        Left side table in the join</span>
+<span class="sd">    right : Table</span>
+<span class="sd">        Right side table in the join</span>
+<span class="sd">    keys : str or list of str</span>
+<span class="sd">        Name(s) of column(s) used to match rows of left and right tables.</span>
+<span class="sd">        Default is to use all columns which are common to both tables.</span>
+<span class="sd">    join_type : str</span>
+<span class="sd">        Join type (&#39;inner&#39; | &#39;outer&#39; | &#39;left&#39; | &#39;right&#39; | &#39;cartesian&#39;), default is &#39;inner&#39;</span>
+<span class="sd">    uniq_col_name : str or None</span>
+<span class="sd">        String generate a unique output column name in case of a conflict.</span>
+<span class="sd">        The default is &#39;{col_name}_{table_name}&#39;.</span>
+<span class="sd">    table_names : list of str or None</span>
+<span class="sd">        Two-element list of table names used when generating unique output</span>
+<span class="sd">        column names.  The default is [&#39;1&#39;, &#39;2&#39;].</span>
+<span class="sd">    col_name_map : empty dict or None</span>
+<span class="sd">        If passed as a dict then it will be updated in-place with the</span>
+<span class="sd">        mapping of output to input column names.</span>
+<span class="sd">    metadata_conflicts : str</span>
+<span class="sd">        How to proceed with metadata conflicts. This should be one of:</span>
+<span class="sd">            * ``&#39;silent&#39;``: silently pick the last conflicting meta-data value</span>
+<span class="sd">            * ``&#39;warn&#39;``: pick the last conflicting meta-data value, but emit a warning (default)</span>
+<span class="sd">            * ``&#39;error&#39;``: raise an exception.</span>
+<span class="sd">    join_funcs : dict, None</span>
+<span class="sd">        Dict of functions to use for matching the corresponding key column(s).</span>
+<span class="sd">        See `~astropy.table.join_skycoord` for an example and details.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    joined_table : `~astropy.table.Table` object</span>
+<span class="sd">        New table containing the result of the join operation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Store user-provided col_name_map until the end</span>
+    <span class="n">_col_name_map</span> <span class="o">=</span> <span class="n">col_name_map</span>
+
+    <span class="c1"># Special column name for cartesian join, should never collide with real column</span>
+    <span class="n">cartesian_index_name</span> <span class="o">=</span> <span class="s1">&#39;__table_cartesian_join_temp_index__&#39;</span>
+
+    <span class="k">if</span> <span class="n">join_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="s1">&#39;outer&#39;</span><span class="p">,</span> <span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="s1">&#39;cartesian&#39;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The &#39;join_type&#39; argument should be in &#39;inner&#39;, &quot;</span>
+                         <span class="s2">&quot;&#39;outer&#39;, &#39;left&#39;, &#39;right&#39;, or &#39;cartesian&#39; &quot;</span>
+                         <span class="s2">&quot;(got &#39;</span><span class="si">{}</span><span class="s2">&#39; instead)&quot;</span><span class="o">.</span>
+                         <span class="nb">format</span><span class="p">(</span><span class="n">join_type</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">join_type</span> <span class="o">==</span> <span class="s1">&#39;cartesian&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cannot supply keys for a cartesian join&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">join_funcs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cannot supply join_funcs for a cartesian join&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Make light copies of left and right, then add temporary index columns</span>
+        <span class="c1"># with all the same value so later an outer join turns into a cartesian join.</span>
+        <span class="n">left</span> <span class="o">=</span> <span class="n">left</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">copy_data</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">right</span> <span class="o">=</span> <span class="n">right</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">copy_data</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">left</span><span class="p">[</span><span class="n">cartesian_index_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">right</span><span class="p">[</span><span class="n">cartesian_index_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">(</span><span class="n">cartesian_index_name</span><span class="p">,</span> <span class="p">)</span>
+
+    <span class="c1"># Handle the case of join key columns that are different between left and</span>
+    <span class="c1"># right via keys_left/keys_right args. This is done by saving the original</span>
+    <span class="c1"># input tables and making new left and right tables that contain only the</span>
+    <span class="c1"># key cols but with common column names [&#39;0&#39;, &#39;1&#39;, etc]. This sets `keys` to</span>
+    <span class="c1"># those fake key names in the left and right tables</span>
+    <span class="k">if</span> <span class="n">keys_left</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">keys_right</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">left_orig</span> <span class="o">=</span> <span class="n">left</span>
+        <span class="n">right_orig</span> <span class="o">=</span> <span class="n">right</span>
+        <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span> <span class="o">=</span> <span class="n">_join_keys_left_right</span><span class="p">(</span>
+            <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">keys_left</span><span class="p">,</span> <span class="n">keys_right</span><span class="p">,</span> <span class="n">join_funcs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">left</span><span class="o">.</span><span class="n">colnames</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">right</span><span class="o">.</span><span class="n">colnames</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TableMergeError</span><span class="p">(</span><span class="s1">&#39;No keys in common between left and right tables&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="c1"># If we have a single key, put it in a tuple</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">(</span><span class="n">keys</span><span class="p">,)</span>
+
+    <span class="c1"># Check the key columns</span>
+    <span class="k">for</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr_label</span> <span class="ow">in</span> <span class="p">((</span><span class="n">left</span><span class="p">,</span> <span class="s1">&#39;Left&#39;</span><span class="p">),</span> <span class="p">(</span><span class="n">right</span><span class="p">,</span> <span class="s1">&#39;Right&#39;</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">arr</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">TableMergeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> table does not have key column </span><span class="si">{!r}</span><span class="s1">&#39;</span>
+                                      <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">arr_label</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="s1">&#39;mask&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">arr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">mask</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">TableMergeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> key column </span><span class="si">{!r}</span><span class="s1"> has missing values&#39;</span>
+                                      <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">arr_label</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">join_funcs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">join_funcs</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;join_funcs keys </span><span class="si">{</span><span class="n">join_funcs</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s1"> must be a &#39;</span>
+                             <span class="sa">f</span><span class="s1">&#39;subset of join keys </span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span> <span class="o">=</span> <span class="n">_apply_join_funcs</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">join_funcs</span><span class="p">)</span>
+
+    <span class="n">len_left</span><span class="p">,</span> <span class="n">len_right</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">left</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">right</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">len_left</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">len_right</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;input tables for join must both have at least one row&#39;</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">idxs</span><span class="p">,</span> <span class="n">idx_sort</span> <span class="o">=</span> <span class="n">_get_join_sort_idxs</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">NotImplementedError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;one or more key columns are not sortable&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Now that we have idxs and idx_sort, revert to the original table args to</span>
+    <span class="c1"># carry on with making the output joined table. `keys` is set to to an empty</span>
+    <span class="c1"># list so that all original left and right columns are included in the</span>
+    <span class="c1"># output table.</span>
+    <span class="k">if</span> <span class="n">keys_left</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">keys_right</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">left</span> <span class="o">=</span> <span class="n">left_orig</span>
+        <span class="n">right</span> <span class="o">=</span> <span class="n">right_orig</span>
+
+    <span class="c1"># Joined array dtype as a list of descr (name, type_str, shape) tuples</span>
+    <span class="n">col_name_map</span> <span class="o">=</span> <span class="n">get_col_name_map</span><span class="p">([</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">],</span> <span class="n">keys</span><span class="p">,</span> <span class="n">uniq_col_name</span><span class="p">,</span> <span class="n">table_names</span><span class="p">)</span>
+    <span class="n">out_descrs</span> <span class="o">=</span> <span class="n">get_descrs</span><span class="p">([</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">],</span> <span class="n">col_name_map</span><span class="p">)</span>
+
+    <span class="c1"># Main inner loop in Cython to compute the cartesian product</span>
+    <span class="c1"># indices for the given join type</span>
+    <span class="n">int_join_type</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;inner&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;outer&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;left&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;right&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+                     <span class="s1">&#39;cartesian&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}[</span><span class="n">join_type</span><span class="p">]</span>
+    <span class="n">masked</span><span class="p">,</span> <span class="n">n_out</span><span class="p">,</span> <span class="n">left_out</span><span class="p">,</span> <span class="n">left_mask</span><span class="p">,</span> <span class="n">right_out</span><span class="p">,</span> <span class="n">right_mask</span> <span class="o">=</span> \
+        <span class="n">_np_utils</span><span class="o">.</span><span class="n">join_inner</span><span class="p">(</span><span class="n">idxs</span><span class="p">,</span> <span class="n">idx_sort</span><span class="p">,</span> <span class="n">len_left</span><span class="p">,</span> <span class="n">int_join_type</span><span class="p">)</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="n">_get_out_class</span><span class="p">([</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">])()</span>
+
+    <span class="k">for</span> <span class="n">out_name</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">out_descrs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">out_name</span> <span class="o">==</span> <span class="n">cartesian_index_name</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">left_name</span><span class="p">,</span> <span class="n">right_name</span> <span class="o">=</span> <span class="n">col_name_map</span><span class="p">[</span><span class="n">out_name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">left_name</span> <span class="ow">and</span> <span class="n">right_name</span><span class="p">:</span>  <span class="c1"># this is a key which comes from left and right</span>
+            <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="p">[</span><span class="n">left_name</span><span class="p">],</span> <span class="n">right</span><span class="p">[</span><span class="n">right_name</span><span class="p">]]</span>
+
+            <span class="n">col_cls</span> <span class="o">=</span> <span class="n">_get_out_class</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">col_cls</span><span class="o">.</span><span class="n">info</span><span class="p">,</span> <span class="s1">&#39;new_like&#39;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;join unavailable for mixin column type(s): </span><span class="si">{}</span><span class="s1">&#39;</span>
+                                          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">col_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+
+            <span class="n">out</span><span class="p">[</span><span class="n">out_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">col_cls</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">new_like</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">n_out</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="p">,</span> <span class="n">out_name</span><span class="p">)</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">out_name</span><span class="p">][:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">right_mask</span><span class="p">,</span>
+                                        <span class="n">left</span><span class="p">[</span><span class="n">left_name</span><span class="p">]</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">left_out</span><span class="p">),</span>
+                                        <span class="n">right</span><span class="p">[</span><span class="n">right_name</span><span class="p">]</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">right_out</span><span class="p">))</span>
+            <span class="k">continue</span>
+        <span class="k">elif</span> <span class="n">left_name</span><span class="p">:</span>  <span class="c1"># out_name came from the left table</span>
+            <span class="n">name</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">array_out</span><span class="p">,</span> <span class="n">array_mask</span> <span class="o">=</span> <span class="n">left_name</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">left_out</span><span class="p">,</span> <span class="n">left_mask</span>
+        <span class="k">elif</span> <span class="n">right_name</span><span class="p">:</span>
+            <span class="n">name</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">array_out</span><span class="p">,</span> <span class="n">array_mask</span> <span class="o">=</span> <span class="n">right_name</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">right_out</span><span class="p">,</span> <span class="n">right_mask</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TableMergeError</span><span class="p">(</span><span class="s1">&#39;Unexpected column names (maybe one is &quot;&quot;?)&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Select the correct elements from the original table</span>
+        <span class="n">col</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">array_out</span><span class="p">]</span>
+
+        <span class="c1"># If the output column is masked then set the output column masking</span>
+        <span class="c1"># accordingly.  Check for columns that don&#39;t support a mask attribute.</span>
+        <span class="k">if</span> <span class="n">masked</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">array_mask</span><span class="p">):</span>
+            <span class="c1"># If col is a Column but not MaskedColumn then upgrade at this point</span>
+            <span class="c1"># because masking is required.</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">Column</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">MaskedColumn</span><span class="p">):</span>
+                <span class="n">col</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">MaskedColumn</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">Masked</span><span class="p">):</span>
+                <span class="n">col</span> <span class="o">=</span> <span class="n">Masked</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="c1"># array_mask is 1-d corresponding to length of output column.  We need</span>
+            <span class="c1"># make it have the correct shape for broadcasting, i.e. (length, 1, 1, ..).</span>
+            <span class="c1"># Mixin columns might not have ndim attribute so use len(col.shape).</span>
+            <span class="n">array_mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># Now broadcast to the correct final shape</span>
+            <span class="n">array_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">array_mask</span><span class="p">,</span> <span class="n">col</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">col</span><span class="p">[</span><span class="n">array_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">mask_val</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>  <span class="c1"># Not clear how different classes will fail here</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="s2">&quot;join requires masking column &#39;</span><span class="si">{}</span><span class="s2">&#39; but column&quot;</span>
+                    <span class="s2">&quot; type </span><span class="si">{}</span><span class="s2"> does not support masking&quot;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">out_name</span><span class="p">,</span> <span class="n">col</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span> <span class="kn">from</span> <span class="nn">err</span>
+
+        <span class="c1"># Set the output table column to the new joined column</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">out_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span>
+
+    <span class="c1"># If col_name_map supplied as a dict input, then update.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_col_name_map</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+        <span class="n">_col_name_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">col_name_map</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span> <span class="nf">_join_keys_left_right</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">keys_left</span><span class="p">,</span> <span class="n">keys_right</span><span class="p">,</span> <span class="n">join_funcs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Do processing to handle keys_left / keys_right args for join.</span>
+
+<span class="sd">    This takes the keys_left/right inputs and turns them into a list of left/right</span>
+<span class="sd">    columns corresponding to those inputs (which can be column names or column</span>
+<span class="sd">    data values). It also generates the list of fake key column names (strings</span>
+<span class="sd">    of &quot;1&quot;, &quot;2&quot;, etc.) that correspond to the input keys.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_keys_to_cols</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+        <span class="c1"># Process input `keys`, which is a str or list of str column names in</span>
+        <span class="c1"># `table` or a list of column-like objects. The `label` is just for</span>
+        <span class="c1"># error reporting.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">keys</span><span class="p">]</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">table</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s1"> table does not have key column </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s1"> table has different length from key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cols</span>
+
+    <span class="k">if</span> <span class="n">join_funcs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cannot supply join_funcs arg and keys_left / keys_right&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">keys_left</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">keys_right</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;keys_left and keys_right must both be provided&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">keys</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;keys arg must be None if keys_left and keys_right are supplied&#39;</span><span class="p">)</span>
+
+    <span class="n">cols_left</span> <span class="o">=</span> <span class="n">_keys_to_cols</span><span class="p">(</span><span class="n">keys_left</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="s1">&#39;left&#39;</span><span class="p">)</span>
+    <span class="n">cols_right</span> <span class="o">=</span> <span class="n">_keys_to_cols</span><span class="p">(</span><span class="n">keys_right</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="s1">&#39;right&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols_left</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols_right</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;keys_left and keys_right args must have same length&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Make two new temp tables for the join with only the join columns and</span>
+    <span class="c1"># key columns in common.</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">ii</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cols_left</span><span class="p">))]</span>
+
+    <span class="n">left</span> <span class="o">=</span> <span class="n">left</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">cols_left</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">keys</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">right</span> <span class="o">=</span> <span class="n">right</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">cols_right</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">keys</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">keys</span>
+
+
+<span class="k">def</span> <span class="nf">_check_join_type</span><span class="p">(</span><span class="n">join_type</span><span class="p">,</span> <span class="n">func_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check join_type arg in hstack and vstack.</span>
+
+<span class="sd">    This specifically checks for the common mistake of call vstack(t1, t2)</span>
+<span class="sd">    instead of vstack([t1, t2]). The subsequent check of</span>
+<span class="sd">    ``join_type in (&#39;inner&#39;, ..)`` does not raise in this case.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">join_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;`join_type` arg must be a string&#39;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">join_type</span><span class="p">,</span> <span class="n">Table</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="p">(</span><span class="s1">&#39;. Did you accidentally &#39;</span>
+                    <span class="sa">f</span><span class="s1">&#39;call </span><span class="si">{</span><span class="n">func_name</span><span class="si">}</span><span class="s1">(t1, t2, ..) instead of &#39;</span>
+                    <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">func_name</span><span class="si">}</span><span class="s1">([t1, t2], ..)?&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">join_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="s1">&#39;exact&#39;</span><span class="p">,</span> <span class="s1">&#39;outer&#39;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`join_type` arg must be one of &#39;inner&#39;, &#39;exact&#39; or &#39;outer&#39;&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_vstack</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">join_type</span><span class="o">=</span><span class="s1">&#39;outer&#39;</span><span class="p">,</span> <span class="n">col_name_map</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="o">=</span><span class="s1">&#39;warn&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stack Tables vertically (by rows)</span>
+
+<span class="sd">    A ``join_type`` of &#39;exact&#39; (default) means that the arrays must all</span>
+<span class="sd">    have exactly the same column names (though the order can vary).  If</span>
+<span class="sd">    ``join_type`` is &#39;inner&#39; then the intersection of common columns will</span>
+<span class="sd">    be the output.  A value of &#39;outer&#39; means the output will have the union of</span>
+<span class="sd">    all columns, with array values being masked where no common values are</span>
+<span class="sd">    available.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    arrays : list of Tables</span>
+<span class="sd">        Tables to stack by rows (vertically)</span>
+<span class="sd">    join_type : str</span>
+<span class="sd">        Join type (&#39;inner&#39; | &#39;exact&#39; | &#39;outer&#39;), default is &#39;outer&#39;</span>
+<span class="sd">    col_name_map : empty dict or None</span>
+<span class="sd">        If passed as a dict then it will be updated in-place with the</span>
+<span class="sd">        mapping of output to input column names.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    stacked_table : `~astropy.table.Table` object</span>
+<span class="sd">        New table containing the stacked data from the input tables.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Store user-provided col_name_map until the end</span>
+    <span class="n">_col_name_map</span> <span class="o">=</span> <span class="n">col_name_map</span>
+
+    <span class="c1"># Trivial case of one input array</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Start by assuming an outer match where all names go to output</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">arr</span><span class="o">.</span><span class="n">colnames</span> <span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">]))</span>
+    <span class="n">col_name_map</span> <span class="o">=</span> <span class="n">get_col_name_map</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">names</span><span class="p">)</span>
+
+    <span class="c1"># If require_match is True then the output must have exactly the same</span>
+    <span class="c1"># number of columns as each input array</span>
+    <span class="k">if</span> <span class="n">join_type</span> <span class="o">==</span> <span class="s1">&#39;exact&#39;</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">col_name_map</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">names</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">TableMergeError</span><span class="p">(</span><span class="s1">&#39;Inconsistent columns in input arrays &#39;</span>
+                                      <span class="s2">&quot;(use &#39;inner&#39; or &#39;outer&#39; join_type to &quot;</span>
+                                      <span class="s2">&quot;allow non-matching columns)&quot;</span><span class="p">)</span>
+        <span class="n">join_type</span> <span class="o">=</span> <span class="s1">&#39;outer&#39;</span>
+
+    <span class="c1"># For an inner join, keep only columns where all input arrays have that column</span>
+    <span class="k">if</span> <span class="n">join_type</span> <span class="o">==</span> <span class="s1">&#39;inner&#39;</span><span class="p">:</span>
+        <span class="n">col_name_map</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">in_names</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">in_names</span> <span class="ow">in</span> <span class="n">col_name_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                                   <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">in_names</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">col_name_map</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TableMergeError</span><span class="p">(</span><span class="s1">&#39;Input arrays have no columns in common&#39;</span><span class="p">)</span>
+
+    <span class="n">lens</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">]</span>
+    <span class="n">n_rows</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">lens</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">_get_out_class</span><span class="p">(</span><span class="n">arrays</span><span class="p">)()</span>
+
+    <span class="k">for</span> <span class="n">out_name</span><span class="p">,</span> <span class="n">in_names</span> <span class="ow">in</span> <span class="n">col_name_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="c1"># List of input arrays that contribute to this output column</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">arr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">arr</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">in_names</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+
+        <span class="n">col_cls</span> <span class="o">=</span> <span class="n">_get_out_class</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">col_cls</span><span class="o">.</span><span class="n">info</span><span class="p">,</span> <span class="s1">&#39;new_like&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;vstack unavailable for mixin column type(s): </span><span class="si">{}</span><span class="s1">&#39;</span>
+                                      <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">col_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="n">col_cls</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">new_like</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">n_rows</span><span class="p">,</span> <span class="n">metadata_conflicts</span><span class="p">,</span> <span class="n">out_name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">metadata</span><span class="o">.</span><span class="n">MergeConflictError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="c1"># Beautify the error message when we are trying to merge columns with incompatible</span>
+            <span class="c1"># types by including the name of the columns that originated the error.</span>
+            <span class="k">raise</span> <span class="n">TableMergeError</span><span class="p">(</span><span class="s2">&quot;The &#39;</span><span class="si">{}</span><span class="s2">&#39; columns have incompatible types: </span><span class="si">{}</span><span class="s2">&quot;</span>
+                                  <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">out_name</span><span class="p">,</span> <span class="n">err</span><span class="o">.</span><span class="n">_incompat_types</span><span class="p">))</span> <span class="kn">from</span> <span class="nn">err</span>
+
+        <span class="n">idx0</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">array</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">in_names</span><span class="p">,</span> <span class="n">arrays</span><span class="p">):</span>
+            <span class="n">idx1</span> <span class="o">=</span> <span class="n">idx0</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">array</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+                <span class="n">col</span><span class="p">[</span><span class="n">idx0</span><span class="p">:</span><span class="n">idx1</span><span class="p">]</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># If col is a Column but not MaskedColumn then upgrade at this point</span>
+                <span class="c1"># because masking is required.</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">Column</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">MaskedColumn</span><span class="p">):</span>
+                    <span class="n">col</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">MaskedColumn</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">Masked</span><span class="p">):</span>
+                    <span class="n">col</span> <span class="o">=</span> <span class="n">Masked</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">col</span><span class="p">[</span><span class="n">idx0</span><span class="p">:</span><span class="n">idx1</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">mask_val</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                        <span class="s2">&quot;vstack requires masking column &#39;</span><span class="si">{}</span><span class="s2">&#39; but column&quot;</span>
+                        <span class="s2">&quot; type </span><span class="si">{}</span><span class="s2"> does not support masking&quot;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">out_name</span><span class="p">,</span> <span class="n">col</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span> <span class="kn">from</span> <span class="nn">err</span>
+            <span class="n">idx0</span> <span class="o">=</span> <span class="n">idx1</span>
+
+        <span class="n">out</span><span class="p">[</span><span class="n">out_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span>
+
+    <span class="c1"># If col_name_map supplied as a dict input, then update.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_col_name_map</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+        <span class="n">_col_name_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">col_name_map</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span> <span class="nf">_hstack</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">join_type</span><span class="o">=</span><span class="s1">&#39;outer&#39;</span><span class="p">,</span> <span class="n">uniq_col_name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{col_name}</span><span class="s1">_</span><span class="si">{table_name}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">table_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">col_name_map</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stack tables horizontally (by columns)</span>
+
+<span class="sd">    A ``join_type`` of &#39;exact&#39; (default) means that the arrays must all</span>
+<span class="sd">    have exactly the same number of rows.  If ``join_type`` is &#39;inner&#39; then</span>
+<span class="sd">    the intersection of rows will be the output.  A value of &#39;outer&#39; means</span>
+<span class="sd">    the output will have the union of all rows, with array values being</span>
+<span class="sd">    masked where no common values are available.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    arrays : List of tables</span>
+<span class="sd">        Tables to stack by columns (horizontally)</span>
+<span class="sd">    join_type : str</span>
+<span class="sd">        Join type (&#39;inner&#39; | &#39;exact&#39; | &#39;outer&#39;), default is &#39;outer&#39;</span>
+<span class="sd">    uniq_col_name : str or None</span>
+<span class="sd">        String generate a unique output column name in case of a conflict.</span>
+<span class="sd">        The default is &#39;{col_name}_{table_name}&#39;.</span>
+<span class="sd">    table_names : list of str or None</span>
+<span class="sd">        Two-element list of table names used when generating unique output</span>
+<span class="sd">        column names.  The default is [&#39;1&#39;, &#39;2&#39;, ..].</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    stacked_table : `~astropy.table.Table` object</span>
+<span class="sd">        New table containing the stacked data from the input tables.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Store user-provided col_name_map until the end</span>
+    <span class="n">_col_name_map</span> <span class="o">=</span> <span class="n">col_name_map</span>
+
+    <span class="k">if</span> <span class="n">table_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">table_names</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">))]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">table_names</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Number of arrays must match number of table_names&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Trivial case of one input arrays</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arrays</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">col_name_map</span> <span class="o">=</span> <span class="n">get_col_name_map</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="p">[],</span> <span class="n">uniq_col_name</span><span class="p">,</span> <span class="n">table_names</span><span class="p">)</span>
+
+    <span class="c1"># If require_match is True then all input arrays must have the same length</span>
+    <span class="n">arr_lens</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span> <span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">join_type</span> <span class="o">==</span> <span class="s1">&#39;exact&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">arr_lens</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">TableMergeError</span><span class="p">(</span><span class="s2">&quot;Inconsistent number of rows in input arrays &quot;</span>
+                                  <span class="s2">&quot;(use &#39;inner&#39; or &#39;outer&#39; join_type to allow &quot;</span>
+                                  <span class="s2">&quot;non-matching rows)&quot;</span><span class="p">)</span>
+        <span class="n">join_type</span> <span class="o">=</span> <span class="s1">&#39;outer&#39;</span>
+
+    <span class="c1"># For an inner join, keep only the common rows</span>
+    <span class="k">if</span> <span class="n">join_type</span> <span class="o">==</span> <span class="s1">&#39;inner&#39;</span><span class="p">:</span>
+        <span class="n">min_arr_len</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">arr_lens</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">arr_lens</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">arrays</span> <span class="o">=</span> <span class="p">[</span><span class="n">arr</span><span class="p">[:</span><span class="n">min_arr_len</span><span class="p">]</span> <span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">]</span>
+        <span class="n">arr_lens</span> <span class="o">=</span> <span class="p">[</span><span class="n">min_arr_len</span> <span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">]</span>
+
+    <span class="c1"># If there are any output rows where one or more input arrays are missing</span>
+    <span class="c1"># then the output must be masked.  If any input arrays are masked then</span>
+    <span class="c1"># output is masked.</span>
+
+    <span class="n">n_rows</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">arr_lens</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">_get_out_class</span><span class="p">(</span><span class="n">arrays</span><span class="p">)()</span>
+
+    <span class="k">for</span> <span class="n">out_name</span><span class="p">,</span> <span class="n">in_names</span> <span class="ow">in</span> <span class="n">col_name_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">arr_len</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">in_names</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">arr_lens</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">n_rows</span> <span class="o">&gt;</span> <span class="n">arr_len</span><span class="p">:</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_rows</span><span class="p">)</span>
+                <span class="n">indices</span><span class="p">[</span><span class="n">arr_len</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">col</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">indices</span><span class="p">]</span>
+
+                <span class="c1"># If col is a Column but not MaskedColumn then upgrade at this point</span>
+                <span class="c1"># because masking is required.</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">Column</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">MaskedColumn</span><span class="p">):</span>
+                    <span class="n">col</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">MaskedColumn</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">Masked</span><span class="p">):</span>
+                    <span class="n">col</span> <span class="o">=</span> <span class="n">Masked</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">col</span><span class="p">[</span><span class="n">arr_len</span><span class="p">:]</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">mask_val</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                        <span class="s2">&quot;hstack requires masking column &#39;</span><span class="si">{}</span><span class="s2">&#39; but column&quot;</span>
+                        <span class="s2">&quot; type </span><span class="si">{}</span><span class="s2"> does not support masking&quot;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">out_name</span><span class="p">,</span> <span class="n">col</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span> <span class="kn">from</span> <span class="nn">err</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">col</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="n">name</span><span class="p">][:</span><span class="n">n_rows</span><span class="p">]</span>
+
+            <span class="n">out</span><span class="p">[</span><span class="n">out_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span>
+
+    <span class="c1"># If col_name_map supplied as a dict input, then update.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_col_name_map</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+        <span class="n">_col_name_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">col_name_map</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

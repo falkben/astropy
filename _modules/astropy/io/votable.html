@@ -1,0 +1,137 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.io.votable &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.io.votable</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This package reads and writes data formats used by the Virtual</span>
+<span class="sd">Observatory (VO) initiative, particularly the VOTable XML format.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">from</span> <span class="nn">.table</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">parse</span><span class="p">,</span> <span class="n">parse_single_table</span><span class="p">,</span> <span class="n">validate</span><span class="p">,</span> <span class="n">from_table</span><span class="p">,</span> <span class="n">is_votable</span><span class="p">,</span> <span class="n">writeto</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.exceptions</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">VOWarning</span><span class="p">,</span> <span class="n">VOTableChangeWarning</span><span class="p">,</span> <span class="n">VOTableSpecWarning</span><span class="p">,</span> <span class="n">UnimplementedWarning</span><span class="p">,</span>
+    <span class="n">IOWarning</span><span class="p">,</span> <span class="n">VOTableSpecError</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">config</span> <span class="k">as</span> <span class="n">_config</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;Conf&#39;</span><span class="p">,</span> <span class="s1">&#39;conf&#39;</span><span class="p">,</span> <span class="s1">&#39;parse&#39;</span><span class="p">,</span> <span class="s1">&#39;parse_single_table&#39;</span><span class="p">,</span> <span class="s1">&#39;validate&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;from_table&#39;</span><span class="p">,</span> <span class="s1">&#39;is_votable&#39;</span><span class="p">,</span> <span class="s1">&#39;writeto&#39;</span><span class="p">,</span> <span class="s1">&#39;VOWarning&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;VOTableChangeWarning&#39;</span><span class="p">,</span> <span class="s1">&#39;VOTableSpecWarning&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;UnimplementedWarning&#39;</span><span class="p">,</span> <span class="s1">&#39;IOWarning&#39;</span><span class="p">,</span> <span class="s1">&#39;VOTableSpecError&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Conf"><a class="viewcode-back" href="../../../api/astropy.io.votable.Conf.html#astropy.io.votable.Conf">[docs]</a><span class="k">class</span> <span class="nc">Conf</span><span class="p">(</span><span class="n">_config</span><span class="o">.</span><span class="n">ConfigNamespace</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Configuration parameters for `astropy.io.votable`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">verify</span> <span class="o">=</span> <span class="n">_config</span><span class="o">.</span><span class="n">ConfigItem</span><span class="p">(</span>
+        <span class="s1">&#39;ignore&#39;</span><span class="p">,</span>
+        <span class="s2">&quot;Can be &#39;exception&#39; (treat fixable violations of the VOTable spec as &quot;</span>
+        <span class="s2">&quot;exceptions), &#39;warn&#39; (show warnings for VOTable spec violations), or &quot;</span>
+        <span class="s2">&quot;&#39;ignore&#39; (silently ignore VOTable spec violations)&quot;</span><span class="p">,</span>
+        <span class="n">aliases</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;astropy.io.votable.table.pedantic&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;astropy.io.votable.pedantic&#39;</span><span class="p">])</span></div>
+
+
+<span class="n">conf</span> <span class="o">=</span> <span class="n">Conf</span><span class="p">()</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

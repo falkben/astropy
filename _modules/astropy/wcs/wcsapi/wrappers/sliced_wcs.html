@@ -1,0 +1,410 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.wcs.wcsapi.wrappers.sliced_wcs &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/jquery.js"></script>
+    <script src="../../../../../_static/underscore.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../../index.html" >Module code</a> &#187;</li>
+      <li><a href="../../../wcs.html" accesskey="U">astropy.wcs</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.wcs.wcsapi.wrappers.sliced_wcs</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy.utils</span> <span class="kn">import</span> <span class="n">isiterable</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.decorators</span> <span class="kn">import</span> <span class="n">lazyproperty</span>
+
+<span class="kn">from</span> <span class="nn">..low_level_api</span> <span class="kn">import</span> <span class="n">BaseLowLevelWCS</span>
+<span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">BaseWCSWrapper</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;sanitize_slices&#39;</span><span class="p">,</span> <span class="s1">&#39;SlicedLowLevelWCS&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="sanitize_slices"><a class="viewcode-back" href="../../../../../api/astropy.wcs.wcsapi.sanitize_slices.html#astropy.wcs.wcsapi.sanitize_slices">[docs]</a><span class="k">def</span> <span class="nf">sanitize_slices</span><span class="p">(</span><span class="n">slices</span><span class="p">,</span> <span class="n">ndim</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a slice as input sanitise it to an easier to parse format.format</span>
+
+<span class="sd">    This function returns a list ``ndim`` long containing slice objects (or ints).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">slices</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>  <span class="c1"># We just have a single int</span>
+        <span class="n">slices</span> <span class="o">=</span> <span class="p">(</span><span class="n">slices</span><span class="p">,)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">slices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">ndim</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The dimensionality of the specified slice </span><span class="si">{</span><span class="n">slices</span><span class="si">}</span><span class="s2"> can not be greater &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;than the dimensionality (</span><span class="si">{</span><span class="n">ndim</span><span class="si">}</span><span class="s2">) of the wcs.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">any</span><span class="p">((</span><span class="n">isiterable</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">slices</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;This slice is invalid, only integer or range slices are supported.&quot;</span><span class="p">)</span>
+
+    <span class="n">slices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">slices</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">Ellipsis</span> <span class="ow">in</span> <span class="n">slices</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">slices</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="bp">Ellipsis</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;an index can only have a single ellipsis (&#39;...&#39;)&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Replace the Ellipsis with the correct number of slice(None)s</span>
+        <span class="n">e_ind</span> <span class="o">=</span> <span class="n">slices</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">Ellipsis</span><span class="p">)</span>
+        <span class="n">slices</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">Ellipsis</span><span class="p">)</span>
+        <span class="n">n_e</span> <span class="o">=</span> <span class="n">ndim</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">slices</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_e</span><span class="p">):</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">e_ind</span> <span class="o">+</span> <span class="n">i</span>
+            <span class="n">slices</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">ind</span><span class="p">,</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndim</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">slices</span><span class="p">):</span>
+            <span class="n">slc</span> <span class="o">=</span> <span class="n">slices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">slc</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">slc</span><span class="o">.</span><span class="n">step</span> <span class="ow">and</span> <span class="n">slc</span><span class="o">.</span><span class="n">step</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Slicing WCS with a step is not supported.&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">slc</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Only integer or range slices are accepted.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">slices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">slices</span></div>
+
+
+<span class="k">def</span> <span class="nf">combine_slices</span><span class="p">(</span><span class="n">slice1</span><span class="p">,</span> <span class="n">slice2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given two slices that can be applied to a 1-d array, find the resulting</span>
+<span class="sd">    slice that corresponds to the combination of both slices. We assume that</span>
+<span class="sd">    slice2 can be an integer, but slice1 cannot.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">slice1</span><span class="p">,</span> <span class="nb">slice</span><span class="p">)</span> <span class="ow">and</span> <span class="n">slice1</span><span class="o">.</span><span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Only slices with steps of 1 are supported&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">slice2</span><span class="p">,</span> <span class="nb">slice</span><span class="p">)</span> <span class="ow">and</span> <span class="n">slice2</span><span class="o">.</span><span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Only slices with steps of 1 are supported&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">slice2</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">slice1</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">slice2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">slice2</span> <span class="o">+</span> <span class="n">slice1</span><span class="o">.</span><span class="n">start</span>
+
+    <span class="k">if</span> <span class="n">slice1</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">slice1</span><span class="o">.</span><span class="n">stop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">slice2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">slice2</span><span class="o">.</span><span class="n">stop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">slice</span><span class="p">(</span><span class="n">slice2</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">slice1</span><span class="o">.</span><span class="n">stop</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">slice</span><span class="p">(</span><span class="n">slice2</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">slice1</span><span class="o">.</span><span class="n">stop</span><span class="p">,</span> <span class="n">slice2</span><span class="o">.</span><span class="n">stop</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">slice2</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">slice1</span><span class="o">.</span><span class="n">start</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">slice1</span><span class="o">.</span><span class="n">start</span> <span class="o">+</span> <span class="n">slice2</span><span class="o">.</span><span class="n">start</span>
+        <span class="k">if</span> <span class="n">slice2</span><span class="o">.</span><span class="n">stop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stop</span> <span class="o">=</span> <span class="n">slice1</span><span class="o">.</span><span class="n">stop</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">slice1</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">stop</span> <span class="o">=</span> <span class="n">slice2</span><span class="o">.</span><span class="n">stop</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stop</span> <span class="o">=</span> <span class="n">slice2</span><span class="o">.</span><span class="n">stop</span> <span class="o">+</span> <span class="n">slice1</span><span class="o">.</span><span class="n">start</span>
+            <span class="k">if</span> <span class="n">slice1</span><span class="o">.</span><span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">stop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">slice1</span><span class="o">.</span><span class="n">stop</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SlicedLowLevelWCS"><a class="viewcode-back" href="../../../../../api/astropy.wcs.wcsapi.SlicedLowLevelWCS.html#astropy.wcs.wcsapi.SlicedLowLevelWCS">[docs]</a><span class="k">class</span> <span class="nc">SlicedLowLevelWCS</span><span class="p">(</span><span class="n">BaseWCSWrapper</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Low Level WCS wrapper which applies an array slice to a WCS.</span>
+
+<span class="sd">    This class does not modify the underlying WCS object and can therefore drop</span>
+<span class="sd">    coupled dimensions as it stores which pixel and world dimensions have been</span>
+<span class="sd">    sliced out (or modified) in the underlying WCS and returns the modified</span>
+<span class="sd">    results on all the Low Level WCS methods.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    wcs : `~astropy.wcs.wcsapi.BaseLowLevelWCS`</span>
+<span class="sd">        The WCS to slice.</span>
+<span class="sd">    slices : `slice` or `tuple` or `int`</span>
+<span class="sd">        A valid array slice to apply to the WCS.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wcs</span><span class="p">,</span> <span class="n">slices</span><span class="p">):</span>
+
+        <span class="n">slices</span> <span class="o">=</span> <span class="n">sanitize_slices</span><span class="p">(</span><span class="n">slices</span><span class="p">,</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wcs</span><span class="p">,</span> <span class="n">SlicedLowLevelWCS</span><span class="p">):</span>
+            <span class="c1"># Here we combine the current slices with the previous slices</span>
+            <span class="c1"># to avoid ending up with many nested WCSes</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">_wcs</span>
+            <span class="n">slices_original</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">_slices_array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">ipixel</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span><span class="p">):</span>
+                <span class="n">ipixel_orig</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">wcs</span><span class="o">.</span><span class="n">_pixel_keep</span><span class="p">[</span><span class="n">ipixel</span><span class="p">]</span>
+                <span class="n">ipixel_new</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">ipixel</span>
+                <span class="n">slices_original</span><span class="p">[</span><span class="n">ipixel_orig</span><span class="p">]</span> <span class="o">=</span> <span class="n">combine_slices</span><span class="p">(</span><span class="n">slices_original</span><span class="p">[</span><span class="n">ipixel_orig</span><span class="p">],</span>
+                                                              <span class="n">slices</span><span class="p">[</span><span class="n">ipixel_new</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_slices_array</span> <span class="o">=</span> <span class="n">slices_original</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span> <span class="o">=</span> <span class="n">wcs</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_slices_array</span> <span class="o">=</span> <span class="n">slices</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_slices_pixel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices_array</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># figure out which pixel dimensions have been kept, then use axis correlation</span>
+        <span class="c1"># matrix to figure out which world dims are kept</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">([</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_slices_pixel</span><span class="p">[</span><span class="n">ip</span><span class="p">],</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">)</span>
+                                       <span class="k">for</span> <span class="n">ip</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span><span class="p">)])[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># axis_correlation_matrix[world, pixel]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_world_keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">axis_correlation_matrix</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_keep</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pixel_keep</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_world_keep</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot slice WCS: the resulting WCS should have &quot;</span>
+                             <span class="s2">&quot;at least one pixel and one world dimension.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@lazyproperty</span>
+    <span class="k">def</span> <span class="nf">dropped_world_dimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Information describing the dropped world dimensions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">world_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_to_world_values_all</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pixel_keep</span><span class="p">))</span>
+        <span class="n">dropped_info</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_n_dim</span><span class="p">):</span>
+
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world_keep</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="s2">&quot;world_axis_object_classes&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dropped_info</span><span class="p">:</span>
+                <span class="n">dropped_info</span><span class="p">[</span><span class="s2">&quot;world_axis_object_classes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+            <span class="n">wao_classes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_axis_object_classes</span>
+            <span class="n">wao_components</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_axis_object_components</span>
+
+            <span class="n">dropped_info</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">world_coords</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">dropped_info</span><span class="p">[</span><span class="s2">&quot;world_axis_names&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_axis_names</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">dropped_info</span><span class="p">[</span><span class="s2">&quot;world_axis_physical_types&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_axis_physical_types</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">dropped_info</span><span class="p">[</span><span class="s2">&quot;world_axis_units&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_axis_units</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">dropped_info</span><span class="p">[</span><span class="s2">&quot;world_axis_object_components&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">wao_components</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">dropped_info</span><span class="p">[</span><span class="s2">&quot;world_axis_object_classes&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
+                <span class="nb">filter</span><span class="p">(</span>
+                    <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">wao_components</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">wao_classes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="p">))</span>
+            <span class="n">dropped_info</span><span class="p">[</span><span class="s2">&quot;serialized_classes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialized_classes</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">dropped_info</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pixel_n_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pixel_keep</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">world_n_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_world_keep</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">world_axis_physical_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_axis_physical_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world_keep</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">world_axis_units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_axis_units</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world_keep</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pixel_axis_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">pixel_axis_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_keep</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">world_axis_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_axis_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world_keep</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_pixel_to_world_values_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">pixel_arrays</span><span class="p">):</span>
+        <span class="n">pixel_arrays</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">,</span> <span class="n">pixel_arrays</span><span class="p">))</span>
+        <span class="n">pixel_arrays_new</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ipix_curr</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">for</span> <span class="n">ipix</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_slices_pixel</span><span class="p">[</span><span class="n">ipix</span><span class="p">],</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">):</span>
+                <span class="n">pixel_arrays_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_slices_pixel</span><span class="p">[</span><span class="n">ipix</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ipix_curr</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices_pixel</span><span class="p">[</span><span class="n">ipix</span><span class="p">]</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">pixel_arrays_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pixel_arrays</span><span class="p">[</span><span class="n">ipix_curr</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices_pixel</span><span class="p">[</span><span class="n">ipix</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">pixel_arrays_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pixel_arrays</span><span class="p">[</span><span class="n">ipix_curr</span><span class="p">])</span>
+
+        <span class="n">pixel_arrays_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_arrays</span><span class="p">(</span><span class="o">*</span><span class="n">pixel_arrays_new</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">pixel_to_world_values</span><span class="p">(</span><span class="o">*</span><span class="n">pixel_arrays_new</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SlicedLowLevelWCS.pixel_to_world_values"><a class="viewcode-back" href="../../../../../api/astropy.wcs.wcsapi.SlicedLowLevelWCS.html#astropy.wcs.wcsapi.SlicedLowLevelWCS.pixel_to_world_values">[docs]</a>    <span class="k">def</span> <span class="nf">pixel_to_world_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">pixel_arrays</span><span class="p">):</span>
+        <span class="n">world_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_to_world_values_all</span><span class="p">(</span><span class="o">*</span><span class="n">pixel_arrays</span><span class="p">)</span>
+
+        <span class="c1"># Detect the case of a length 0 array</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">world_arrays</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">world_arrays</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">world_arrays</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_n_dim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># Select the dimensions of the original WCS we are keeping.</span>
+            <span class="n">world_arrays</span> <span class="o">=</span> <span class="p">[</span><span class="n">world_arrays</span><span class="p">[</span><span class="n">iw</span><span class="p">]</span> <span class="k">for</span> <span class="n">iw</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world_keep</span><span class="p">]</span>
+            <span class="c1"># If there is only one world dimension (after slicing) we shouldn&#39;t return a tuple.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_n_dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">world_arrays</span> <span class="o">=</span> <span class="n">world_arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">world_arrays</span></div>
+
+<div class="viewcode-block" id="SlicedLowLevelWCS.world_to_pixel_values"><a class="viewcode-back" href="../../../../../api/astropy.wcs.wcsapi.SlicedLowLevelWCS.html#astropy.wcs.wcsapi.SlicedLowLevelWCS.world_to_pixel_values">[docs]</a>    <span class="k">def</span> <span class="nf">world_to_pixel_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">world_arrays</span><span class="p">):</span>
+        <span class="n">world_arrays</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">,</span> <span class="n">world_arrays</span><span class="p">))</span>
+        <span class="n">world_arrays_new</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">iworld_curr</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">for</span> <span class="n">iworld</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_n_dim</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">iworld</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world_keep</span><span class="p">:</span>
+                <span class="n">iworld_curr</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">world_arrays_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">world_arrays</span><span class="p">[</span><span class="n">iworld_curr</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">world_arrays_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.</span><span class="p">)</span>
+
+        <span class="n">world_arrays_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_arrays</span><span class="p">(</span><span class="o">*</span><span class="n">world_arrays_new</span><span class="p">)</span>
+        <span class="n">pixel_arrays</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_to_pixel_values</span><span class="p">(</span><span class="o">*</span><span class="n">world_arrays_new</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">ipixel</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_slices_pixel</span><span class="p">[</span><span class="n">ipixel</span><span class="p">],</span> <span class="nb">slice</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices_pixel</span><span class="p">[</span><span class="n">ipixel</span><span class="p">]</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pixel_arrays</span><span class="p">[</span><span class="n">ipixel</span><span class="p">]</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices_pixel</span><span class="p">[</span><span class="n">ipixel</span><span class="p">]</span><span class="o">.</span><span class="n">start</span>
+
+        <span class="c1"># Detect the case of a length 0 array</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pixel_arrays</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pixel_arrays</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pixel_arrays</span>
+        <span class="n">pixel</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">pixel_arrays</span><span class="p">[</span><span class="n">ip</span><span class="p">]</span> <span class="k">for</span> <span class="n">ip</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_keep</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_n_dim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">pixel</span> <span class="o">=</span> <span class="n">pixel</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">pixel</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">world_axis_object_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_axis_object_components</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_world_keep</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">world_axis_object_classes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">keys_keep</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_axis_object_components</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">([</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">world_axis_object_classes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">keys_keep</span><span class="p">])</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">array_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">array_shape</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">array_shape</span><span class="p">)[</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_slices_array</span><span class="p">)]</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pixel_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">array_shape</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array_shape</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pixel_bounds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">pixel_bounds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">bounds</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_keep</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices_pixel</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">bounds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">pixel_bounds</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">imin</span><span class="p">,</span> <span class="n">imax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">pixel_bounds</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slices_pixel</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">start</span>
+                <span class="n">bounds</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">imin</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span> <span class="n">imax</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">bounds</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">axis_correlation_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wcs</span><span class="o">.</span><span class="n">axis_correlation_matrix</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_world_keep</span><span class="p">][:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pixel_keep</span><span class="p">]</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,248 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.io.registry.interface &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.io.registry.interface</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">IORegistryError</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;UnifiedReadWriteMethod&#39;</span><span class="p">,</span> <span class="s1">&#39;UnifiedReadWrite&#39;</span><span class="p">]</span>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="UnifiedReadWrite"><a class="viewcode-back" href="../../../../api/astropy.io.registry.UnifiedReadWrite.html#astropy.io.registry.UnifiedReadWrite">[docs]</a><span class="k">class</span> <span class="nc">UnifiedReadWrite</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Base class for the worker object used in unified read() or write() methods.</span>
+
+<span class="sd">    This lightweight object is created for each `read()` or `write()` call</span>
+<span class="sd">    via ``read`` / ``write`` descriptors on the data object class.  The key</span>
+<span class="sd">    driver is to allow complete format-specific documentation of available</span>
+<span class="sd">    method options via a ``help()`` method, e.g. ``Table.read.help(&#39;fits&#39;)``.</span>
+
+<span class="sd">    Subclasses must define a ``__call__`` method which is what actually gets</span>
+<span class="sd">    called when the data object ``read()`` or ``write()`` method is called.</span>
+
+<span class="sd">    For the canonical example see the `~astropy.table.Table` class</span>
+<span class="sd">    implementation (in particular the ``connect.py`` module there).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    instance : object</span>
+<span class="sd">        Descriptor calling instance or None if no instance</span>
+<span class="sd">    cls : type</span>
+<span class="sd">        Descriptor calling class (either owner class or instance class)</span>
+<span class="sd">    method_name : str</span>
+<span class="sd">        Method name, e.g. &#39;read&#39; or &#39;write&#39;</span>
+<span class="sd">    registry : ``_UnifiedIORegistryBase`` or None, optional</span>
+<span class="sd">        The IO registry.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="n">method_name</span><span class="p">,</span> <span class="n">registry</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">registry</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">astropy.io.registry.compat</span> <span class="kn">import</span> <span class="n">default_registry</span> <span class="k">as</span> <span class="n">registry</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span> <span class="o">=</span> <span class="n">registry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_instance</span> <span class="o">=</span> <span class="n">instance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cls</span> <span class="o">=</span> <span class="bp">cls</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_method_name</span> <span class="o">=</span> <span class="n">method_name</span>  <span class="c1"># &#39;read&#39; or &#39;write&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">registry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Unified I/O registry instance.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span>
+
+<div class="viewcode-block" id="UnifiedReadWrite.help"><a class="viewcode-back" href="../../../../api/astropy.io.registry.UnifiedReadWrite.html#astropy.io.registry.UnifiedReadWrite.help">[docs]</a>    <span class="k">def</span> <span class="nf">help</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Output help documentation for the specified unified I/O ``format``.</span>
+
+<span class="sd">        By default the help output is printed to the console via ``pydoc.pager``.</span>
+<span class="sd">        Instead one can supplied a file handle object as ``out`` and the output</span>
+<span class="sd">        will be written to that handle.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        format : str</span>
+<span class="sd">            Unified I/O format name, e.g. &#39;fits&#39; or &#39;ascii.ecsv&#39;</span>
+<span class="sd">        out : None or path-like</span>
+<span class="sd">            Output destination (default is stdout via a pager)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cls</span>
+        <span class="n">method_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_method_name</span>
+
+        <span class="c1"># Get reader or writer function associated with the registry</span>
+        <span class="n">get_func</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">get_reader</span> <span class="k">if</span> <span class="n">method_name</span> <span class="o">==</span> <span class="s1">&#39;read&#39;</span>
+                    <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">get_writer</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">format</span><span class="p">:</span>
+                <span class="n">read_write_func</span> <span class="o">=</span> <span class="n">get_func</span><span class="p">(</span><span class="nb">format</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">IORegistryError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="n">reader_doc</span> <span class="o">=</span> <span class="s1">&#39;ERROR: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">format</span><span class="p">:</span>
+                <span class="c1"># Format-specific</span>
+                <span class="n">header</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">(format=&#39;</span><span class="si">{}</span><span class="s2">&#39;) documentation</span><span class="se">\n</span><span class="s2">&quot;</span>
+                          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">method_name</span><span class="p">,</span> <span class="nb">format</span><span class="p">))</span>
+                <span class="n">doc</span> <span class="o">=</span> <span class="n">read_write_func</span><span class="o">.</span><span class="vm">__doc__</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># General docs</span>
+                <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">method_name</span><span class="si">}</span><span class="s1"> general documentation</span><span class="se">\n</span><span class="s1">&#39;</span>
+                <span class="n">doc</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">method_name</span><span class="p">)</span><span class="o">.</span><span class="vm">__doc__</span>
+
+            <span class="n">reader_doc</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="n">header</span><span class="p">)</span>
+            <span class="n">reader_doc</span> <span class="o">+=</span> <span class="n">header</span>
+            <span class="n">reader_doc</span> <span class="o">+=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="n">header</span><span class="p">)</span>
+            <span class="n">reader_doc</span> <span class="o">+=</span> <span class="n">os</span><span class="o">.</span><span class="n">linesep</span>
+            <span class="k">if</span> <span class="n">doc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">reader_doc</span> <span class="o">+=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">cleandoc</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">pydoc</span>
+            <span class="n">pydoc</span><span class="o">.</span><span class="n">pager</span><span class="p">(</span><span class="n">reader_doc</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">reader_doc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="UnifiedReadWrite.list_formats"><a class="viewcode-back" href="../../../../api/astropy.io.registry.UnifiedReadWrite.html#astropy.io.registry.UnifiedReadWrite.list_formats">[docs]</a>    <span class="k">def</span> <span class="nf">list_formats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Print a list of available formats to console (or ``out`` filehandle)</span>
+
+<span class="sd">        out : None or file handle object</span>
+<span class="sd">            Output destination (default is stdout via a pager)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tbl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span><span class="o">.</span><span class="n">get_formats</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cls</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_method_name</span><span class="o">.</span><span class="n">capitalize</span><span class="p">())</span>
+        <span class="k">del</span> <span class="n">tbl</span><span class="p">[</span><span class="s1">&#39;Data class&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tbl</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="n">max_lines</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_width</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tbl</span><span class="o">.</span><span class="n">pformat</span><span class="p">(</span><span class="n">max_lines</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_width</span><span class="o">=-</span><span class="mi">1</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">out</span></div></div>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="UnifiedReadWriteMethod"><a class="viewcode-back" href="../../../../api/astropy.io.registry.UnifiedReadWriteMethod.html#astropy.io.registry.UnifiedReadWriteMethod">[docs]</a><span class="k">class</span> <span class="nc">UnifiedReadWriteMethod</span><span class="p">(</span><span class="nb">property</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Descriptor class for creating read() and write() methods in unified I/O.</span>
+
+<span class="sd">    The canonical example is in the ``Table`` class, where the ``connect.py``</span>
+<span class="sd">    module creates subclasses of the ``UnifiedReadWrite`` class.  These have</span>
+<span class="sd">    custom ``__call__`` methods that do the setup work related to calling the</span>
+<span class="sd">    registry read() or write() functions.  With this, the ``Table`` class</span>
+<span class="sd">    defines read and write methods as follows::</span>
+
+<span class="sd">      read = UnifiedReadWriteMethod(TableRead)</span>
+<span class="sd">      write = UnifiedReadWriteMethod(TableWrite)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    func : `~astropy.io.registry.UnifiedReadWrite` subclass</span>
+<span class="sd">        Class that defines read or write functionality</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># We subclass property to ensure that __set__ is defined and that,</span>
+    <span class="c1"># therefore, we are a data descriptor, which cannot be overridden.</span>
+    <span class="c1"># This also means we automatically inherit the __doc__ of fget (which will</span>
+    <span class="c1"># be a UnifiedReadWrite subclass), and that this docstring gets recognized</span>
+    <span class="c1"># and properly typeset by sphinx (which was previously an issue; see</span>
+    <span class="c1"># gh-11554).</span>
+    <span class="c1"># We override __get__ to pass both instance and class to UnifiedReadWrite.</span>
+    <span class="k">def</span> <span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner_cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fget</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">owner_cls</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

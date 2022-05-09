@@ -1,0 +1,356 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.visualization.time &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.visualization.time</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;time_support&#39;</span><span class="p">]</span>
+
+<span class="n">__doctest_requires__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;time_support&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;matplotlib&#39;</span><span class="p">]}</span>
+
+<span class="n">UNSUPPORTED_FORMATS</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">,</span> <span class="s1">&#39;datetime64&#39;</span><span class="p">)</span>
+<span class="n">YMDHMS_FORMATS</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;fits&#39;</span><span class="p">,</span> <span class="s1">&#39;iso&#39;</span><span class="p">,</span> <span class="s1">&#39;isot&#39;</span><span class="p">,</span> <span class="s1">&#39;yday&#39;</span><span class="p">)</span>
+<span class="n">STR_FORMATS</span> <span class="o">=</span> <span class="n">YMDHMS_FORMATS</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39;byear_str&#39;</span><span class="p">,</span> <span class="s1">&#39;jyear_str&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="time_support"><a class="viewcode-back" href="../../../api/astropy.visualization.time_support.html#astropy.visualization.time_support">[docs]</a><span class="k">def</span> <span class="nf">time_support</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">simplify</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Enable support for plotting `astropy.time.Time` instances in</span>
+<span class="sd">    matplotlib.</span>
+
+<span class="sd">    May be (optionally) used with a ``with`` statement.</span>
+
+<span class="sd">      &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
+<span class="sd">      &gt;&gt;&gt; from astropy import units as u</span>
+<span class="sd">      &gt;&gt;&gt; from astropy import visualization</span>
+<span class="sd">      &gt;&gt;&gt; with visualization.time_support():  # doctest: +IGNORE_OUTPUT</span>
+<span class="sd">      ...     plt.figure()</span>
+<span class="sd">      ...     plt.plot(Time([&#39;2016-03-22T12:30:31&#39;, &#39;2016-03-22T12:30:38&#39;, &#39;2016-03-22T12:34:40&#39;]))</span>
+<span class="sd">      ...     plt.draw()</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    scale : str, optional</span>
+<span class="sd">        The time scale to use for the times on the axis. If not specified,</span>
+<span class="sd">        the scale of the first Time object passed to Matplotlib is used.</span>
+<span class="sd">    format : str, optional</span>
+<span class="sd">        The time format to use for the times on the axis. If not specified,</span>
+<span class="sd">        the format of the first Time object passed to Matplotlib is used.</span>
+<span class="sd">    simplify : bool, optional</span>
+<span class="sd">        If possible, simplify labels, e.g. by removing 00:00:00.000 times from</span>
+<span class="sd">        ISO strings if all labels fall on that time.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">import</span> <span class="nn">matplotlib.units</span> <span class="k">as</span> <span class="nn">units</span>
+    <span class="kn">from</span> <span class="nn">matplotlib.ticker</span> <span class="kn">import</span> <span class="n">MaxNLocator</span><span class="p">,</span> <span class="n">ScalarFormatter</span>
+    <span class="kn">from</span> <span class="nn">astropy.visualization.wcsaxes.utils</span> <span class="kn">import</span> <span class="n">select_step_hour</span><span class="p">,</span> <span class="n">select_step_scalar</span>
+
+    <span class="k">class</span> <span class="nc">AstropyTimeLocator</span><span class="p">(</span><span class="n">MaxNLocator</span><span class="p">):</span>
+
+        <span class="c1"># Note: we default to AutoLocator since many time formats</span>
+        <span class="c1"># can just use this.</span>
+
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">converter</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;nbins&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span> <span class="o">=</span> <span class="n">converter</span>
+
+        <span class="k">def</span> <span class="nf">tick_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="p">):</span>
+
+            <span class="c1"># Where we put the ticks depends on the format we are using</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">format</span> <span class="ow">in</span> <span class="n">YMDHMS_FORMATS</span><span class="p">:</span>
+
+                <span class="c1"># If we are here, we need to check what the range of values</span>
+                <span class="c1"># is and decide how to find tick locations accordingly</span>
+
+                <span class="n">vrange</span> <span class="o">=</span> <span class="n">vmax</span> <span class="o">-</span> <span class="n">vmin</span>
+
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">format</span> <span class="o">!=</span> <span class="s1">&#39;yday&#39;</span> <span class="ow">and</span> <span class="n">vrange</span> <span class="o">&gt;</span> <span class="mi">31</span><span class="p">)</span> <span class="ow">or</span> <span class="n">vrange</span> <span class="o">&gt;</span> <span class="mi">366</span><span class="p">:</span>  <span class="c1"># greater than a month</span>
+
+                    <span class="c1"># We need to be careful here since not all years and months have</span>
+                    <span class="c1"># the same length</span>
+
+                    <span class="c1"># Start off by converting the values from the range to</span>
+                    <span class="c1"># datetime objects, so that we can easily extract the year and</span>
+                    <span class="c1"># month.</span>
+
+                    <span class="n">tmin</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">vmin</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;mjd&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">datetime</span>
+                    <span class="n">tmax</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">vmax</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;mjd&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">datetime</span>
+
+                    <span class="c1"># Find the range of years</span>
+                    <span class="n">ymin</span> <span class="o">=</span> <span class="n">tmin</span><span class="o">.</span><span class="n">year</span>
+                    <span class="n">ymax</span> <span class="o">=</span> <span class="n">tmax</span><span class="o">.</span><span class="n">year</span>
+
+                    <span class="k">if</span> <span class="n">ymax</span> <span class="o">&gt;</span> <span class="n">ymin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># greater than a year</span>
+
+                        <span class="c1"># Find the step we want to use</span>
+                        <span class="n">ystep</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">select_step_scalar</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">ymax</span> <span class="o">-</span> <span class="n">ymin</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)))</span>
+
+                        <span class="n">ymin</span> <span class="o">=</span> <span class="n">ystep</span> <span class="o">*</span> <span class="p">(</span><span class="n">ymin</span> <span class="o">//</span> <span class="n">ystep</span><span class="p">)</span>
+
+                        <span class="c1"># Generate the years for these steps</span>
+                        <span class="n">times</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="k">for</span> <span class="n">year</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ystep</span><span class="p">):</span>
+                            <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datetime</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">day</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+
+                    <span class="k">else</span><span class="p">:</span>  <span class="c1"># greater than a month but less than a year</span>
+
+                        <span class="n">mmin</span> <span class="o">=</span> <span class="n">tmin</span><span class="o">.</span><span class="n">month</span>
+                        <span class="n">mmax</span> <span class="o">=</span> <span class="n">tmax</span><span class="o">.</span><span class="n">month</span> <span class="o">+</span> <span class="mi">12</span> <span class="o">*</span> <span class="p">(</span><span class="n">ymax</span> <span class="o">-</span> <span class="n">ymin</span><span class="p">)</span>
+
+                        <span class="n">mstep</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">select_step_scalar</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">mmax</span> <span class="o">-</span> <span class="n">mmin</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)))</span>
+
+                        <span class="n">mmin</span> <span class="o">=</span> <span class="n">mstep</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">mmin</span> <span class="o">//</span> <span class="n">mstep</span><span class="p">)</span>
+
+                        <span class="c1"># Generate the months for these steps</span>
+                        <span class="n">times</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="k">for</span> <span class="n">month</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mmin</span><span class="p">,</span> <span class="n">mmax</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">mstep</span><span class="p">):</span>
+                            <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datetime</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="n">ymin</span> <span class="o">+</span> <span class="p">(</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">12</span><span class="p">,</span>
+                                                  <span class="n">month</span><span class="o">=</span><span class="p">(</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">12</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                                  <span class="n">day</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+
+                    <span class="c1"># Convert back to MJD</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">mjd</span>
+
+                <span class="k">elif</span> <span class="n">vrange</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># greater than a day</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_params</span><span class="p">(</span><span class="n">steps</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">])</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">tick_values</span><span class="p">(</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="p">)</span>
+
+                <span class="k">else</span><span class="p">:</span>
+
+                    <span class="c1"># Determine ideal step</span>
+                    <span class="n">dv</span> <span class="o">=</span> <span class="p">(</span><span class="n">vmax</span> <span class="o">-</span> <span class="n">vmin</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">&lt;&lt;</span> <span class="n">u</span><span class="o">.</span><span class="n">hourangle</span>
+
+                    <span class="c1"># And round to nearest sensible value</span>
+                    <span class="n">dv</span> <span class="o">=</span> <span class="n">select_step_hour</span><span class="p">(</span><span class="n">dv</span><span class="p">)</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">hourangle</span><span class="p">)</span> <span class="o">/</span> <span class="mi">24</span>
+
+                    <span class="c1"># Determine tick locations</span>
+                    <span class="n">imin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">vmin</span> <span class="o">/</span> <span class="n">dv</span><span class="p">)</span>
+                    <span class="n">imax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">vmax</span> <span class="o">/</span> <span class="n">dv</span><span class="p">)</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">imin</span><span class="p">,</span> <span class="n">imax</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="o">*</span> <span class="n">dv</span>
+
+            <span class="k">else</span><span class="p">:</span>
+
+                <span class="n">values</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">tick_values</span><span class="p">(</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="p">)</span>
+
+            <span class="c1"># Get rid of values outside of the input interval</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[(</span><span class="n">values</span> <span class="o">&gt;=</span> <span class="n">vmin</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">values</span> <span class="o">&lt;=</span> <span class="n">vmax</span><span class="p">)]</span>
+
+            <span class="k">return</span> <span class="n">values</span>
+
+        <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">get_view_interval</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick_values</span><span class="p">(</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">AstropyTimeFormatter</span><span class="p">(</span><span class="n">ScalarFormatter</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">converter</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span> <span class="o">=</span> <span class="n">converter</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_useOffset</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_scientific</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="c1"># Needed for Matplotlib &lt;3.1</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">format</span> <span class="ow">in</span> <span class="n">STR_FORMATS</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">format_ticks</span><span class="p">([</span><span class="n">value</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">format_ticks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">format</span> <span class="ow">in</span> <span class="n">YMDHMS_FORMATS</span><span class="p">:</span>
+                <span class="n">times</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;mjd&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span>
+                <span class="n">formatted</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">format</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">simplify</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">format</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;fits&#39;</span><span class="p">,</span> <span class="s1">&#39;iso&#39;</span><span class="p">,</span> <span class="s1">&#39;isot&#39;</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;00:00:00.000&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">formatted</span><span class="p">]):</span>
+                            <span class="n">split</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;iso&#39;</span> <span class="k">else</span> <span class="s1">&#39;T&#39;</span>
+                            <span class="n">formatted</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">split</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">formatted</span><span class="p">]</span>
+                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;yday&#39;</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;:001:00:00:00.000&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">formatted</span><span class="p">]):</span>
+                            <span class="n">formatted</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">formatted</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">formatted</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;byear_str&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">Time</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;byear&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">byear_str</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;jyear_str&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">Time</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;jyear&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">jyear_str</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">format_ticks</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">MplTimeConverter</span><span class="p">(</span><span class="n">units</span><span class="o">.</span><span class="n">ConversionInterface</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">simplify</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="nb">format</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">scale</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">simplify</span> <span class="o">=</span> <span class="n">simplify</span>
+
+            <span class="c1"># Keep track of original converter in case the context manager is</span>
+            <span class="c1"># used in a nested way.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_original_converter</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">Time</span><span class="p">)</span>
+
+            <span class="n">units</span><span class="o">.</span><span class="n">registry</span><span class="p">[</span><span class="n">Time</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">format</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format</span>
+
+        <span class="nd">@format</span><span class="o">.</span><span class="n">setter</span>
+        <span class="k">def</span> <span class="nf">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">UNSUPPORTED_FORMATS</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;time_support does not support format=</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_format</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">type</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_original_converter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">del</span> <span class="n">units</span><span class="o">.</span><span class="n">registry</span><span class="p">[</span><span class="n">Time</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">units</span><span class="o">.</span><span class="n">registry</span><span class="p">[</span><span class="n">Time</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_original_converter</span>
+
+        <span class="k">def</span> <span class="nf">default_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">format</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">scale</span>
+            <span class="k">return</span> <span class="s1">&#39;astropy_time&#39;</span>
+
+        <span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Convert a Time value to a scalar or array.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">scaled</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span> <span class="ow">in</span> <span class="n">YMDHMS_FORMATS</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">scaled</span><span class="o">.</span><span class="n">mjd</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;byear_str&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">scaled</span><span class="o">.</span><span class="n">byear</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;jyear_str&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">scaled</span><span class="o">.</span><span class="n">jyear</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">scaled</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">axisinfo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Return major and minor tick locators and formatters.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">majloc</span> <span class="o">=</span> <span class="n">AstropyTimeLocator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="n">majfmt</span> <span class="o">=</span> <span class="n">AstropyTimeFormatter</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">units</span><span class="o">.</span><span class="n">AxisInfo</span><span class="p">(</span><span class="n">majfmt</span><span class="o">=</span><span class="n">majfmt</span><span class="p">,</span>
+                                  <span class="n">majloc</span><span class="o">=</span><span class="n">majloc</span><span class="p">,</span>
+                                  <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Time (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">MplTimeConverter</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span> <span class="n">simplify</span><span class="o">=</span><span class="n">simplify</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,284 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.uncertainty.distributions &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.uncertainty.distributions</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Built-in distribution-creation functions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">.core</span> <span class="kn">import</span> <span class="n">Distribution</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;normal&#39;</span><span class="p">,</span> <span class="s1">&#39;poisson&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="normal"><a class="viewcode-back" href="../../../api/astropy.uncertainty.normal.html#astropy.uncertainty.normal">[docs]</a><span class="k">def</span> <span class="nf">normal</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ivar</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span>
+           <span class="bp">cls</span><span class="o">=</span><span class="n">Distribution</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a Gaussian/normal distribution.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    center : `~astropy.units.Quantity`</span>
+<span class="sd">        The center of this distribution</span>
+<span class="sd">    std : `~astropy.units.Quantity` or None</span>
+<span class="sd">        The standard deviation/σ of this distribution. Shape must match and unit</span>
+<span class="sd">        must be compatible with ``center``, or be `None` (if ``var`` or ``ivar``</span>
+<span class="sd">        are set).</span>
+<span class="sd">    var : `~astropy.units.Quantity` or None</span>
+<span class="sd">        The variance of this distribution. Shape must match and unit must be</span>
+<span class="sd">        compatible with ``center``, or be `None` (if ``std`` or ``ivar`` are set).</span>
+<span class="sd">    ivar : `~astropy.units.Quantity` or None</span>
+<span class="sd">        The inverse variance of this distribution. Shape must match and unit</span>
+<span class="sd">        must be compatible with ``center``, or be `None` (if ``std`` or ``var``</span>
+<span class="sd">        are set).</span>
+<span class="sd">    n_samples : int</span>
+<span class="sd">        The number of Monte Carlo samples to use with this distribution</span>
+<span class="sd">    cls : class</span>
+<span class="sd">        The class to use to create this distribution.  Typically a</span>
+<span class="sd">        `Distribution` subclass.</span>
+
+<span class="sd">    Remaining keywords are passed into the constructor of the ``cls``</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    distr : `~astropy.uncertainty.Distribution` or object</span>
+<span class="sd">        The sampled Gaussian distribution.</span>
+<span class="sd">        The type will be the same as the parameter ``cls``.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">center</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">var</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">std</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">var</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;normal cannot take both std and var&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ivar</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">std</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">ivar</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;normal cannot take both ivar and &#39;</span>
+                             <span class="s1">&#39;and std or var&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">std</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;normal requires one of std, var, or ivar&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
+
+    <span class="n">randshape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">std</span><span class="p">,</span> <span class="n">center</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">+</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,)</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="n">center</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="o">*</span><span class="n">randshape</span><span class="p">)</span> <span class="o">*</span> <span class="n">std</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<span class="n">COUNT_UNITS</span> <span class="o">=</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">count</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">electron</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">dimensionless_unscaled</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">chan</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">bin</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">vox</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">bit</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">byte</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="poisson"><a class="viewcode-back" href="../../../api/astropy.uncertainty.poisson.html#astropy.uncertainty.poisson">[docs]</a><span class="k">def</span> <span class="nf">poisson</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">Distribution</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a Poisson distribution.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    center : `~astropy.units.Quantity`</span>
+<span class="sd">        The center value of this distribution (i.e., λ).</span>
+<span class="sd">    n_samples : int</span>
+<span class="sd">        The number of Monte Carlo samples to use with this distribution</span>
+<span class="sd">    cls : class</span>
+<span class="sd">        The class to use to create this distribution.  Typically a</span>
+<span class="sd">        `Distribution` subclass.</span>
+
+<span class="sd">    Remaining keywords are passed into the constructor of the ``cls``</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    distr : `~astropy.uncertainty.Distribution` or object</span>
+<span class="sd">        The sampled Poisson distribution.</span>
+<span class="sd">        The type will be the same as the parameter ``cls``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># we convert to arrays because np.random.poisson has trouble with quantities</span>
+    <span class="n">has_unit</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="s1">&#39;unit&#39;</span><span class="p">):</span>
+        <span class="n">has_unit</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">poissonarr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">center</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">poissonarr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">center</span><span class="p">)</span>
+    <span class="n">randshape</span> <span class="o">=</span> <span class="n">poissonarr</span><span class="o">.</span><span class="n">shape</span> <span class="o">+</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,)</span>
+
+    <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">poisson</span><span class="p">(</span><span class="n">poissonarr</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">randshape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">has_unit</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">center</span><span class="o">.</span><span class="n">unit</span> <span class="o">==</span> <span class="n">u</span><span class="o">.</span><span class="n">adu</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span><span class="s1">&#39;ADUs were provided to poisson.  ADUs are not strictly count&#39;</span>
+                 <span class="s1">&#39;units because they need the gain to be applied. It is &#39;</span>
+                 <span class="s1">&#39;recommended you apply the gain to convert to e.g. electrons.&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">center</span><span class="o">.</span><span class="n">unit</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">COUNT_UNITS</span><span class="p">:</span>
+            <span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Unit </span><span class="si">{}</span><span class="s1"> was provided to poisson, which is not one of </span><span class="si">{}</span><span class="s1">, &#39;</span>
+                 <span class="s1">&#39;and therefore suspect as a &quot;counting&quot; unit.  Ensure you mean &#39;</span>
+                 <span class="s1">&#39;to use Poisson statistics.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">center</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="n">COUNT_UNITS</span><span class="p">))</span>
+
+        <span class="c1"># re-attach the unit</span>
+        <span class="n">samples</span> <span class="o">=</span> <span class="n">samples</span> <span class="o">*</span> <span class="n">center</span><span class="o">.</span><span class="n">unit</span>
+
+    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="uniform"><a class="viewcode-back" href="../../../api/astropy.uncertainty.uniform.html#astropy.uncertainty.uniform">[docs]</a><span class="k">def</span> <span class="nf">uniform</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">upper</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span>
+            <span class="bp">cls</span><span class="o">=</span><span class="n">Distribution</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a Uniform distriution from the lower and upper bounds.</span>
+
+<span class="sd">    Note that this function requires keywords to be explicit, and requires</span>
+<span class="sd">    either ``lower``/``upper`` or ``center``/``width``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lower : array-like</span>
+<span class="sd">        The lower edge of this distribution. If a `~astropy.units.Quantity`, the</span>
+<span class="sd">        distribution will have the same units as ``lower``.</span>
+<span class="sd">    upper : `~astropy.units.Quantity`</span>
+<span class="sd">        The upper edge of this distribution. Must match shape and if a</span>
+<span class="sd">        `~astropy.units.Quantity` must have compatible units with ``lower``.</span>
+<span class="sd">    center : array-like</span>
+<span class="sd">        The center value of the distribution. Cannot be provided at the same</span>
+<span class="sd">        time as ``lower``/``upper``.</span>
+<span class="sd">    width : array-like</span>
+<span class="sd">        The width of the distribution.  Must have the same shape and compatible</span>
+<span class="sd">        units with ``center`` (if any).</span>
+<span class="sd">    n_samples : int</span>
+<span class="sd">        The number of Monte Carlo samples to use with this distribution</span>
+<span class="sd">    cls : class</span>
+<span class="sd">        The class to use to create this distribution.  Typically a</span>
+<span class="sd">        `Distribution` subclass.</span>
+
+<span class="sd">    Remaining keywords are passed into the constructor of the ``cls``</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    distr : `~astropy.uncertainty.Distribution` or object</span>
+<span class="sd">        The sampled uniform distribution.</span>
+<span class="sd">        The type will be the same as the parameter ``cls``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">center</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">width</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">lower</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">lower</span><span class="p">)</span>
+        <span class="n">upper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">upper</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lower</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">upper</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;lower and upper must have consistent shapes&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">upper</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">lower</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">center</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">center</span><span class="p">)</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">width</span><span class="p">)</span>
+        <span class="n">lower</span> <span class="o">=</span> <span class="n">center</span> <span class="o">-</span> <span class="n">width</span><span class="o">/</span><span class="mi">2</span>
+        <span class="n">upper</span> <span class="o">=</span> <span class="n">center</span> <span class="o">+</span> <span class="n">width</span><span class="o">/</span><span class="mi">2</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;either upper/lower or center/width must be given &#39;</span>
+                         <span class="s1">&#39;to uniform - other combinations are not valid&#39;</span><span class="p">)</span>
+
+    <span class="n">newshape</span> <span class="o">=</span> <span class="n">lower</span><span class="o">.</span><span class="n">shape</span> <span class="o">+</span> <span class="p">(</span><span class="n">n_samples</span><span class="p">,)</span>
+    <span class="k">if</span> <span class="n">lower</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="nb">tuple</span><span class="p">()</span> <span class="ow">and</span> <span class="n">upper</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="nb">tuple</span><span class="p">():</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="n">upper</span> <span class="o">-</span> <span class="n">lower</span>  <span class="c1"># scalar</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="p">(</span><span class="n">upper</span> <span class="o">-</span> <span class="n">lower</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="n">lower</span> <span class="o">=</span> <span class="n">lower</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="n">lower</span> <span class="o">+</span> <span class="n">width</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">newshape</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

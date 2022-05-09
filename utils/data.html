@@ -1,0 +1,401 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Downloadable Data Management (astropy.utils.data) &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Masked Values (astropy.utils.masked)" href="masked/index.html" />
+    <link rel="prev" title="IERS data access (astropy.utils.iers)" href="iers.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="masked/index.html" title="Masked Values (astropy.utils.masked)">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="iers.html" title="IERS data access (astropy.utils.iers)">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Astropy Core Package Utilities (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.utils</span></code>)</a> &#187;</li>
+      
+      <li>Downloadable Data Management (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.utils.data</span></code>)</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="downloadable-data-management-astropy-utils-data">
+<span id="utils-data"></span><h1>Downloadable Data Management (<a class="reference internal" href="index.html#module-astropy.utils.data" title="astropy.utils.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.utils.data</span></code></a>)<a class="headerlink" href="#downloadable-data-management-astropy-utils-data" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>A number of Astropy’s tools work with data sets that are either awkwardly
+large (e.g., <a class="reference internal" href="../api/astropy.coordinates.solar_system_ephemeris.html#astropy.coordinates.solar_system_ephemeris" title="astropy.coordinates.solar_system_ephemeris"><code class="xref py py-obj docutils literal notranslate"><span class="pre">solar_system_ephemeris</span></code></a>) or
+regularly updated (e.g., <a class="reference internal" href="../api/astropy.utils.iers.IERS_B.html#astropy.utils.iers.IERS_B" title="astropy.utils.iers.IERS_B"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IERS_B</span></code></a>) or both
+(e.g., <a class="reference internal" href="../api/astropy.utils.iers.IERS_A.html#astropy.utils.iers.IERS_A" title="astropy.utils.iers.IERS_A"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IERS_A</span></code></a>). This kind of
+data - authoritative data made available on the Web, and possibly updated
+from time to time - is reasonably common in astronomy. The Astropy Project therefore
+provides some tools for working with such data.</p>
+<p>The primary tool for this is the <code class="docutils literal notranslate"><span class="pre">astropy</span></code> <em>cache</em>. This is a repository of
+downloaded data, indexed by the URL where it was obtained. The tool
+<a class="reference internal" href="../api/astropy.utils.data.download_file.html#astropy.utils.data.download_file" title="astropy.utils.data.download_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">download_file</span></code></a> and various other things built upon it can
+use this cache to request the contents of a URL, and (if they choose to use the
+cache) the data will only be downloaded if it is not already present in the
+cache. The tools can be instructed to obtain a new copy of data
+that is in the cache but has been updated online.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">astropy</span></code> cache is stored in a centralized place (on Linux machines by
+default it is <code class="docutils literal notranslate"><span class="pre">$HOME/.astropy/cache</span></code>; see <a class="reference internal" href="../config/index.html#astropy-config"><span class="std std-ref">Configuration System (astropy.config)</span></a> for
+more details).  You can check its location on your machine:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.config.paths</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">astropy</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">get_cache_dir</span><span class="p">()</span>  
+<span class="go">&#39;/home/burnell/.astropy/cache&#39;</span>
+</pre></div>
+</div>
+<p>This centralization means that the cache is persistent and shared between all
+<code class="docutils literal notranslate"><span class="pre">astropy</span></code> runs in any virtualenv by one user on one machine (possibly more if
+your home directory is shared between multiple machines).  This can
+dramatically accelerate <code class="docutils literal notranslate"><span class="pre">astropy</span></code> operations and reduce the load on servers,
+like those of the IERS, that were not designed for heavy Web traffic. If you
+find the cache has corrupted or outdated data in it, you can remove an entry or
+clear the whole thing with <a class="reference internal" href="../api/astropy.utils.data.clear_download_cache.html#astropy.utils.data.clear_download_cache" title="astropy.utils.data.clear_download_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clear_download_cache</span></code></a>.</p>
+<p>The files in the cache directory are named according to a cryptographic hash of
+their URL (currently MD5, so in principle malevolent entities can cause
+collisions, though the security risks this poses are marginal at most). The
+modification times on these files normally indicate when they were last
+downloaded from the Internet.</p>
+</div>
+<div class="section" id="usage-within-astropy">
+<h2>Usage Within Astropy<a class="headerlink" href="#usage-within-astropy" title="Permalink to this headline">¶</a></h2>
+<p>For the most part, you can ignore the caching mechanism and rely on
+<code class="docutils literal notranslate"><span class="pre">astropy</span></code> to have the correct data when you need it. For example, precise
+time conversions and sky locations need measured tables of the Earth’s
+rotation from the IERS. The table <a class="reference internal" href="../api/astropy.utils.iers.IERS_Auto.html#astropy.utils.iers.IERS_Auto" title="astropy.utils.iers.IERS_Auto"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IERS_Auto</span></code></a> provides
+the infrastructure for many of these calculations. It makes available
+Earth rotation parameters, and if you request them for a time more recent
+than its tables cover, it will download updated tables from the IERS. So
+for example asking what time it is in UT1 (a timescale that reflects the
+irregularity of the Earth’s rotation) probably triggers a download of the
+IERS data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">ut1</span>  
+<span class="go">Downloading https://maia.usno.navy.mil/ser7/finals2000A.all</span>
+<span class="go">|============================================| 3.2M/3.2M (100.00%)         1s</span>
+<span class="go">&lt;Time object: scale=&#39;ut1&#39; format=&#39;datetime&#39; value=2019-09-22 08:39:03.812731&gt;</span>
+</pre></div>
+</div>
+<p>But running it a second time does not require any new download:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">ut1</span>  
+<span class="go">&lt;Time object: scale=&#39;ut1&#39; format=&#39;datetime&#39; value=2019-09-22 08:41:21.588836&gt;</span>
+</pre></div>
+</div>
+<p>Some data is also made available from the <a class="reference external" href="https://www.astropy.org/astropy-data/">Astropy data server</a> either
+for use within <code class="docutils literal notranslate"><span class="pre">astropy</span></code> or for your convenience. These are available more
+conveniently with the <code class="docutils literal notranslate"><span class="pre">get_pkg_data_*</span></code> functions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.utils.data</span> <span class="kn">import</span> <span class="n">get_pkg_data_contents</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">get_pkg_data_contents</span><span class="p">(</span><span class="s2">&quot;coordinates/sites-un-ascii&quot;</span><span class="p">))</span>  
+<span class="go"># these are all mappings from the name in sites.json (which is ASCII-only) to the &quot;true&quot; unicode names</span>
+<span class="go">TUBITAK-&gt;TÜBİTAK</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Sometimes when downloading files from internet resources secured with
+TLS/SSL, you may get an exception regarding a certificate verification
+error.  Typically this indicates that Python could not find an
+up-to-date collection of <a class="reference external" href="https://en.wikipedia.org/wiki/Root_certificate">root certificates</a> on your system.  This is
+especially common on Windows.  This problem can usually be resolved
+by installing the <a class="reference external" href="https://pypi.org/project/certifi/">certifi</a> package, which Astropy will use if
+available to verify remote connections.  In rare cases, certificate
+verification may still fail if the remote server is misconfigured (e.g.,
+with expired certificates).  In this case, you may pass the
+<code class="docutils literal notranslate"><span class="pre">allow_insecure=True</span></code> argument to
+<a class="reference internal" href="../api/astropy.utils.data.download_file.html#astropy.utils.data.download_file" title="astropy.utils.data.download_file"><code class="xref py py-func docutils literal notranslate"><span class="pre">download_file()</span></code></a> to allow the download with a
+warning instead (not recommended unless you understand the <a class="reference external" href="https://en.wikipedia.org/wiki/Man-in-the-middle_attack">potential
+risks</a>).</p>
+</div>
+</div>
+<div class="section" id="usage-from-outside-astropy">
+<h2>Usage From Outside Astropy<a class="headerlink" href="#usage-from-outside-astropy" title="Permalink to this headline">¶</a></h2>
+<p>Users of <code class="docutils literal notranslate"><span class="pre">astropy</span></code> can also make use of <code class="docutils literal notranslate"><span class="pre">astropy</span></code>’s caching and downloading
+mechanism. In its simplest form, this amounts to using
+<a class="reference internal" href="../api/astropy.utils.data.download_file.html#astropy.utils.data.download_file" title="astropy.utils.data.download_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">download_file</span></code></a> with the <code class="docutils literal notranslate"><span class="pre">cache=True</span></code> argument to obtain
+their data, from the cache if the data is there:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.utils.iers</span> <span class="kn">import</span> <span class="n">IERS_B_URL</span><span class="p">,</span> <span class="n">IERS_B</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.utils.data</span> <span class="kn">import</span> <span class="n">download_file</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">IERS_B</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">download_file</span><span class="p">(</span><span class="n">IERS_B_URL</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">))[</span><span class="s2">&quot;year&quot;</span><span class="p">,</span><span class="s2">&quot;month&quot;</span><span class="p">,</span><span class="s2">&quot;day&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span>  
+<span class="go"> &lt;IERS_B length=3&gt;</span>
+<span class="go"> year month  day</span>
+<span class="go">int64 int64 int64</span>
+<span class="go">----- ----- -----</span>
+<span class="go"> 2019     8     4</span>
+<span class="go"> 2019     8     5</span>
+<span class="go"> 2019     8     6</span>
+</pre></div>
+</div>
+<p>If users want to update the cache to a newer version of the
+data (note that here the data was already up to date; users
+will have to decide for themselves when to obtain new versions),
+they can use the <code class="docutils literal notranslate"><span class="pre">cache='update'</span></code> argument:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">IERS_B</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">download_file</span><span class="p">(</span><span class="n">IERS_B_URL</span><span class="p">,</span>
+<span class="gp">... </span>                          <span class="n">cache</span><span class="o">=</span><span class="s1">&#39;update&#39;</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">)[</span><span class="s2">&quot;year&quot;</span><span class="p">,</span><span class="s2">&quot;month&quot;</span><span class="p">,</span><span class="s2">&quot;day&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span>  
+<span class="go">Downloading http://hpiers.obspm.fr/iers/eop/eopc04/eopc04_IAU2000.62-now</span>
+<span class="go">|=========================================| 3.2M/3.2M (100.00%)         0s</span>
+<span class="go">&lt;IERS_B length=3&gt;</span>
+<span class="go"> year month  day</span>
+<span class="go">int64 int64 int64</span>
+<span class="go">----- ----- -----</span>
+<span class="go"> 2019     8    18</span>
+<span class="go"> 2019     8    19</span>
+<span class="go"> 2019     8    20</span>
+</pre></div>
+</div>
+<p>If they are concerned that the primary source of the data may be
+overloaded or unavailable, they can use the <code class="docutils literal notranslate"><span class="pre">sources</span></code> argument
+to provide a list of sources to attempt downloading from, in order.
+This need not include the original source. Regardless, the data
+will be stored in the cache under the original URL requested:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">download_file</span><span class="p">(</span><span class="s2">&quot;ftp://ssd.jpl.nasa.gov/pub/eph/planets/bsp/de405.bsp&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">sources</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;https://data.nanograv.org/static/data/ephem/de405.bsp&#39;</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="s1">&#39;ftp://ssd.jpl.nasa.gov/pub/eph/planets/bsp/de405.bsp&#39;</span><span class="p">])</span>  
+<span class="go">Downloading ftp://ssd.jpl.nasa.gov/pub/eph/planets/bsp/de405.bsp from https://data.nanograv.org/static/data/ephem/de405.bsp</span>
+<span class="go">|========================================|  65M/ 65M (100.00%)        19s</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="cache-management">
+<h2>Cache Management<a class="headerlink" href="#cache-management" title="Permalink to this headline">¶</a></h2>
+<p>Because the cache is persistent, it is possible for it to become inconveniently
+large, or become filled with irrelevant data. While it is simply a directory on
+disk, each file is supposed to represent the contents of a URL, and many URLs
+do not make acceptable on-disk filenames (for example, containing troublesome
+characters like “:” and “~”). There is reason to worry that multiple
+<code class="docutils literal notranslate"><span class="pre">astropy</span></code> processes accessing the cache simultaneously might lead to cache
+corruption. The data is therefore stored in a subdirectory named after the hash
+of the URL, and write access is handled in a way that is resistant to
+concurrency problems. So access to the cache is more convenient with a few
+helpers provided by <a class="reference internal" href="index.html#module-astropy.utils.data" title="astropy.utils.data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code></a>.</p>
+<p>If your cache starts behaving oddly you can use
+<a class="reference internal" href="../api/astropy.utils.data.check_download_cache.html#astropy.utils.data.check_download_cache" title="astropy.utils.data.check_download_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_download_cache</span></code></a> to examine your cache contents and
+raise an exception if it finds any anomalies.  If a single file is undesired or
+damaged, it can be removed by calling
+<a class="reference internal" href="../api/astropy.utils.data.clear_download_cache.html#astropy.utils.data.clear_download_cache" title="astropy.utils.data.clear_download_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clear_download_cache</span></code></a> with an argument that is the URL it
+was obtained from, the filename of the downloaded file, or the hash of its
+contents. Should the cache ever become badly corrupted,
+<a class="reference internal" href="../api/astropy.utils.data.clear_download_cache.html#astropy.utils.data.clear_download_cache" title="astropy.utils.data.clear_download_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clear_download_cache</span></code></a> with no arguments will simply delete
+the whole directory, freeing the space and removing any inconsistent data. Of
+course, if you remove data using either of these tools, any processes currently
+using that data may be disrupted (or, under Windows, deleting the cache may not
+be possible until those processes terminate). So use
+<a class="reference internal" href="../api/astropy.utils.data.clear_download_cache.html#astropy.utils.data.clear_download_cache" title="astropy.utils.data.clear_download_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clear_download_cache</span></code></a> with care.</p>
+<p>To check the total space occupied by the cache, use
+<a class="reference internal" href="../api/astropy.utils.data.cache_total_size.html#astropy.utils.data.cache_total_size" title="astropy.utils.data.cache_total_size"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cache_total_size</span></code></a>. The contents of the cache can be
+listed with <a class="reference internal" href="../api/astropy.utils.data.get_cached_urls.html#astropy.utils.data.get_cached_urls" title="astropy.utils.data.get_cached_urls"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_cached_urls</span></code></a>, and the presence of a
+particular URL in the cache can be tested with
+<a class="reference internal" href="../api/astropy.utils.data.is_url_in_cache.html#astropy.utils.data.is_url_in_cache" title="astropy.utils.data.is_url_in_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_url_in_cache</span></code></a>. More general manipulations can be
+carried out using <a class="reference internal" href="../api/astropy.utils.data.cache_contents.html#astropy.utils.data.cache_contents" title="astropy.utils.data.cache_contents"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cache_contents</span></code></a>, which returns a
+<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a> mapping URLs to on-disk filenames of their contents.</p>
+<p>If you want to transfer the cache to another computer, or preserve its contents
+for later use, you can use the functions <a class="reference internal" href="../api/astropy.utils.data.export_download_cache.html#astropy.utils.data.export_download_cache" title="astropy.utils.data.export_download_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_download_cache</span></code></a> to
+produce a ZIP file listing some or all of the cache contents, and
+<a class="reference internal" href="../api/astropy.utils.data.import_download_cache.html#astropy.utils.data.import_download_cache" title="astropy.utils.data.import_download_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_download_cache</span></code></a> to load the <code class="docutils literal notranslate"><span class="pre">astropy</span></code> cache from such a
+ZIP file.</p>
+<p>The Astropy cache has changed format - once in the Python 2 to Python
+3 transition, and again before Astropy version 4.0.2 to resolve some
+concurrency problems that arose on some compute clusters. Each version of the
+cache is in its own subdirectory, so the old versions do not interfere with the
+new versions and vice versa, but their contents are not used by this version
+and are not cleared by <a class="reference internal" href="../api/astropy.utils.data.clear_download_cache.html#astropy.utils.data.clear_download_cache" title="astropy.utils.data.clear_download_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clear_download_cache</span></code></a>. To remove
+these old cache directories, you can run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">shutil</span> <span class="kn">import</span> <span class="n">rmtree</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">join</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.config.paths</span> <span class="kn">import</span> <span class="n">get_cache_dir</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rmtree</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">get_cache_dir</span><span class="p">(),</span> <span class="s1">&#39;download&#39;</span><span class="p">,</span> <span class="s1">&#39;py2&#39;</span><span class="p">),</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rmtree</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">get_cache_dir</span><span class="p">(),</span> <span class="s1">&#39;download&#39;</span><span class="p">,</span> <span class="s1">&#39;py3&#39;</span><span class="p">),</span> <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  
+</pre></div>
+</div>
+</div>
+<div class="section" id="using-astropy-with-limited-or-no-internet-access">
+<h2>Using Astropy With Limited or No Internet Access<a class="headerlink" href="#using-astropy-with-limited-or-no-internet-access" title="Permalink to this headline">¶</a></h2>
+<p>You might want to use <code class="docutils literal notranslate"><span class="pre">astropy</span></code> on a telescope control machine behind a strict
+firewall. Or you might be running continuous integration (CI) on your <code class="docutils literal notranslate"><span class="pre">astropy</span></code>
+server and want to avoid hammering astronomy servers on every pull request for
+every architecture. Or you might not have access to US government or military
+web servers. Whichever is the case, you may need to avoid <code class="docutils literal notranslate"><span class="pre">astropy</span></code> needing data
+from the Internet. There is no simple and complete solution to this problem at
+the moment, but there are tools that can help.</p>
+<p>Exactly which external data your project depends on will depend on what parts
+of <code class="docutils literal notranslate"><span class="pre">astropy</span></code> you use and how. The most general solution is to use a computer that
+can access the Internet to run a version of your calculation that pulls in all of
+the data files you will require, including sufficiently up-to-date versions of
+files like the IERS data that update regularly. Then once the cache on this
+connected machine is loaded with everything necessary, transport the cache
+contents to your target machine by whatever means you have available, whether
+by copying via an intermediate machine, portable disk drive, or some other
+tool. The cache directory itself is somewhat portable between machines of the
+same UNIX flavour; this may be sufficient if you can persuade your CI system to
+cache the directory between runs. For greater portability, though, you can
+simply use <a class="reference internal" href="../api/astropy.utils.data.export_download_cache.html#astropy.utils.data.export_download_cache" title="astropy.utils.data.export_download_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_download_cache</span></code></a> and
+<a class="reference internal" href="../api/astropy.utils.data.import_download_cache.html#astropy.utils.data.import_download_cache" title="astropy.utils.data.import_download_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_download_cache</span></code></a>, which are portable and will allow
+adding files to an existing cache directory.</p>
+<p>If your application needs IERS data specifically, you can download the
+appropriate IERS table, covering the appropriate time span, by any means you
+find convenient. You can then load this file into your application and use the
+resulting table rather than <a class="reference internal" href="../api/astropy.utils.iers.IERS_Auto.html#astropy.utils.iers.IERS_Auto" title="astropy.utils.iers.IERS_Auto"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IERS_Auto</span></code></a>. In fact, the IERS
+B table is small enough that a version (not necessarily recent) is bundled with
+<code class="docutils literal notranslate"><span class="pre">astropy</span></code> as <code class="docutils literal notranslate"><span class="pre">astropy.utils.iers.IERS_B_FILE</span></code>. Using a specific non-automatic
+table also has the advantage of giving you control over exactly which version
+of the IERS data your application is using. See also <a class="reference internal" href="iers.html#iers-working-offline"><span class="std std-ref">Working offline</span></a>.</p>
+<p>If your issue is with certain specific servers, even if they are the ones
+<code class="docutils literal notranslate"><span class="pre">astropy</span></code> normally uses, if you can anticipate exactly which files will be needed
+(or just pick up after <code class="docutils literal notranslate"><span class="pre">astropy</span></code> fails to obtain them) and make those files
+available somewhere else, you can request they be downloaded to the cache
+using <a class="reference internal" href="../api/astropy.utils.data.download_file.html#astropy.utils.data.download_file" title="astropy.utils.data.download_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">download_file</span></code></a> with the <code class="docutils literal notranslate"><span class="pre">sources</span></code> argument set
+to locations you know do work. You can also set <code class="docutils literal notranslate"><span class="pre">sources</span></code> to an empty list
+to ensure that <a class="reference internal" href="../api/astropy.utils.data.download_file.html#astropy.utils.data.download_file" title="astropy.utils.data.download_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">download_file</span></code></a> does not attempt to use
+the Internet at all.</p>
+<p>If you have a particular URL that is giving you trouble, you can download it
+using some other tool (e.g., <code class="docutils literal notranslate"><span class="pre">wget</span></code>), possibly on another machine, and
+then use <a class="reference internal" href="../api/astropy.utils.data.import_file_to_cache.html#astropy.utils.data.import_file_to_cache" title="astropy.utils.data.import_file_to_cache"><code class="xref py py-obj docutils literal notranslate"><span class="pre">import_file_to_cache</span></code></a>.</p>
+</div>
+<div class="section" id="astropy-data-and-clusters">
+<h2>Astropy Data and Clusters<a class="headerlink" href="#astropy-data-and-clusters" title="Permalink to this headline">¶</a></h2>
+<p>Astronomical calculations often require the use of a large number of different
+processes on different machines with a shared home filesystem. This can pose
+certain complexities. In particular, if the many different processes attempt to
+download a file simultaneously this can overload a server or trigger security
+systems. The parallel access to the home directory can also trigger concurrency
+problems in the Astropy data cache, though we have tried to minimize these. We
+therefore recommend the following guidelines:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Do one of the following:</p>
+<ul>
+<li><p>Write a simple script that sets <code class="docutils literal notranslate"><span class="pre">astropy.utils.iers.conf.auto_download</span> <span class="pre">=</span>
+<span class="pre">True</span></code> and then accesses all cached resources your code will need,
+including source name lookups and IERS tables. Run it on the head node from
+time to time (frequently enough to beat the timeout
+<code class="docutils literal notranslate"><span class="pre">astropy.utils.iers.conf.auto_max_age</span></code>, which defaults to 30 days) to
+ensure all data is up to date.</p></li>
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">astropy.utils.iers.conf.auto_download</span> <span class="pre">=</span> <span class="pre">False</span></code> in your code and set
+<code class="docutils literal notranslate"><span class="pre">astropy.utils.iers.conf.iers_degraded_accuracy</span></code> to either <code class="docutils literal notranslate"><span class="pre">'warn'</span></code>
+or <code class="docutils literal notranslate"><span class="pre">'ignore'</span></code>. These prevent the normal exception that occurs if a
+time conversion falls outside the bounds of available (local) IERS data.
+<strong>WARNING</strong>: only use this option if your application does not need full
+accuracy time conversions.</p></li>
+</ul>
+</li>
+<li><p>Make an Astropy config file (see <a class="reference internal" href="../config/index.html#astropy-config"><span class="std std-ref">Configuration System (astropy.config)</span></a>) that sets
+<code class="docutils literal notranslate"><span class="pre">astropy.utils.iers.conf.auto_download</span> <span class="pre">=</span> <span class="pre">False</span></code> so that the worker jobs will
+not suddenly notice an out-of-date table all at once and frantically attempt
+to download it.</p></li>
+<li><p>Optionally, in this file, set <code class="docutils literal notranslate"><span class="pre">astropy.utils.data.conf.allow_internet</span> <span class="pre">=</span> <span class="pre">False</span></code> to
+prevent any attempt to download any file from the worker nodes; if you do this,
+you will need to override this setting in your script that does the actual
+downloading.</p></li>
+</ul>
+</div></blockquote>
+<p>Now your worker nodes should not need to obtain anything from the Internet and
+all should run smoothly.</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Downloadable Data Management (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.utils.data</span></code>)</a><ul>
+<li><a class="reference internal" href="#introduction">Introduction</a></li>
+<li><a class="reference internal" href="#usage-within-astropy">Usage Within Astropy</a></li>
+<li><a class="reference internal" href="#usage-from-outside-astropy">Usage From Outside Astropy</a></li>
+<li><a class="reference internal" href="#cache-management">Cache Management</a></li>
+<li><a class="reference internal" href="#using-astropy-with-limited-or-no-internet-access">Using Astropy With Limited or No Internet Access</a></li>
+<li><a class="reference internal" href="#astropy-data-and-clusters">Astropy Data and Clusters</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/utils/data.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

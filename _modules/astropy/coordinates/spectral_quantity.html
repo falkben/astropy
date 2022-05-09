@@ -1,0 +1,405 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.coordinates.spectral_quantity &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.coordinates.spectral_quantity</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">si</span>
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">equivalencies</span> <span class="k">as</span> <span class="n">eq</span>
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">Unit</span>
+<span class="kn">from</span> <span class="nn">astropy.units.quantity</span> <span class="kn">import</span> <span class="n">SpecificTypeQuantity</span><span class="p">,</span> <span class="n">Quantity</span>
+<span class="kn">from</span> <span class="nn">astropy.units.decorators</span> <span class="kn">import</span> <span class="n">quantity_input</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SpectralQuantity&#39;</span><span class="p">]</span>
+
+<span class="c1"># We don&#39;t want to run doctests in the docstrings we inherit from Quantity</span>
+<span class="n">__doctest_skip__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SpectralQuantity.*&#39;</span><span class="p">]</span>
+
+<span class="n">KMS</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">si</span><span class="o">.</span><span class="n">s</span>
+
+<span class="n">SPECTRAL_UNITS</span> <span class="o">=</span> <span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">Hz</span><span class="p">,</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">si</span><span class="o">.</span><span class="n">J</span><span class="p">,</span> <span class="n">si</span><span class="o">.</span><span class="n">m</span> <span class="o">**</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">KMS</span><span class="p">)</span>
+
+<span class="n">DOPPLER_CONVENTIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;radio&#39;</span><span class="p">:</span> <span class="n">eq</span><span class="o">.</span><span class="n">doppler_radio</span><span class="p">,</span>
+    <span class="s1">&#39;optical&#39;</span><span class="p">:</span> <span class="n">eq</span><span class="o">.</span><span class="n">doppler_optical</span><span class="p">,</span>
+    <span class="s1">&#39;relativistic&#39;</span><span class="p">:</span> <span class="n">eq</span><span class="o">.</span><span class="n">doppler_relativistic</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="SpectralQuantity"><a class="viewcode-back" href="../../../api/astropy.coordinates.SpectralQuantity.html#astropy.coordinates.SpectralQuantity">[docs]</a><span class="k">class</span> <span class="nc">SpectralQuantity</span><span class="p">(</span><span class="n">SpecificTypeQuantity</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    One or more value(s) with spectral units.</span>
+
+<span class="sd">    The spectral units should be those for frequencies, wavelengths, energies,</span>
+<span class="sd">    wavenumbers, or velocities (interpreted as Doppler velocities relative to a</span>
+<span class="sd">    rest spectral value). The advantage of using this class over the regular</span>
+<span class="sd">    `~astropy.units.Quantity` class is that in `SpectralQuantity`, the</span>
+<span class="sd">    ``u.spectral`` equivalency is enabled by default (allowing automatic</span>
+<span class="sd">    conversion between spectral units), and a preferred Doppler rest value and</span>
+<span class="sd">    convention can be stored for easy conversion to/from velocities.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value : ndarray or `~astropy.units.Quantity` or `SpectralQuantity`</span>
+<span class="sd">        Spectral axis data values.</span>
+<span class="sd">    unit : unit-like</span>
+<span class="sd">        Unit for the given data.</span>
+<span class="sd">    doppler_rest : `~astropy.units.Quantity` [&#39;speed&#39;], optional</span>
+<span class="sd">        The rest value to use for conversions from/to velocities</span>
+<span class="sd">    doppler_convention : str, optional</span>
+<span class="sd">        The convention to use when converting the spectral data to/from</span>
+<span class="sd">        velocities.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_equivalent_unit</span> <span class="o">=</span> <span class="n">SPECTRAL_UNITS</span>
+
+    <span class="n">_include_easy_conversion_members</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">doppler_rest</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">doppler_convention</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="n">obj</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">unit</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># If we&#39;re initializing from an existing SpectralQuantity, keep any</span>
+        <span class="c1"># parameters that aren&#39;t being overridden</span>
+        <span class="k">if</span> <span class="n">doppler_rest</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">doppler_rest</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;doppler_rest&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">doppler_convention</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">doppler_convention</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;doppler_convention&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">obj</span><span class="o">.</span><span class="n">_doppler_rest</span> <span class="o">=</span> <span class="n">doppler_rest</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">_doppler_convention</span> <span class="o">=</span> <span class="n">doppler_convention</span>
+
+        <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__array_finalize__</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_doppler_rest</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;_doppler_rest&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_doppler_convention</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;_doppler_convention&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__quantity_subclass__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">):</span>
+        <span class="c1"># Always default to just returning a Quantity, unless we explicitly</span>
+        <span class="c1"># choose to return a SpectralQuantity - even if the units match, we</span>
+        <span class="c1"># want to avoid doing things like adding two SpectralQuantity instances</span>
+        <span class="c1"># together and getting a SpectralQuantity back</span>
+        <span class="k">if</span> <span class="n">unit</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">SpectralQuantity</span><span class="p">,</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Quantity</span><span class="p">,</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__array_ufunc__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># We always return Quantity except in a few specific cases</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__array_ufunc__</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">((</span><span class="n">function</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span>
+            <span class="ow">or</span> <span class="n">function</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">true_divide</span> <span class="ow">and</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">unit</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span>
+            <span class="ow">or</span> <span class="p">(</span><span class="n">function</span> <span class="ow">in</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">fmax</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">fmin</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;reduce&#39;</span><span class="p">,</span> <span class="s1">&#39;reduceat&#39;</span><span class="p">))):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot store the result of this operation in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">Quantity</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">doppler_rest</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The rest value of the spectrum used for transformations to/from</span>
+<span class="sd">        velocity space.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        `~astropy.units.Quantity` [&#39;speed&#39;]</span>
+<span class="sd">            Rest value as an astropy `~astropy.units.Quantity` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_doppler_rest</span>
+
+    <span class="nd">@doppler_rest</span><span class="o">.</span><span class="n">setter</span>
+    <span class="nd">@quantity_input</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">SPECTRAL_UNITS</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">doppler_rest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        New rest value needed for velocity-space conversions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        value : `~astropy.units.Quantity` [&#39;speed&#39;]</span>
+<span class="sd">            Rest value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_doppler_rest</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;doppler_rest has already been set, and cannot &quot;</span>
+                                 <span class="s2">&quot;be changed. Use the ``to`` method to convert &quot;</span>
+                                 <span class="s2">&quot;the spectral values(s) to use a different &quot;</span>
+                                 <span class="s2">&quot;rest value&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_doppler_rest</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">doppler_convention</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The defined convention for conversions to/from velocity space.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            One of &#39;optical&#39;, &#39;radio&#39;, or &#39;relativistic&#39; representing the</span>
+<span class="sd">            equivalency used in the unit conversions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_doppler_convention</span>
+
+    <span class="nd">@doppler_convention</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">doppler_convention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        New velocity convention used for velocity space conversions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        value</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        More information on the equations dictating the transformations can be</span>
+<span class="sd">        found in the astropy documentation [1]_.</span>
+
+<span class="sd">        References</span>
+<span class="sd">        ----------</span>
+<span class="sd">        .. [1] Astropy documentation: https://docs.astropy.org/en/stable/units/equivalencies.html#spectral-doppler-equivalencies</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_doppler_convention</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;doppler_convention has already been set, and cannot &quot;</span>
+                                 <span class="s2">&quot;be changed. Use the ``to`` method to convert &quot;</span>
+                                 <span class="s2">&quot;the spectral values(s) to use a different &quot;</span>
+                                 <span class="s2">&quot;convention&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">DOPPLER_CONVENTIONS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;doppler_convention should be one of </span><span class="si">{</span><span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">DOPPLER_CONVENTIONS</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_doppler_convention</span> <span class="o">=</span> <span class="n">value</span>
+
+<div class="viewcode-block" id="SpectralQuantity.to"><a class="viewcode-back" href="../../../api/astropy.coordinates.SpectralQuantity.html#astropy.coordinates.SpectralQuantity.to">[docs]</a>    <span class="nd">@quantity_input</span><span class="p">(</span><span class="n">doppler_rest</span><span class="o">=</span><span class="n">SPECTRAL_UNITS</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span>
+           <span class="n">equivalencies</span><span class="o">=</span><span class="p">[],</span>
+           <span class="n">doppler_rest</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+           <span class="n">doppler_convention</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a new `~astropy.coordinates.SpectralQuantity` object with the specified unit.</span>
+
+<span class="sd">        By default, the ``spectral`` equivalency will be enabled, as well as</span>
+<span class="sd">        one of the Doppler equivalencies if converting to/from velocities.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        unit : unit-like</span>
+<span class="sd">            An object that represents the unit to convert to. Must be</span>
+<span class="sd">            an `~astropy.units.UnitBase` object or a string parseable</span>
+<span class="sd">            by the `~astropy.units` package, and should be a spectral unit.</span>
+<span class="sd">        equivalencies : list of `~astropy.units.equivalencies.Equivalency`, optional</span>
+<span class="sd">            A list of equivalence pairs to try if the units are not</span>
+<span class="sd">            directly convertible (along with spectral).</span>
+<span class="sd">            See :ref:`astropy:unit_equivalencies`.</span>
+<span class="sd">            If not provided or ``[]``, spectral equivalencies will be used.</span>
+<span class="sd">            If `None`, no equivalencies will be applied at all, not even any</span>
+<span class="sd">            set globally or within a context.</span>
+<span class="sd">        doppler_rest : `~astropy.units.Quantity` [&#39;speed&#39;], optional</span>
+<span class="sd">            The rest value used when converting to/from velocities. This will</span>
+<span class="sd">            also be set at an attribute on the output</span>
+<span class="sd">            `~astropy.coordinates.SpectralQuantity`.</span>
+<span class="sd">        doppler_convention : {&#39;relativistic&#39;, &#39;optical&#39;, &#39;radio&#39;}, optional</span>
+<span class="sd">            The Doppler convention used when converting to/from velocities.</span>
+<span class="sd">            This will also be set at an attribute on the output</span>
+<span class="sd">            `~astropy.coordinates.SpectralQuantity`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        `SpectralQuantity`</span>
+<span class="sd">            New spectral coordinate object with data converted to the new unit.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Make sure units can be passed as strings</span>
+        <span class="n">unit</span> <span class="o">=</span> <span class="n">Unit</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
+
+        <span class="c1"># If equivalencies is explicitly set to None, we should just use the</span>
+        <span class="c1"># default Quantity.to with equivalencies also set to None</span>
+        <span class="k">if</span> <span class="n">equivalencies</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span>
+
+        <span class="c1"># FIXME: need to consider case where doppler equivalency is passed in</span>
+        <span class="c1"># equivalencies list, or is u.spectral equivalency is already passed</span>
+
+        <span class="k">if</span> <span class="n">doppler_rest</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">doppler_rest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_doppler_rest</span>
+
+        <span class="k">if</span> <span class="n">doppler_convention</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">doppler_convention</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_doppler_convention</span>
+        <span class="k">elif</span> <span class="n">doppler_convention</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">DOPPLER_CONVENTIONS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;doppler_convention should be one of </span><span class="si">{</span><span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">DOPPLER_CONVENTIONS</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">KMS</span><span class="p">)</span> <span class="ow">and</span> <span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">KMS</span><span class="p">):</span>
+
+            <span class="c1"># Special case: if the current and final units are both velocity,</span>
+            <span class="c1"># and either the rest value or the convention are different, we</span>
+            <span class="c1"># need to convert back to frequency temporarily.</span>
+
+            <span class="k">if</span> <span class="n">doppler_convention</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_doppler_convention</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Original doppler_convention not set&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">doppler_rest</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_doppler_rest</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Original doppler_rest not set&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">doppler_rest</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">doppler_convention</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">equivalencies</span><span class="p">)</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">result</span>
+
+            <span class="k">elif</span> <span class="p">(</span><span class="n">doppler_rest</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="p">(</span><span class="n">doppler_convention</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Either both or neither doppler_rest and &quot;</span>
+                                 <span class="s2">&quot;doppler_convention should be defined for &quot;</span>
+                                 <span class="s2">&quot;velocity conversions&quot;</span><span class="p">)</span>
+
+            <span class="n">vel_equiv1</span> <span class="o">=</span> <span class="n">DOPPLER_CONVENTIONS</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_doppler_convention</span><span class="p">](</span><span class="bp">self</span><span class="o">.</span><span class="n">_doppler_rest</span><span class="p">)</span>
+
+            <span class="n">freq</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">si</span><span class="o">.</span><span class="n">Hz</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">equivalencies</span> <span class="o">+</span> <span class="n">vel_equiv1</span><span class="p">)</span>
+
+            <span class="n">vel_equiv2</span> <span class="o">=</span> <span class="n">DOPPLER_CONVENTIONS</span><span class="p">[</span><span class="n">doppler_convention</span><span class="p">](</span><span class="n">doppler_rest</span><span class="p">)</span>
+
+            <span class="n">result</span> <span class="o">=</span> <span class="n">freq</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">equivalencies</span> <span class="o">+</span> <span class="n">vel_equiv2</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="n">additional_equivalencies</span> <span class="o">=</span> <span class="n">eq</span><span class="o">.</span><span class="n">spectral</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">KMS</span><span class="p">)</span> <span class="ow">or</span> <span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">KMS</span><span class="p">):</span>
+
+                <span class="k">if</span> <span class="n">doppler_convention</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;doppler_convention not set, cannot convert to/from velocities&quot;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">doppler_rest</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;doppler_rest not set, cannot convert to/from velocities&quot;</span><span class="p">)</span>
+
+                <span class="n">additional_equivalencies</span> <span class="o">=</span> <span class="n">additional_equivalencies</span> <span class="o">+</span> <span class="n">DOPPLER_CONVENTIONS</span><span class="p">[</span><span class="n">doppler_convention</span><span class="p">](</span><span class="n">doppler_rest</span><span class="p">)</span>
+
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">equivalencies</span> <span class="o">+</span> <span class="n">additional_equivalencies</span><span class="p">)</span>
+
+        <span class="c1"># Since we have to explicitly specify when we want to keep this as a</span>
+        <span class="c1"># SpectralQuantity, we need to convert it back from a Quantity to</span>
+        <span class="c1"># a SpectralQuantity here. Note that we don&#39;t use __array_finalize__</span>
+        <span class="c1"># here since we might need to set the output doppler convention and</span>
+        <span class="c1"># rest based on the parameters passed to &#39;to&#39;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">_doppler_convention</span> <span class="o">=</span> <span class="n">doppler_convention</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">_doppler_rest</span> <span class="o">=</span> <span class="n">doppler_rest</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="SpectralQuantity.to_value"><a class="viewcode-back" href="../../../api/astropy.coordinates.SpectralQuantity.html#astropy.coordinates.SpectralQuantity.to_value">[docs]</a>    <span class="k">def</span> <span class="nf">to_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">unit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">value</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

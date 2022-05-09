@@ -1,0 +1,304 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Defining New Fitter Classes &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Adding support for units in a model (Advanced)" href="add-units.html" />
+    <link rel="prev" title="Defining New Model Classes" href="new-model.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="add-units.html" title="Adding support for units in a model (Advanced)">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="new-model.html" title="Defining New Model Classes">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Models and Fitting (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling</span></code>)</a> &#187;</li>
+      
+      <li>Defining New Fitter Classes</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="defining-new-fitter-classes">
+<span id="new-fitter"></span><h1>Defining New Fitter Classes<a class="headerlink" href="#defining-new-fitter-classes" title="Permalink to this headline">¶</a></h1>
+<p>This section describes how to add a new nonlinear fitting algorithm to this
+package or write a user-defined fitter.  In short, one needs to define an error
+function and a <code class="docutils literal notranslate"><span class="pre">__call__</span></code> method and define the types of constraints which
+work with this fitter (if any).</p>
+<p>The details are described below using scipy’s SLSQP algorithm as an example.
+The base class for all fitters is <a class="reference internal" href="../api/astropy.modeling.fitting.Fitter.html#astropy.modeling.fitting.Fitter" title="astropy.modeling.fitting.Fitter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Fitter</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">SLSQPFitter</span><span class="p">(</span><span class="n">Fitter</span><span class="p">):</span>
+    <span class="n">supported_constraints</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bounds&#39;</span><span class="p">,</span> <span class="s1">&#39;eqcons&#39;</span><span class="p">,</span> <span class="s1">&#39;ineqcons&#39;</span><span class="p">,</span> <span class="s1">&#39;fixed&#39;</span><span class="p">,</span>
+                             <span class="s1">&#39;tied&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Most currently defined fitters take no arguments in their</span>
+        <span class="c1"># __init__, but the option certainly exists for custom fitters</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>All fitters take a model (their <code class="docutils literal notranslate"><span class="pre">__call__</span></code> method modifies the model’s
+parameters) as their first argument.</p>
+<p>Next, the error function takes a list of parameters returned by an iteration of
+the fitting algorithm and input coordinates, evaluates the model with them and
+returns some type of a measure for the fit.  In the example the sum of the
+squared residuals is used as a measure of fitting.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">objective_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fps</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">meas</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">fitparams</span><span class="p">(</span><span class="n">fps</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="n">meas</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">res</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">__call__</span></code> method performs the fitting. As a minimum it takes all
+coordinates as separate arguments. Additional arguments are passed as
+necessary:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="n">MAXITER</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">EPS</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">linear</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ModelLinearityException</span><span class="p">(</span>
+                <span class="s1">&#39;Model is linear in parameters; &#39;</span>
+                <span class="s1">&#39;non-linear fitting methods should not be used.&#39;</span><span class="p">)</span>
+    <span class="n">model_copy</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">init_values</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_model_to_fit_params</span><span class="p">(</span><span class="n">model_copy</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">fitparams</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">fmin_slsqp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">errorfunc</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="n">init_values</span><span class="p">,</span>
+                                         <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span>
+                                         <span class="n">bounds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bounds</span><span class="p">,</span>
+                                         <span class="n">eqcons</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eqcons</span><span class="p">,</span>
+                                         <span class="n">ineqcons</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ineqcons</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">model_copy</span>
+</pre></div>
+</div>
+<div class="section" id="defining-a-plugin-fitter">
+<h2>Defining a Plugin Fitter<a class="headerlink" href="#defining-a-plugin-fitter" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="reference_api.html#module-astropy.modeling" title="astropy.modeling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling</span></code></a> includes a plugin mechanism which allows fitters
+defined outside of astropy’s core to be inserted into the
+<a class="reference internal" href="reference_api.html#module-astropy.modeling.fitting" title="astropy.modeling.fitting"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling.fitting</span></code></a> namespace through the use of entry points.
+Entry points are references to importable objects. A tutorial on defining
+entry points can be found in <a class="reference external" href="https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins">setuptools’ documentation</a>.
+Plugin fitters must to extend from the <a class="reference internal" href="../api/astropy.modeling.fitting.Fitter.html#astropy.modeling.fitting.Fitter" title="astropy.modeling.fitting.Fitter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Fitter</span></code></a>
+base class. For the fitter to be discovered and inserted into
+<a class="reference internal" href="reference_api.html#module-astropy.modeling.fitting" title="astropy.modeling.fitting"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling.fitting</span></code></a> the entry points must be inserted into
+the <a class="reference internal" href="reference_api.html#module-astropy.modeling" title="astropy.modeling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling</span></code></a> entry point group</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">setup</span><span class="p">(</span>
+      <span class="c1"># ...</span>
+      <span class="n">entry_points</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;astropy.modeling&#39;</span><span class="p">:</span> <span class="s1">&#39;PluginFitterName = fitter_module:PlugFitterClass&#39;</span><span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>This would allow users to import the <code class="docutils literal notranslate"><span class="pre">PlugFitterName</span></code> through <a class="reference internal" href="reference_api.html#module-astropy.modeling.fitting" title="astropy.modeling.fitting"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling.fitting</span></code></a> by</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">astropy.modeling.fitting</span> <span class="kn">import</span> <span class="n">PlugFitterName</span>
+</pre></div>
+</div>
+<p>One project which uses this functionality is <a class="reference external" href="https://saba.readthedocs.io/">Saba</a>
+and be can be used as a reference.</p>
+</div>
+<div class="section" id="using-a-custom-statistic-function">
+<h2>Using a Custom Statistic Function<a class="headerlink" href="#using-a-custom-statistic-function" title="Permalink to this headline">¶</a></h2>
+<p>This section describes how to write a new fitter with a user-defined statistic
+function.  The example below shows a specialized class which fits a straight
+line with uncertainties in both variables.</p>
+<p>The following import statements are needed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.modeling.fitting</span> <span class="kn">import</span> <span class="p">(</span><span class="n">_validate_model</span><span class="p">,</span>
+                                      <span class="n">_fitter_to_model_params</span><span class="p">,</span>
+                                      <span class="n">_model_to_fit_params</span><span class="p">,</span> <span class="n">Fitter</span><span class="p">,</span>
+                                      <span class="n">_convert_input</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">astropy.modeling.optimizers</span> <span class="kn">import</span> <span class="n">Simplex</span>
+</pre></div>
+</div>
+<p>First one needs to define a statistic. This can be a function or a callable
+class.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">chi_line</span><span class="p">(</span><span class="n">measured_vals</span><span class="p">,</span> <span class="n">updated_model</span><span class="p">,</span> <span class="n">x_sigma</span><span class="p">,</span> <span class="n">y_sigma</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Chi^2 statistic for fitting a straight line with uncertainties in x and</span>
+<span class="sd">    y.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    measured_vals : array</span>
+<span class="sd">    updated_model : `~astropy.modeling.ParametricModel`</span>
+<span class="sd">        model with parameters set by the current iteration of the optimizer</span>
+<span class="sd">    x_sigma : array</span>
+<span class="sd">        uncertainties in x</span>
+<span class="sd">    y_sigma : array</span>
+<span class="sd">        uncertainties in y</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_vals</span> <span class="o">=</span> <span class="n">updated_model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">x_sigma</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">y_sigma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">model_vals</span> <span class="o">-</span> <span class="n">measured_vals</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">x_sigma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">y_sigma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">y_sigma</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">updated_model</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span>
+                       <span class="n">x_sigma</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">weights</span> <span class="o">*</span> <span class="p">(</span><span class="n">model_vals</span> <span class="o">-</span> <span class="n">measured_vals</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">x_sigma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">x_sigma</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">y_sigma</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">weights</span> <span class="o">*</span> <span class="p">(</span><span class="n">model_vals</span> <span class="o">-</span> <span class="n">measured_vals</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In general, to define a new fitter, all one needs to do is provide a statistic
+function and an optimizer. In this example we will let the optimizer be an
+optional argument to the fitter and will set the statistic to <code class="docutils literal notranslate"><span class="pre">chi_line</span></code>
+above:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">LineFitter</span><span class="p">(</span><span class="n">Fitter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fit a straight line with uncertainties in both variables</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    optimizer : class or callable</span>
+<span class="sd">        one of the classes in optimizers.py (default: Simplex)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">=</span><span class="n">Simplex</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">statistic</span> <span class="o">=</span> <span class="n">chi_line</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">statistic</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">statistic</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The last thing to define is the <code class="docutils literal notranslate"><span class="pre">__call__</span></code> method:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fit data to this model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : `~astropy.modeling.core.ParametricModel`</span>
+<span class="sd">        model to fit to x, y</span>
+<span class="sd">    x : array</span>
+<span class="sd">        input coordinates</span>
+<span class="sd">    y : array</span>
+<span class="sd">        input coordinates</span>
+<span class="sd">    x_sigma : array</span>
+<span class="sd">        uncertainties in x</span>
+<span class="sd">    y_sigma : array</span>
+<span class="sd">        uncertainties in y</span>
+<span class="sd">    kwargs : dict</span>
+<span class="sd">        optional keyword arguments to be passed to the optimizer</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ------</span>
+<span class="sd">    model_copy : `~astropy.modeling.core.ParametricModel`</span>
+<span class="sd">        a copy of the input model with parameters set by the fitter</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_copy</span> <span class="o">=</span> <span class="n">_validate_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">_opt_method</span><span class="o">.</span><span class="n">supported_constraints</span><span class="p">)</span>
+
+    <span class="n">farg</span> <span class="o">=</span> <span class="n">_convert_input</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">farg</span> <span class="o">=</span> <span class="p">(</span><span class="n">model_copy</span><span class="p">,</span> <span class="n">x_sigma</span><span class="p">,</span> <span class="n">y_sigma</span><span class="p">)</span> <span class="o">+</span> <span class="n">farg</span>
+    <span class="n">p0</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_model_to_fit_params</span><span class="p">(</span><span class="n">model_copy</span><span class="p">)</span>
+
+    <span class="n">fitparams</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt_method</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">objective_function</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="n">farg</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">_fitter_to_model_params</span><span class="p">(</span><span class="n">model_copy</span><span class="p">,</span> <span class="n">fitparams</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model_copy</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Defining New Fitter Classes</a><ul>
+<li><a class="reference internal" href="#defining-a-plugin-fitter">Defining a Plugin Fitter</a></li>
+<li><a class="reference internal" href="#using-a-custom-statistic-function">Using a Custom Statistic Function</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/modeling/new-fitter.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

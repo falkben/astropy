@@ -1,0 +1,621 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Working with Velocities in Astropy Coordinates &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Accounting for Space Motion" href="apply_space_motion.html" />
+    <link rel="prev" title="Using and Designing Coordinate Frames" href="frames.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="apply_space_motion.html" title="Accounting for Space Motion">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="frames.html" title="Using and Designing Coordinate Frames">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Astronomical Coordinate Systems (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code>)</a> &#187;</li>
+      
+      <li>Working with Velocities in Astropy Coordinates</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="working-with-velocities-in-astropy-coordinates">
+<span id="astropy-coordinates-velocities"></span><h1>Working with Velocities in Astropy Coordinates<a class="headerlink" href="#working-with-velocities-in-astropy-coordinates" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="using-velocities-with-skycoord">
+<h2>Using Velocities with <code class="docutils literal notranslate"><span class="pre">SkyCoord</span></code><a class="headerlink" href="#using-velocities-with-skycoord" title="Permalink to this headline">¶</a></h2>
+<p>The best way to start getting a coordinate object with velocities is to use the
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> interface.</p>
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+<p>A <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> to represent a star with a measured radial velocity but unknown
+proper motion and distance could be created as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">radial_velocity</span><span class="o">=</span><span class="mi">20</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span>  
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec) in deg</span>
+<span class="go">    (1., 2.)</span>
+<span class="go"> (radial_velocity) in km / s</span>
+<span class="go">    (20.,)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">radial_velocity</span>  
+<span class="go">&lt;Quantity 20.0 km / s&gt;</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> objects created in this manner follow all of the same transformation
+rules and will correctly update their velocities when transformed to other
+frames. For example, to determine proper motions in Galactic coordinates for
+a star with proper motions measured in ICRS:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">pm_ra_cosdec</span><span class="o">=</span><span class="mf">.2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span> <span class="n">pm_dec</span><span class="o">=</span><span class="mf">.1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">galactic</span>  
+<span class="go">&lt;SkyCoord (Galactic): (l, b) in deg</span>
+<span class="go">  ( 99.63785528, -58.70969293)</span>
+<span class="go">(pm_l_cosb, pm_b) in mas / yr</span>
+<span class="go">  ( 0.22240398,  0.02316181)&gt;</span>
+</pre></div>
+</div>
+<p>For more details on valid operations and limitations of velocity support in
+<a class="reference internal" href="index.html#module-astropy.coordinates" title="astropy.coordinates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code></a> (particularly the <a class="reference internal" href="#astropy-coordinate-finite-difference-velocities"><span class="std std-ref">current accuracy limitations</span></a>), see the more detailed
+discussions below of velocity support in the lower-level frame objects. All
+these same rules apply for <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> objects, as they are built directly on top
+of the frame classes’ velocity functionality detailed here.</p>
+</div>
+</div>
+<div class="section" id="creating-frame-objects-with-velocity-data">
+<span id="astropy-coordinate-custom-frame-with-velocities"></span><h2>Creating Frame Objects with Velocity Data<a class="headerlink" href="#creating-frame-objects-with-velocity-data" title="Permalink to this headline">¶</a></h2>
+<p>The coordinate frame classes support storing and transforming velocity data
+(alongside the positional coordinate data). Similar to the positional data that
+use the <code class="docutils literal notranslate"><span class="pre">Representation</span></code> classes to abstract away the particular
+representation and allow re-representing from (e.g., Cartesian to Spherical),
+the velocity data makes use of <code class="docutils literal notranslate"><span class="pre">Differential</span></code> classes to do the
+same. (For more information about the differential classes, see
+<a class="reference internal" href="representations.html#astropy-coordinates-differentials"><span class="std std-ref">Differentials and Derivatives of Representations</span></a>.) Also like the positional data, the
+names of the differential (velocity) components depend on the particular
+coordinate frame.</p>
+<p>Most frames expect velocity data in the form of two proper motion components
+and/or a radial velocity because the default differential for most frames is the
+<a class="reference internal" href="../api/astropy.coordinates.SphericalCosLatDifferential.html#astropy.coordinates.SphericalCosLatDifferential" title="astropy.coordinates.SphericalCosLatDifferential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SphericalCosLatDifferential</span></code></a> class. When supported, the
+proper motion components all begin with <code class="docutils literal notranslate"><span class="pre">pm_</span></code> and, by default, the
+longitudinal component is expected to already include the <code class="docutils literal notranslate"><span class="pre">cos(latitude)</span></code>
+term. For example, the proper motion components for the <code class="docutils literal notranslate"><span class="pre">ICRS</span></code> frame are
+(<code class="docutils literal notranslate"><span class="pre">pm_ra_cosdec</span></code>, <code class="docutils literal notranslate"><span class="pre">pm_dec</span></code>).</p>
+<div class="section" id="id1">
+<h3>Examples<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>To create frame objects with velocity data in the form of proper motion
+components:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">ICRS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">8.67</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">53.09</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span>
+<span class="gp">... </span>     <span class="n">pm_ra_cosdec</span><span class="o">=</span><span class="mf">4.8</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span> <span class="n">pm_dec</span><span class="o">=-</span><span class="mf">15.16</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">)</span>  
+<span class="go">&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="go">    (8.67, 53.09)</span>
+<span class="go"> (pm_ra_cosdec, pm_dec) in mas / yr</span>
+<span class="go">    (4.8, -15.16)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">8.67</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">53.09</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span>
+<span class="gp">... </span>     <span class="n">pm_ra_cosdec</span><span class="o">=</span><span class="mf">4.8</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span> <span class="n">pm_dec</span><span class="o">=-</span><span class="mf">15.16</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span>
+<span class="gp">... </span>     <span class="n">radial_velocity</span><span class="o">=</span><span class="mf">23.42</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>  
+<span class="go">&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="go">    (8.67, 53.09)</span>
+<span class="go"> (pm_ra_cosdec, pm_dec, radial_velocity) in (mas / yr, mas / yr, km / s)</span>
+<span class="go">    (4.8, -15.16, 23.42)&gt;</span>
+</pre></div>
+</div>
+<p>For proper motion components in the <code class="docutils literal notranslate"><span class="pre">Galactic</span></code> frame, the names track the
+longitude and latitude names:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">Galactic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Galactic</span><span class="p">(</span><span class="n">l</span><span class="o">=</span><span class="mf">11.23</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mf">58.13</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span>
+<span class="gp">... </span>         <span class="n">pm_l_cosb</span><span class="o">=</span><span class="mf">21.34</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span> <span class="n">pm_b</span><span class="o">=-</span><span class="mf">55.89</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">)</span>  
+<span class="go">&lt;Galactic Coordinate: (l, b) in deg</span>
+<span class="go">    (11.23, 58.13)</span>
+<span class="go"> (pm_l_cosb, pm_b) in mas / yr</span>
+<span class="go">    (21.34, -55.89)&gt;</span>
+</pre></div>
+</div>
+<p>Like the positional data, velocity data must be passed in as
+<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Quantity</span></code></a> objects.</p>
+<p>The expected differential class can be changed to control the argument names
+that the frame expects. By default the proper motion components are expected to
+contain the <code class="docutils literal notranslate"><span class="pre">cos(latitude)</span></code>, but this can be changed by specifying the
+<a class="reference internal" href="../api/astropy.coordinates.SphericalDifferential.html#astropy.coordinates.SphericalDifferential" title="astropy.coordinates.SphericalDifferential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SphericalDifferential</span></code></a> class (instead of the default
+<a class="reference internal" href="../api/astropy.coordinates.SphericalCosLatDifferential.html#astropy.coordinates.SphericalCosLatDifferential" title="astropy.coordinates.SphericalCosLatDifferential"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SphericalCosLatDifferential</span></code></a>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SphericalDifferential</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Galactic</span><span class="p">(</span><span class="n">l</span><span class="o">=</span><span class="mf">11.23</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mf">58.13</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span>
+<span class="gp">... </span>         <span class="n">pm_l</span><span class="o">=</span><span class="mf">21.34</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span> <span class="n">pm_b</span><span class="o">=-</span><span class="mf">55.89</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span>
+<span class="gp">... </span>         <span class="n">differential_type</span><span class="o">=</span><span class="n">SphericalDifferential</span><span class="p">)</span>  
+<span class="go">&lt;Galactic Coordinate: (l, b) in deg</span>
+<span class="go">    (11.23, 58.13)</span>
+<span class="go"> (pm_l, pm_b) in mas / yr</span>
+<span class="go">    (21.34, -55.89)&gt;</span>
+</pre></div>
+</div>
+<p>This works in parallel to specifying the expected representation class, as long
+as the differential class is compatible with the representation. For example, to
+specify all coordinate and velocity components in Cartesian:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="p">(</span><span class="n">CartesianRepresentation</span><span class="p">,</span>
+<span class="gp">... </span>                                 <span class="n">CartesianDifferential</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Galactic</span><span class="p">(</span><span class="n">u</span><span class="o">=</span><span class="mi">103</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span> <span class="n">v</span><span class="o">=-</span><span class="mi">11</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mf">93.</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span>
+<span class="gp">... </span>         <span class="n">U</span><span class="o">=</span><span class="mi">31</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">V</span><span class="o">=-</span><span class="mi">10</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">W</span><span class="o">=</span><span class="mi">75</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+<span class="gp">... </span>         <span class="n">representation_type</span><span class="o">=</span><span class="n">CartesianRepresentation</span><span class="p">,</span>
+<span class="gp">... </span>         <span class="n">differential_type</span><span class="o">=</span><span class="n">CartesianDifferential</span><span class="p">)</span>  
+<span class="go">&lt;Galactic Coordinate: (u, v, w) in pc</span>
+<span class="go">    (103., -11., 93.)</span>
+<span class="go"> (U, V, W) in km / s</span>
+<span class="go">    (31., -10., 75.)&gt;</span>
+</pre></div>
+</div>
+<p>Note that the <code class="docutils literal notranslate"><span class="pre">Galactic</span></code> frame has special, standard names for Cartesian
+position and velocity components. For other frames, these are just <code class="docutils literal notranslate"><span class="pre">x,y,z</span></code> and
+<code class="docutils literal notranslate"><span class="pre">v_x,v_y,v_z</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">103</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span> <span class="n">y</span><span class="o">=-</span><span class="mi">11</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">93.</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span>
+<span class="gp">... </span>     <span class="n">v_x</span><span class="o">=</span><span class="mi">31</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">v_y</span><span class="o">=-</span><span class="mi">10</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">v_z</span><span class="o">=</span><span class="mi">75</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+<span class="gp">... </span>     <span class="n">representation_type</span><span class="o">=</span><span class="n">CartesianRepresentation</span><span class="p">,</span>
+<span class="gp">... </span>     <span class="n">differential_type</span><span class="o">=</span><span class="n">CartesianDifferential</span><span class="p">)</span>  
+<span class="go">&lt;ICRS Coordinate: (x, y, z) in pc</span>
+<span class="go">    (103., -11., 93.)</span>
+<span class="go"> (v_x, v_y, v_z) in km / s</span>
+<span class="go">    (31., -10., 75.)&gt;</span>
+</pre></div>
+</div>
+<p>For any frame with velocity data with any representation, there are also
+shorthands that provide easier access to the underlying velocity data in
+commonly needed formats. With any frame object with 3D velocity data, the 3D
+Cartesian velocity can be accessed with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">8.67</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">53.09</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">distance</span><span class="o">=</span><span class="mi">171</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">pm_ra_cosdec</span><span class="o">=</span><span class="mf">4.8</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span> <span class="n">pm_dec</span><span class="o">=-</span><span class="mf">15.16</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">radial_velocity</span><span class="o">=</span><span class="mf">23.42</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">velocity</span> 
+<span class="go">&lt;CartesianDifferential (d_x, d_y, d_z) in km / s</span>
+<span class="go">    ( 23.03160789,  7.44794505,  11.34587732)&gt;</span>
+</pre></div>
+</div>
+<p>There are also shorthands for retrieving a single <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Quantity</span></code></a>
+object that contains the two-dimensional proper motion data, and for retrieving
+the radial (line-of-sight) velocity:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">proper_motion</span> 
+<span class="go">&lt;Quantity [  4.8 ,-15.16] mas / yr&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">radial_velocity</span> 
+<span class="go">&lt;Quantity 23.42 km / s&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="adding-velocities-to-existing-frame-objects">
+<h2>Adding Velocities to Existing Frame Objects<a class="headerlink" href="#adding-velocities-to-existing-frame-objects" title="Permalink to this headline">¶</a></h2>
+<p>Another use case similar to the above comes up when you have an existing frame
+object (or <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a>) and want an object with the same position but with
+velocities added. The most conceptually direct way to do this is to
+use the differential objects along with
+<a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame.realize_frame" title="astropy.coordinates.BaseCoordinateFrame.realize_frame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">realize_frame</span></code></a>.</p>
+<div class="section" id="id2">
+<h3>Examples<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>The following snippet accomplishes a well-defined case where the desired
+velocities are known in the Cartesian representation. To add the velocities to
+the existing frame using
+<a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame.realize_frame" title="astropy.coordinates.BaseCoordinateFrame.realize_frame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">realize_frame</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mi">3</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span> 
+<span class="go">&lt;ICRS Coordinate: (ra, dec, distance) in (deg, deg, kpc)</span>
+<span class="go">    (1., 2., 3.)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">vel_to_add</span> <span class="o">=</span> <span class="n">CartesianDifferential</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="mi">5</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="mi">6</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">newdata</span> <span class="o">=</span> <span class="n">icrs</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to_cartesian</span><span class="p">()</span><span class="o">.</span><span class="n">with_differentials</span><span class="p">(</span><span class="n">vel_to_add</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">newdata</span><span class="p">)</span> 
+<span class="go">&lt;ICRS Coordinate: (ra, dec, distance) in (deg, deg, kpc)</span>
+<span class="go">    (1., 2., 3.)</span>
+<span class="go"> (pm_ra_cosdec, pm_dec, radial_velocity) in (mas / yr, mas / yr, km / s)</span>
+<span class="go">    (0.34662023, 0.41161335, 4.29356031)&gt;</span>
+</pre></div>
+</div>
+<p>A similar mechanism can also be used to add velocities even if full 3D coordinates
+are not available (e.g., for a radial velocity observation of an object where
+the distance is unknown). However, it requires a slightly different way of
+specifying the differentials because of the lack of explicit unit information:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">RadialDifferential</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs_no_distance</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs_no_distance</span>
+<span class="go">&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="go">    (1., 2.)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rv_to_add</span> <span class="o">=</span> <span class="n">RadialDifferential</span><span class="p">(</span><span class="mi">500</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data_with_rv</span> <span class="o">=</span> <span class="n">icrs_no_distance</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">with_differentials</span><span class="p">({</span><span class="s1">&#39;s&#39;</span><span class="p">:</span><span class="n">rv_to_add</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs_no_distance</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">data_with_rv</span><span class="p">)</span> 
+<span class="go">&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="go">    (1., 2.)</span>
+<span class="go"> (radial_velocity) in km / s</span>
+<span class="go">    (500.,)&gt;</span>
+</pre></div>
+</div>
+<p>Which we can see yields an object identical to what you get when you specify a
+radial velocity when you create the object:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">radial_velocity</span><span class="o">=</span><span class="mi">500</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span> 
+<span class="go">&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="go">    (1., 2.)</span>
+<span class="go"> (radial_velocity) in km / s</span>
+<span class="go">    (500.,)&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="transforming-frames-with-velocities">
+<span id="astropy-coordinate-transform-with-velocities"></span><h2>Transforming Frames with Velocities<a class="headerlink" href="#transforming-frames-with-velocities" title="Permalink to this headline">¶</a></h2>
+<p>Transforming coordinate frame instances that contain velocity data to a
+different frame (which may involve both position and velocity transformations)
+is done exactly the same way as transforming position-only frame instances.</p>
+<div class="section" id="example">
+<h3>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h3>
+<p>To transform a coordinate frame that contains velocity data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">Galactic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">8.67</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">53.09</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">pm_ra_cosdec</span><span class="o">=</span><span class="mf">4.8</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span> <span class="n">pm_dec</span><span class="o">=-</span><span class="mf">15.16</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">Galactic</span><span class="p">())</span> 
+<span class="go">&lt;Galactic Coordinate: (l, b) in deg</span>
+<span class="go">    (120.38084191, -9.69872044)</span>
+<span class="go"> (pm_l_cosb, pm_b) in mas / yr</span>
+<span class="go">    (3.78957965, -15.44359693)&gt;</span>
+</pre></div>
+</div>
+<p>However, the details of how the velocity components are transformed depends on
+the particular set of transforms required to get from the starting frame to the
+desired frame (i.e., the path taken through the frame transform graph). If all
+frames in the chain of transformations are transformed to each other via
+<a class="reference internal" href="../api/astropy.coordinates.BaseAffineTransform.html#astropy.coordinates.BaseAffineTransform" title="astropy.coordinates.BaseAffineTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseAffineTransform</span></code></a> subclasses (i.e., are matrix
+transformations or affine transformations), then the transformations can be
+applied explicitly to the velocity data. If this is not the case, the velocity
+transformation is computed numerically by finite-differencing the positional
+transformation. See the subsections below for more details about these two
+methods.</p>
+</div>
+<div class="section" id="affine-transformations">
+<h3>Affine Transformations<a class="headerlink" href="#affine-transformations" title="Permalink to this headline">¶</a></h3>
+<p>Frame transformations that involve a rotation and/or an origin shift and/or
+a velocity offset are implemented as affine transformations using the
+<a class="reference internal" href="../api/astropy.coordinates.BaseAffineTransform.html#astropy.coordinates.BaseAffineTransform" title="astropy.coordinates.BaseAffineTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseAffineTransform</span></code></a> subclasses:
+<a class="reference internal" href="../api/astropy.coordinates.StaticMatrixTransform.html#astropy.coordinates.StaticMatrixTransform" title="astropy.coordinates.StaticMatrixTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StaticMatrixTransform</span></code></a>,
+<a class="reference internal" href="../api/astropy.coordinates.DynamicMatrixTransform.html#astropy.coordinates.DynamicMatrixTransform" title="astropy.coordinates.DynamicMatrixTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DynamicMatrixTransform</span></code></a>, and
+<a class="reference internal" href="../api/astropy.coordinates.AffineTransform.html#astropy.coordinates.AffineTransform" title="astropy.coordinates.AffineTransform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineTransform</span></code></a>.</p>
+<p>Matrix-only transformations (e.g., rotations such as
+<a class="reference internal" href="../api/astropy.coordinates.ICRS.html#astropy.coordinates.ICRS" title="astropy.coordinates.ICRS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ICRS</span></code></a> to <a class="reference internal" href="../api/astropy.coordinates.Galactic.html#astropy.coordinates.Galactic" title="astropy.coordinates.Galactic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Galactic</span></code></a>) can be performed
+on proper-motion-only data or full-space, 3D velocities.</p>
+<div class="section" id="id3">
+<h4>Examples<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<p>To perform a matrix-only transformation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">8.67</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">53.09</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">pm_ra_cosdec</span><span class="o">=</span><span class="mf">4.8</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span> <span class="n">pm_dec</span><span class="o">=-</span><span class="mf">15.16</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">radial_velocity</span><span class="o">=</span><span class="mf">23.42</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">Galactic</span><span class="p">())</span>  
+<span class="go">&lt;Galactic Coordinate: (l, b) in deg</span>
+<span class="go">    (120.38084191, -9.69872044)</span>
+<span class="go"> (pm_l_cosb, pm_b, radial_velocity) in (mas / yr, mas / yr, km / s)</span>
+<span class="go">    (3.78957965, -15.44359693, 23.42)&gt;</span>
+</pre></div>
+</div>
+<p>The same rotation matrix is applied to both the position vector and the velocity
+vector. Any transformation that involves a velocity offset requires all 3D
+velocity components (which typically require specifying a distance as well),
+for example, <a class="reference internal" href="../api/astropy.coordinates.ICRS.html#astropy.coordinates.ICRS" title="astropy.coordinates.ICRS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ICRS</span></code></a> to <a class="reference internal" href="../api/astropy.coordinates.LSR.html#astropy.coordinates.LSR" title="astropy.coordinates.LSR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LSR</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">LSR</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">8.67</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">53.09</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">distance</span><span class="o">=</span><span class="mi">117</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">pm_ra_cosdec</span><span class="o">=</span><span class="mf">4.8</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span> <span class="n">pm_dec</span><span class="o">=-</span><span class="mf">15.16</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">mas</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">yr</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="n">radial_velocity</span><span class="o">=</span><span class="mf">23.42</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">LSR</span><span class="p">())</span>  
+<span class="go">&lt;LSR Coordinate (v_bary=(11.1, 12.24, 7.25) km / s): (ra, dec, distance) in (deg, deg, pc)</span>
+<span class="go">    (8.67, 53.09, 117.)</span>
+<span class="go"> (pm_ra_cosdec, pm_dec, radial_velocity) in (mas / yr, mas / yr, km / s)</span>
+<span class="go">    (-24.51315607, -2.67935501, 27.07339176)&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="finite-difference-transformations">
+<span id="astropy-coordinate-finite-difference-velocities"></span><h3>Finite Difference Transformations<a class="headerlink" href="#finite-difference-transformations" title="Permalink to this headline">¶</a></h3>
+<p>Some frame transformations cannot be expressed as affine transformations.
+For example, transformations from the <a class="reference internal" href="../api/astropy.coordinates.AltAz.html#astropy.coordinates.AltAz" title="astropy.coordinates.AltAz"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AltAz</span></code></a> frame can
+include an atmospheric dispersion correction, which is inherently nonlinear.
+Additionally, some frames are more conveniently implemented as functions, even
+if they can be cast as affine transformations. For these frames, a finite
+difference approach to transforming velocities is available. Note that this
+approach is implemented such that user-defined frames can use it in
+the same manner (i.e., by defining a transformation of the
+<a class="reference internal" href="../api/astropy.coordinates.FunctionTransformWithFiniteDifference.html#astropy.coordinates.FunctionTransformWithFiniteDifference" title="astropy.coordinates.FunctionTransformWithFiniteDifference"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FunctionTransformWithFiniteDifference</span></code></a> type).</p>
+<p>This finite difference approach actually combines two separate (but important)
+elements of the transformation:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Transformation of the <em>direction</em> of the velocity vector that already exists
+in the starting frame. That is, a frame transformation sometimes involves
+reorienting the coordinate frame (e.g., rotation), and the velocity vector
+in the new frame must account for this. The finite difference approach
+models this by moving the position of the starting frame along the velocity
+vector, and computing this offset in the target frame.</p></li>
+<li><p>The “induced” velocity due to motion of the frame <em>itself</em>. For example,
+shifting from a frame centered at the solar system barycenter to one
+centered on the Earth includes a velocity component due entirely to the
+Earth’s motion around the barycenter. This is accounted for by computing
+the location of the starting frame in the target frame at slightly different
+times, and computing the difference between those. Note that this step
+depends on assuming that a particular frame attribute represents a “time”
+of relevance for the induced velocity. By convention this is typically the
+<code class="docutils literal notranslate"><span class="pre">obstime</span></code> frame attribute, although it is an option that can be set when
+defining a finite difference transformation function.</p></li>
+</ul>
+</div></blockquote>
+<div class="section" id="id4">
+<h4>Example<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
+<p>It is important to recognize that the finite difference transformations
+have inherent limits set by the finite difference algorithm and machine
+precision. To illustrate this problem, consider the AltAz to GCRS  (i.e.,
+geocentric) transformation. Let us try to compute the radial velocity in the
+GCRS frame for something observed from the Earth at a distance of 100 AU with a
+radial velocity of 10 km/s:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span><span class="p">,</span> <span class="n">AltAz</span><span class="p">,</span> <span class="n">GCRS</span>
+
+<span class="n">time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="s1">&#39;J2010&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1000</span><span class="p">)</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">min</span>
+<span class="n">location</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="p">(</span><span class="n">lon</span><span class="o">=</span><span class="mi">0</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="mi">45</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="n">aa</span> <span class="o">=</span> <span class="n">AltAz</span><span class="p">(</span><span class="n">alt</span><span class="o">=</span><span class="p">[</span><span class="mi">45</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">az</span><span class="o">=</span><span class="mi">90</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mi">100</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">au</span><span class="p">,</span>
+           <span class="n">radial_velocity</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+           <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="n">time</span><span class="p">)</span>
+<span class="n">gcrs</span> <span class="o">=</span> <span class="n">aa</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">GCRS</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">time</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot_date</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">plot_date</span><span class="p">,</span> <span class="n">gcrs</span><span class="o">.</span><span class="n">radial_velocity</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;RV [km/s]&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../coordinates/velocities-1.png">png</a>, <a class="reference external" href="../coordinates/velocities-1.svg">svg</a>, <a class="reference external" href="../coordinates/velocities-1.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/velocities-1.png" class="plot-directive" src="../_images/velocities-1.png" />
+</div>
+<p>This seems plausible: the radial velocity should indeed be very close to 10 km/s
+because the frame does not involve a velocity shift.</p>
+<p>Now let us consider 100 <em>kiloparsecs</em> as the distance. In this case we expect
+the same: the radial velocity should be essentially the same in both frames:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="s1">&#39;J2010&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1000</span><span class="p">)</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">min</span>
+<span class="n">location</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="p">(</span><span class="n">lon</span><span class="o">=</span><span class="mi">0</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="mi">45</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="n">aa</span> <span class="o">=</span> <span class="n">AltAz</span><span class="p">(</span><span class="n">alt</span><span class="o">=</span><span class="p">[</span><span class="mi">45</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">az</span><span class="o">=</span><span class="mi">90</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mi">100</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">kpc</span><span class="p">,</span>
+           <span class="n">radial_velocity</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span>
+           <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="n">time</span><span class="p">)</span>
+<span class="n">gcrs</span> <span class="o">=</span> <span class="n">aa</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">GCRS</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">time</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot_date</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">plot_date</span><span class="p">,</span> <span class="n">gcrs</span><span class="o">.</span><span class="n">radial_velocity</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;RV [km/s]&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../coordinates/velocities-2.png">png</a>, <a class="reference external" href="../coordinates/velocities-2.svg">svg</a>, <a class="reference external" href="../coordinates/velocities-2.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/velocities-2.png" class="plot-directive" src="../_images/velocities-2.png" />
+</div>
+<p>But this result is nonsense, with values from -1000 to 1000 km/s instead of the
+~10 km/s we expected. The root of the problem here is that the machine
+precision is not sufficient to compute differences on the order of kilometers
+over distances on the order of kiloparsecs. Hence, the straightforward finite
+difference method will not work for this use case with the default values.</p>
+<p>It is possible to override the timestep over which the finite difference occurs.
+For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">frame_transform_graph</span><span class="p">,</span> <span class="n">AltAz</span><span class="p">,</span> <span class="n">CIRS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trans</span> <span class="o">=</span> <span class="n">frame_transform_graph</span><span class="o">.</span><span class="n">get_transform</span><span class="p">(</span><span class="n">AltAz</span><span class="p">,</span> <span class="n">CIRS</span><span class="p">)</span><span class="o">.</span><span class="n">transforms</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trans</span><span class="o">.</span><span class="n">finite_difference_dt</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">year</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gcrs</span> <span class="o">=</span> <span class="n">aa</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">GCRS</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">time</span><span class="p">))</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trans</span><span class="o">.</span><span class="n">finite_difference_dt</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">second</span>  <span class="c1"># return to default</span>
+</pre></div>
+</div>
+<p>In the above example, there is exactly one transformation step from
+<a class="reference internal" href="../api/astropy.coordinates.AltAz.html#astropy.coordinates.AltAz" title="astropy.coordinates.AltAz"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AltAz</span></code></a> to <a class="reference internal" href="../api/astropy.coordinates.GCRS.html#astropy.coordinates.GCRS" title="astropy.coordinates.GCRS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GCRS</span></code></a>.  In general, there
+may be more than one step between two frames, or the single step may perform
+other transformations internally.  One can use the context manager
+<a class="reference internal" href="../api/astropy.coordinates.TransformGraph.html#astropy.coordinates.TransformGraph.impose_finite_difference_dt" title="astropy.coordinates.TransformGraph.impose_finite_difference_dt"><code class="xref py py-func docutils literal notranslate"><span class="pre">impose_finite_difference_dt()</span></code></a> for the
+transformation graph to override <code class="docutils literal notranslate"><span class="pre">finite_difference_dt</span></code> for <em>all</em>
+finite-difference transformations on the graph:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">frame_transform_graph</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">frame_transform_graph</span><span class="o">.</span><span class="n">impose_finite_difference_dt</span><span class="p">(</span><span class="mi">1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">year</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">gcrs</span> <span class="o">=</span> <span class="n">aa</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">GCRS</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">time</span><span class="p">))</span>  
+</pre></div>
+</div>
+<p>But beware that this will <em>not</em> help in cases like the above, where the relevant
+timescales for the velocities are seconds. (The velocity of the Earth relative
+to a particular direction changes dramatically over the course of one year.)</p>
+<p>Future versions of Astropy will improve on this algorithm to make the results
+more numerically stable and practical for use in these (not unusual) use cases.</p>
+</div>
+</div>
+</div>
+<div class="section" id="radial-velocity-corrections">
+<span id="astropy-coordinates-rv-corrs"></span><h2>Radial Velocity Corrections<a class="headerlink" href="#radial-velocity-corrections" title="Permalink to this headline">¶</a></h2>
+<p>Separately from the above, Astropy supports computing barycentric or
+heliocentric radial velocity corrections. While in the future this may
+be a high-level convenience function using the framework described above, the
+current implementation is independent to ensure sufficient accuracy (see
+<a class="reference internal" href="#astropy-coordinates-rv-corrs"><span class="std std-ref">Radial Velocity Corrections</span></a> and the
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.radial_velocity_correction" title="astropy.coordinates.SkyCoord.radial_velocity_correction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">radial_velocity_correction</span></code></a> API docs for
+details).</p>
+<div class="section" id="id5">
+<h3>Example<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<p>This example demonstrates how to compute this correction if observing some
+object at a known RA and Dec from the Keck observatory at a particular time. If
+a precision of around 3 m/s is sufficient, the computed correction can then be
+added to any observed radial velocity to determine the final heliocentric
+radial velocity:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span><span class="p">,</span> <span class="n">EarthLocation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># keck = EarthLocation.of_site(&#39;Keck&#39;)  # the easiest way... but requires internet</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">keck</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="o">.</span><span class="n">from_geodetic</span><span class="p">(</span><span class="n">lat</span><span class="o">=</span><span class="mf">19.8283</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">lon</span><span class="o">=-</span><span class="mf">155.4783</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">4160</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mf">4.88375</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mf">35.0436389</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">barycorr</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">radial_velocity_correction</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">Time</span><span class="p">(</span><span class="s1">&#39;2016-6-4&#39;</span><span class="p">),</span> <span class="n">location</span><span class="o">=</span><span class="n">keck</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">barycorr</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>  
+<span class="go">&lt;Quantity 20.077135 km / s&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">heliocorr</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">radial_velocity_correction</span><span class="p">(</span><span class="s1">&#39;heliocentric&#39;</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="n">Time</span><span class="p">(</span><span class="s1">&#39;2016-6-4&#39;</span><span class="p">),</span> <span class="n">location</span><span class="o">=</span><span class="n">keck</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">heliocorr</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>  
+<span class="go">&lt;Quantity 20.070039 km / s&gt;</span>
+</pre></div>
+</div>
+<p>Note that there are a few different ways to specify the options for the
+correction (e.g., the location, observation time, etc.). See the
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.radial_velocity_correction" title="astropy.coordinates.SkyCoord.radial_velocity_correction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">radial_velocity_correction</span></code></a> docs for more
+information.</p>
+</div>
+<div class="section" id="precision-of-radial-velocity-correction">
+<h3>Precision of <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.radial_velocity_correction" title="astropy.coordinates.SkyCoord.radial_velocity_correction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">radial_velocity_correction</span></code></a><a class="headerlink" href="#precision-of-radial-velocity-correction" title="Permalink to this headline">¶</a></h3>
+<p>The correction computed by <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.radial_velocity_correction" title="astropy.coordinates.SkyCoord.radial_velocity_correction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">radial_velocity_correction</span></code></a>
+uses the optical approximation <span class="math notranslate nohighlight">\(v = zc\)</span> (see <a class="reference internal" href="../units/equivalencies.html#astropy-units-doppler-equivalencies"><span class="std std-ref">Spectral (Doppler) Equivalencies</span></a>
+for details). The correction can be added to any observed radial velocity
+to provide a correction that is accurate to a level of approximately 3 m/s.
+If you need more precise corrections, there are a number of subtleties of
+which you must be aware.</p>
+<p>The first is that you should always use a barycentric correction, as the
+barycenter is a fixed point where gravity is constant. Since the heliocenter
+does not satisfy these conditions, corrections to the heliocenter are only
+suitable for low precision work. As a result, and to increase speed, the
+heliocentric correction in
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.radial_velocity_correction" title="astropy.coordinates.SkyCoord.radial_velocity_correction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">radial_velocity_correction</span></code></a> does not include
+effects such as the gravitational redshift due to the potential at the Earth’s
+surface. For these reasons, the barycentric correction in
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.radial_velocity_correction" title="astropy.coordinates.SkyCoord.radial_velocity_correction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">radial_velocity_correction</span></code></a> should always
+be used for high precision work.</p>
+<p>Other considerations necessary for radial velocity corrections at the cm/s
+level are outlined in <a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2014PASP..126..838W">Wright &amp; Eastman (2014)</a>.
+Most important is that the barycentric correction is, strictly speaking,
+<em>multiplicative</em>, so that you should apply it as:</p>
+<div class="math notranslate nohighlight">
+\[v_t = v_m + v_b + \frac{v_b v_m}{c},\]</div>
+<p>Where <span class="math notranslate nohighlight">\(v_t\)</span> is the true radial velocity, <span class="math notranslate nohighlight">\(v_m\)</span> is the measured
+radial velocity and <span class="math notranslate nohighlight">\(v_b\)</span> is the barycentric correction returned by
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.radial_velocity_correction" title="astropy.coordinates.SkyCoord.radial_velocity_correction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">radial_velocity_correction</span></code></a>. Failure to apply
+the barycentric correction in this way leads to errors of order 3 m/s.</p>
+<p>The barycentric correction in <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.radial_velocity_correction" title="astropy.coordinates.SkyCoord.radial_velocity_correction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">radial_velocity_correction</span></code></a> is consistent
+with the <a class="reference external" href="http://astroutils.astronomy.ohio-state.edu/exofast/barycorr.html">IDL implementation</a> of
+the Wright &amp; Eastmann (2014) paper to a level of 10 mm/s for a source at
+infinite distance. We do not include the Shapiro delay nor the light
+travel time correction from equation 28 of that paper. The neglected terms
+are not important unless you require accuracies of better than 1 cm/s.
+If you do require that precision, see <a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2014PASP..126..838W">Wright &amp; Eastmann (2014)</a>.</p>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Working with Velocities in Astropy Coordinates</a><ul>
+<li><a class="reference internal" href="#using-velocities-with-skycoord">Using Velocities with <code class="docutils literal notranslate"><span class="pre">SkyCoord</span></code></a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#creating-frame-objects-with-velocity-data">Creating Frame Objects with Velocity Data</a><ul>
+<li><a class="reference internal" href="#id1">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#adding-velocities-to-existing-frame-objects">Adding Velocities to Existing Frame Objects</a><ul>
+<li><a class="reference internal" href="#id2">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#transforming-frames-with-velocities">Transforming Frames with Velocities</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+<li><a class="reference internal" href="#affine-transformations">Affine Transformations</a><ul>
+<li><a class="reference internal" href="#id3">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#finite-difference-transformations">Finite Difference Transformations</a><ul>
+<li><a class="reference internal" href="#id4">Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#radial-velocity-corrections">Radial Velocity Corrections</a><ul>
+<li><a class="reference internal" href="#id5">Example</a></li>
+<li><a class="reference internal" href="#precision-of-radial-velocity-correction">Precision of <code class="xref py py-obj docutils literal notranslate"><span class="pre">radial_velocity_correction</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/coordinates/velocities.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

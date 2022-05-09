@@ -1,0 +1,873 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.visualization.wcsaxes.core &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" >Module code</a> &#187;</li>
+      <li><a href="../wcsaxes.html" accesskey="U">astropy.visualization.wcsaxes</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.visualization.wcsaxes.core</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">rcParams</span>
+<span class="kn">from</span> <span class="nn">matplotlib.artist</span> <span class="kn">import</span> <span class="n">Artist</span>
+<span class="kn">from</span> <span class="nn">matplotlib.axes</span> <span class="kn">import</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">subplot_class_factory</span>
+<span class="kn">from</span> <span class="nn">matplotlib.transforms</span> <span class="kn">import</span> <span class="n">Affine2D</span><span class="p">,</span> <span class="n">Bbox</span><span class="p">,</span> <span class="n">Transform</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span><span class="p">,</span> <span class="n">BaseCoordinateFrame</span>
+<span class="kn">from</span> <span class="nn">astropy.utils</span> <span class="kn">import</span> <span class="n">minversion</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.compat.optional_deps</span> <span class="kn">import</span> <span class="n">HAS_PIL</span>
+<span class="kn">from</span> <span class="nn">astropy.wcs</span> <span class="kn">import</span> <span class="n">WCS</span>
+<span class="kn">from</span> <span class="nn">astropy.wcs.wcsapi</span> <span class="kn">import</span> <span class="n">BaseHighLevelWCS</span><span class="p">,</span> <span class="n">BaseLowLevelWCS</span>
+
+<span class="kn">from</span> <span class="nn">.transforms</span> <span class="kn">import</span> <span class="n">CoordinateTransform</span>
+<span class="kn">from</span> <span class="nn">.coordinates_map</span> <span class="kn">import</span> <span class="n">CoordinatesMap</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">get_coord_meta</span><span class="p">,</span> <span class="n">transform_contour_set_inplace</span>
+<span class="kn">from</span> <span class="nn">.frame</span> <span class="kn">import</span> <span class="n">RectangularFrame</span><span class="p">,</span> <span class="n">RectangularFrame1D</span>
+<span class="kn">from</span> <span class="nn">.wcsapi</span> <span class="kn">import</span> <span class="n">IDENTITY</span><span class="p">,</span> <span class="n">transform_coord_meta_from_wcs</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;WCSAxes&#39;</span><span class="p">,</span> <span class="s1">&#39;WCSAxesSubplot&#39;</span><span class="p">]</span>
+
+<span class="n">VISUAL_PROPERTIES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;facecolor&#39;</span><span class="p">,</span> <span class="s1">&#39;edgecolor&#39;</span><span class="p">,</span> <span class="s1">&#39;linewidth&#39;</span><span class="p">,</span> <span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="s1">&#39;linestyle&#39;</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">_WCSAxesArtist</span><span class="p">(</span><span class="n">Artist</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This is a dummy artist to enforce the correct z-order of axis ticks,</span>
+<span class="sd">    tick labels, and gridlines.</span>
+
+<span class="sd">    FIXME: This is a bit of a hack. ``Axes.draw`` sorts the artists by zorder</span>
+<span class="sd">    and then renders them in sequence. For normal Matplotlib axes, the ticks,</span>
+<span class="sd">    tick labels, and gridlines are included in this list of artists and hence</span>
+<span class="sd">    are automatically drawn in the correct order. However, ``WCSAxes`` disables</span>
+<span class="sd">    the native ticks, labels, and gridlines. Instead, ``WCSAxes.draw`` renders</span>
+<span class="sd">    ersatz ticks, labels, and gridlines by explicitly calling the functions</span>
+<span class="sd">    ``CoordinateHelper._draw_ticks``, ``CoordinateHelper._draw_grid``, etc.</span>
+<span class="sd">    This hack would not be necessary if ``WCSAxes`` drew ticks, tick labels,</span>
+<span class="sd">    and gridlines in the standary way.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">renderer</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">draw_wcsaxes</span><span class="p">(</span><span class="n">renderer</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="WCSAxes"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes">[docs]</a><span class="k">class</span> <span class="nc">WCSAxes</span><span class="p">(</span><span class="n">Axes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The main axes class that can be used to show world coordinates from a WCS.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fig : `~matplotlib.figure.Figure`</span>
+<span class="sd">        The figure to add the axes to</span>
+<span class="sd">    rect : list</span>
+<span class="sd">        The position of the axes in the figure in relative units. Should be</span>
+<span class="sd">        given as ``[left, bottom, width, height]``.</span>
+<span class="sd">    wcs : :class:`~astropy.wcs.WCS`, optional</span>
+<span class="sd">        The WCS for the data. If this is specified, ``transform`` cannot be</span>
+<span class="sd">        specified.</span>
+<span class="sd">    transform : `~matplotlib.transforms.Transform`, optional</span>
+<span class="sd">        The transform for the data. If this is specified, ``wcs`` cannot be</span>
+<span class="sd">        specified.</span>
+<span class="sd">    coord_meta : dict, optional</span>
+<span class="sd">        A dictionary providing additional metadata when ``transform`` is</span>
+<span class="sd">        specified. This should include the keys ``type``, ``wrap``, and</span>
+<span class="sd">        ``unit``. Each of these should be a list with as many items as the</span>
+<span class="sd">        dimension of the WCS. The ``type`` entries should be one of</span>
+<span class="sd">        ``longitude``, ``latitude``, or ``scalar``, the ``wrap`` entries should</span>
+<span class="sd">        give, for the longitude, the angle at which the coordinate wraps (and</span>
+<span class="sd">        `None` otherwise), and the ``unit`` should give the unit of the</span>
+<span class="sd">        coordinates as :class:`~astropy.units.Unit` instances. This can</span>
+<span class="sd">        optionally also include a ``format_unit`` entry giving the units to use</span>
+<span class="sd">        for the tick labels (if not specified, this defaults to ``unit``).</span>
+<span class="sd">    transData : `~matplotlib.transforms.Transform`, optional</span>
+<span class="sd">        Can be used to override the default data -&gt; pixel mapping.</span>
+<span class="sd">    slices : tuple, optional</span>
+<span class="sd">        For WCS transformations with more than two dimensions, we need to</span>
+<span class="sd">        choose which dimensions are being shown in the 2D image. The slice</span>
+<span class="sd">        should contain one ``x`` entry, one ``y`` entry, and the rest of the</span>
+<span class="sd">        values should be integers indicating the slice through the data. The</span>
+<span class="sd">        order of the items in the slice should be the same as the order of the</span>
+<span class="sd">        dimensions in the :class:`~astropy.wcs.WCS`, and the opposite of the</span>
+<span class="sd">        order of the dimensions in Numpy. For example, ``(50, &#39;x&#39;, &#39;y&#39;)`` means</span>
+<span class="sd">        that the first WCS dimension (last Numpy dimension) will be sliced at</span>
+<span class="sd">        an index of 50, the second WCS and Numpy dimension will be shown on the</span>
+<span class="sd">        x axis, and the final WCS dimension (first Numpy dimension) will be</span>
+<span class="sd">        shown on the y-axis (and therefore the data will be plotted using</span>
+<span class="sd">        ``data[:, :, 50].transpose()``)</span>
+<span class="sd">    frame_class : type, optional</span>
+<span class="sd">        The class for the frame, which should be a subclass of</span>
+<span class="sd">        :class:`~astropy.visualization.wcsaxes.frame.BaseFrame`. The default is to use a</span>
+<span class="sd">        :class:`~astropy.visualization.wcsaxes.frame.RectangularFrame`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fig</span><span class="p">,</span> <span class="n">rect</span><span class="p">,</span> <span class="n">wcs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coord_meta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">transData</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">slices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">frame_class</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">rect</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bboxes</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">frame_class</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frame_class</span> <span class="o">=</span> <span class="n">frame_class</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">wcs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">wcs</span><span class="o">.</span><span class="n">pixel_n_dim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span>
+                                   <span class="p">(</span><span class="n">slices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;y&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">slices</span><span class="p">))):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frame_class</span> <span class="o">=</span> <span class="n">RectangularFrame1D</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frame_class</span> <span class="o">=</span> <span class="n">RectangularFrame</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">transData</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="c1"># User wants to override the transform for the final</span>
+            <span class="c1"># data-&gt;pixel mapping</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transData</span> <span class="o">=</span> <span class="n">transData</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_wcs</span><span class="p">(</span><span class="n">wcs</span><span class="o">=</span><span class="n">wcs</span><span class="p">,</span> <span class="n">slices</span><span class="o">=</span><span class="n">slices</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span> <span class="n">coord_meta</span><span class="o">=</span><span class="n">coord_meta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hide_parent_artists</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format_coord</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_display_world_coords</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_display_coords_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_connect</span><span class="p">(</span><span class="s1">&#39;key_press_event&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_cursor_prefs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">patch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">patch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wcsaxesartist</span> <span class="o">=</span> <span class="n">_WCSAxesArtist</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_artist</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_wcsaxesartist</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_drawn</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_display_world_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_drawn</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_display_coords_index</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">y</span><span class="si">}</span><span class="s2"> (pixel)&quot;</span>
+
+        <span class="n">pixel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">])</span>
+
+        <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_coords</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_display_coords_index</span><span class="p">]</span>
+
+        <span class="n">world</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">_transform</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">pixel</span><span class="p">]))[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">coord_strings</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">coord</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">coords</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">coord</span><span class="o">.</span><span class="n">coord_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">coord_strings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coord</span><span class="o">.</span><span class="n">format_coord</span><span class="p">(</span><span class="n">world</span><span class="p">[</span><span class="n">coord</span><span class="o">.</span><span class="n">coord_index</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ascii&#39;</span><span class="p">))</span>
+
+        <span class="n">coord_string</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">coord_strings</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_display_coords_index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">system</span> <span class="o">=</span> <span class="s2">&quot;world&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">system</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;world, overlay </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_display_coords_index</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="n">coord_string</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">coord_string</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">system</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+        <span class="k">return</span> <span class="n">coord_string</span>
+
+    <span class="k">def</span> <span class="nf">_set_cursor_prefs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;w&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_display_coords_index</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_display_coords_index</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_all_coords</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_display_coords_index</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">_hide_parent_artists</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Turn off spines and current axes</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spines</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_class</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">RectangularFrame1D</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># We now overload ``imshow`` because we need to make sure that origin is</span>
+    <span class="c1"># set to ``lower`` for all images, which means that we need to flip RGB</span>
+    <span class="c1"># images.</span>
+<div class="viewcode-block" id="WCSAxes.imshow"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.imshow">[docs]</a>    <span class="k">def</span> <span class="nf">imshow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Wrapper to Matplotlib&#39;s :meth:`~matplotlib.axes.Axes.imshow`.</span>
+
+<span class="sd">        If an RGB image is passed as a PIL object, it will be flipped</span>
+<span class="sd">        vertically and ``origin`` will be set to ``lower``, since WCS</span>
+<span class="sd">        transformations - like FITS files - assume that the origin is the lower</span>
+<span class="sd">        left pixel of the image (whereas RGB images have the origin in the top</span>
+<span class="sd">        left).</span>
+
+<span class="sd">        All arguments are passed to :meth:`~matplotlib.axes.Axes.imshow`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">origin</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;origin&#39;</span><span class="p">,</span> <span class="s1">&#39;lower&#39;</span><span class="p">)</span>
+
+        <span class="c1"># plt.imshow passes origin as None, which we should default to lower.</span>
+        <span class="k">if</span> <span class="n">origin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">origin</span> <span class="o">=</span> <span class="s1">&#39;lower&#39;</span>
+        <span class="k">elif</span> <span class="n">origin</span> <span class="o">==</span> <span class="s1">&#39;upper&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot use images with origin=&#39;upper&#39; in WCSAxes.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">HAS_PIL</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">PIL.Image</span> <span class="kn">import</span> <span class="n">Image</span>
+
+            <span class="k">if</span> <span class="n">minversion</span><span class="p">(</span><span class="s1">&#39;PIL&#39;</span><span class="p">,</span> <span class="s1">&#39;9.1&#39;</span><span class="p">):</span>
+                <span class="kn">from</span> <span class="nn">PIL.Image</span> <span class="kn">import</span> <span class="n">Transpose</span>
+                <span class="n">FLIP_TOP_BOTTOM</span> <span class="o">=</span> <span class="n">Transpose</span><span class="o">.</span><span class="n">FLIP_TOP_BOTTOM</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">PIL.Image</span> <span class="kn">import</span> <span class="n">FLIP_TOP_BOTTOM</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Image</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="s1">&#39;getpixel&#39;</span><span class="p">):</span>
+                <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">FLIP_TOP_BOTTOM</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="n">origin</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WCSAxes.contour"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.contour">[docs]</a>    <span class="k">def</span> <span class="nf">contour</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot contours.</span>
+
+<span class="sd">        This is a custom implementation of :meth:`~matplotlib.axes.Axes.contour`</span>
+<span class="sd">        which applies the transform (if specified) to all contours in one go for</span>
+<span class="sd">        performance rather than to each contour line individually. All</span>
+<span class="sd">        positional and keyword arguments are the same as for</span>
+<span class="sd">        :meth:`~matplotlib.axes.Axes.contour`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># In Matplotlib, when calling contour() with a transform, each</span>
+        <span class="c1"># individual path in the contour map is transformed separately. However,</span>
+        <span class="c1"># this is much too slow for us since each call to the transforms results</span>
+        <span class="c1"># in an Astropy coordinate transformation, which has a non-negligible</span>
+        <span class="c1"># overhead - therefore a better approach is to override contour(), call</span>
+        <span class="c1"># the Matplotlib one with no transform, then apply the transform in one</span>
+        <span class="c1"># go to all the segments that make up the contour map.</span>
+
+        <span class="n">transform</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;transform&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">cset</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># The transform passed to self.contour will normally include</span>
+            <span class="c1"># a transData component at the end, but we can remove that since</span>
+            <span class="c1"># we are already working in data space.</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">transData</span>
+            <span class="n">transform_contour_set_inplace</span><span class="p">(</span><span class="n">cset</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cset</span></div>
+
+<div class="viewcode-block" id="WCSAxes.contourf"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.contourf">[docs]</a>    <span class="k">def</span> <span class="nf">contourf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot filled contours.</span>
+
+<span class="sd">        This is a custom implementation of :meth:`~matplotlib.axes.Axes.contourf`</span>
+<span class="sd">        which applies the transform (if specified) to all contours in one go for</span>
+<span class="sd">        performance rather than to each contour line individually. All</span>
+<span class="sd">        positional and keyword arguments are the same as for</span>
+<span class="sd">        :meth:`~matplotlib.axes.Axes.contourf`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># See notes for contour above.</span>
+
+        <span class="n">transform</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;transform&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">cset</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># The transform passed to self.contour will normally include</span>
+            <span class="c1"># a transData component at the end, but we can remove that since</span>
+            <span class="c1"># we are already working in data space.</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">transData</span>
+            <span class="n">transform_contour_set_inplace</span><span class="p">(</span><span class="n">cset</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cset</span></div>
+
+<div class="viewcode-block" id="WCSAxes.plot_coord"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.plot_coord">[docs]</a>    <span class="k">def</span> <span class="nf">plot_coord</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot `~astropy.coordinates.SkyCoord` or</span>
+<span class="sd">        `~astropy.coordinates.BaseCoordinateFrame` objects onto the axes.</span>
+
+<span class="sd">        The first argument to</span>
+<span class="sd">        :meth:`~astropy.visualization.wcsaxes.WCSAxes.plot_coord` should be a</span>
+<span class="sd">        coordinate, which will then be converted to the first two parameters to</span>
+<span class="sd">        `matplotlib.axes.Axes.plot`. All other arguments are the same as</span>
+<span class="sd">        `matplotlib.axes.Axes.plot`. If not specified a ``transform`` keyword</span>
+<span class="sd">        argument will be created based on the coordinate.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        coordinate : `~astropy.coordinates.SkyCoord` or `~astropy.coordinates.BaseCoordinateFrame`</span>
+<span class="sd">            The coordinate object to plot on the axes. This is converted to the</span>
+<span class="sd">            first two arguments to `matplotlib.axes.Axes.plot`.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        matplotlib.axes.Axes.plot :</span>
+<span class="sd">            This method is called from this function with all arguments passed to it.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="n">SkyCoord</span><span class="p">,</span> <span class="n">BaseCoordinateFrame</span><span class="p">)):</span>
+
+            <span class="c1"># Extract the frame from the first argument.</span>
+            <span class="n">frame0</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frame0</span><span class="p">,</span> <span class="n">SkyCoord</span><span class="p">):</span>
+                <span class="n">frame0</span> <span class="o">=</span> <span class="n">frame0</span><span class="o">.</span><span class="n">frame</span>
+
+            <span class="n">native_frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_pixel2world</span><span class="o">.</span><span class="n">frame_out</span>
+            <span class="c1"># Transform to the native frame of the plot</span>
+            <span class="n">frame0</span> <span class="o">=</span> <span class="n">frame0</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">native_frame</span><span class="p">)</span>
+
+            <span class="n">plot_data</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">coord</span><span class="o">.</span><span class="n">coord_type</span> <span class="o">==</span> <span class="s1">&#39;longitude&#39;</span><span class="p">:</span>
+                    <span class="n">plot_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">frame0</span><span class="o">.</span><span class="n">spherical</span><span class="o">.</span><span class="n">lon</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="n">coord</span><span class="o">.</span><span class="n">coord_type</span> <span class="o">==</span> <span class="s1">&#39;latitude&#39;</span><span class="p">:</span>
+                    <span class="n">plot_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">frame0</span><span class="o">.</span><span class="n">spherical</span><span class="o">.</span><span class="n">lat</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Coordinates cannot be plotted with this &quot;</span>
+                                              <span class="s2">&quot;method because the WCS does not represent longitude/latitude.&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s1">&#39;transform&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;The &#39;transform&#39; keyword argument is not allowed,&quot;</span>
+                                <span class="s2">&quot; as it is automatically determined by the input coordinate frame.&quot;</span><span class="p">)</span>
+
+            <span class="n">transform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_transform</span><span class="p">(</span><span class="n">native_frame</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;transform&#39;</span><span class="p">:</span> <span class="n">transform</span><span class="p">})</span>
+
+            <span class="n">args</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">plot_data</span><span class="p">)</span> <span class="o">+</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WCSAxes.reset_wcs"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.reset_wcs">[docs]</a>    <span class="k">def</span> <span class="nf">reset_wcs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wcs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">slices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coord_meta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset the current Axes, to use a new WCS object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Here determine all the coordinate axes that should be shown.</span>
+        <span class="k">if</span> <span class="n">wcs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">transform</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">wcs</span> <span class="o">=</span> <span class="n">IDENTITY</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="c1"># We now force call &#39;set&#39;, which ensures the WCS object is</span>
+            <span class="c1"># consistent, which will only be important if the WCS has been set</span>
+            <span class="c1"># by hand. For example if the user sets a celestial WCS by hand and</span>
+            <span class="c1"># forgets to set the units, WCS.wcs.set() will do this.</span>
+            <span class="k">if</span> <span class="n">wcs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Check if the WCS object is an instance of `astropy.wcs.WCS`</span>
+                <span class="c1"># This check is necessary as only `astropy.wcs.WCS` supports</span>
+                <span class="c1"># wcs.set() method</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wcs</span><span class="p">,</span> <span class="n">WCS</span><span class="p">):</span>
+                    <span class="n">wcs</span><span class="o">.</span><span class="n">wcs</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wcs</span><span class="p">,</span> <span class="n">BaseHighLevelWCS</span><span class="p">):</span>
+                    <span class="n">wcs</span> <span class="o">=</span> <span class="n">wcs</span><span class="o">.</span><span class="n">low_level_wcs</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">wcs</span> <span class="o">=</span> <span class="n">wcs</span>
+
+        <span class="c1"># If we are making a new WCS, we need to preserve the path object since</span>
+        <span class="c1"># it may already be used by objects that have been plotted, and we need</span>
+        <span class="c1"># to continue updating it. CoordinatesMap will create a new frame</span>
+        <span class="c1"># instance, but we can tell that instance to keep using the old path.</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;coords&#39;</span><span class="p">):</span>
+            <span class="n">previous_frame</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;path&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">_path</span><span class="p">,</span>
+                              <span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">get_color</span><span class="p">(),</span>
+                              <span class="s1">&#39;linewidth&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">get_linewidth</span><span class="p">()}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">previous_frame</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;path&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">wcs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="n">transform</span><span class="p">,</span> <span class="n">coord_meta</span> <span class="o">=</span> <span class="n">transform_coord_meta_from_wcs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wcs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_class</span><span class="p">,</span> <span class="n">slices</span><span class="o">=</span><span class="n">slices</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">coords</span> <span class="o">=</span> <span class="n">CoordinatesMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                     <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                     <span class="n">coord_meta</span><span class="o">=</span><span class="n">coord_meta</span><span class="p">,</span>
+                                     <span class="n">frame_class</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">frame_class</span><span class="p">,</span>
+                                     <span class="n">previous_frame_path</span><span class="o">=</span><span class="n">previous_frame</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transform_pixel2world</span> <span class="o">=</span> <span class="n">transform</span>
+
+        <span class="k">if</span> <span class="n">previous_frame</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="n">previous_frame</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">set_linewidth</span><span class="p">(</span><span class="n">previous_frame</span><span class="p">[</span><span class="s1">&#39;linewidth&#39;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_coords</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">]</span>
+
+        <span class="c1"># Common default settings for Rectangular Frame</span>
+        <span class="k">for</span> <span class="n">ind</span><span class="p">,</span> <span class="n">pos</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">coord_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;default_axislabel_position&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;l&#39;</span><span class="p">])):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">set_axislabel_position</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">ind</span><span class="p">,</span> <span class="n">pos</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">coord_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;default_ticklabel_position&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;l&#39;</span><span class="p">])):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">set_ticklabel_position</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">ind</span><span class="p">,</span> <span class="n">pos</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">coord_meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;default_ticks_position&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;bltr&#39;</span><span class="p">,</span> <span class="s1">&#39;bltr&#39;</span><span class="p">])):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">set_ticks_position</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;axes.grid&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="WCSAxes.draw_wcsaxes"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.draw_wcsaxes">[docs]</a>    <span class="k">def</span> <span class="nf">draw_wcsaxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">renderer</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">axison</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="c1"># Here need to find out range of all coordinates, and update range for</span>
+        <span class="c1"># each coordinate axis. For now, just assume it covers the whole sky.</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bboxes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># This generates a structure like [coords][axis] = [...]</span>
+        <span class="n">ticklabels_bbox</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">defaultdict</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+
+        <span class="n">visible_ticks</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">coords</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_coords</span><span class="p">:</span>
+
+            <span class="n">coords</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>
+                <span class="n">coord</span><span class="o">.</span><span class="n">_draw_grid</span><span class="p">(</span><span class="n">renderer</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">coords</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_coords</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>
+                <span class="n">coord</span><span class="o">.</span><span class="n">_draw_ticks</span><span class="p">(</span><span class="n">renderer</span><span class="p">,</span> <span class="n">bboxes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_bboxes</span><span class="p">,</span>
+                                  <span class="n">ticklabels_bbox</span><span class="o">=</span><span class="n">ticklabels_bbox</span><span class="p">[</span><span class="n">coord</span><span class="p">])</span>
+                <span class="n">visible_ticks</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">coord</span><span class="o">.</span><span class="n">ticklabels</span><span class="o">.</span><span class="n">get_visible_axes</span><span class="p">())</span>
+
+        <span class="k">for</span> <span class="n">coords</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_coords</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>
+                <span class="n">coord</span><span class="o">.</span><span class="n">_draw_axislabels</span><span class="p">(</span><span class="n">renderer</span><span class="p">,</span> <span class="n">bboxes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_bboxes</span><span class="p">,</span>
+                                       <span class="n">ticklabels_bbox</span><span class="o">=</span><span class="n">ticklabels_bbox</span><span class="p">,</span>
+                                       <span class="n">visible_ticks</span><span class="o">=</span><span class="n">visible_ticks</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">renderer</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WCSAxes.draw"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.draw">[docs]</a>    <span class="k">def</span> <span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">renderer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Draw the axes.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Before we do any drawing, we need to remove any existing grid lines</span>
+        <span class="c1"># drawn with contours, otherwise if we try and remove the contours</span>
+        <span class="c1"># part way through drawing, we end up with the issue mentioned in</span>
+        <span class="c1"># https://github.com/astropy/astropy/issues/12446</span>
+        <span class="k">for</span> <span class="n">coords</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_coords</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>
+                <span class="n">coord</span><span class="o">.</span><span class="n">_clear_grid_contour</span><span class="p">()</span>
+
+        <span class="c1"># In Axes.draw, the following code can result in the xlim and ylim</span>
+        <span class="c1"># values changing, so we need to force call this here to make sure that</span>
+        <span class="c1"># the limits are correct before we update the patch.</span>
+        <span class="n">locator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_axes_locator</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">locator</span><span class="p">:</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">locator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">renderer</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">apply_aspect</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">apply_aspect</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axisbelow</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wcsaxesartist</span><span class="o">.</span><span class="n">set_zorder</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_axisbelow</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wcsaxesartist</span><span class="o">.</span><span class="n">set_zorder</span><span class="p">(</span><span class="mf">2.5</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># &#39;line&#39;: above patches, below lines</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wcsaxesartist</span><span class="o">.</span><span class="n">set_zorder</span><span class="p">(</span><span class="mf">1.5</span><span class="p">)</span>
+
+        <span class="c1"># We need to make sure that that frame path is up to date</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">_update_patch_path</span><span class="p">()</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">renderer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_drawn</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+    <span class="c1"># Matplotlib internally sometimes calls set_xlabel(label=...).</span>
+<div class="viewcode-block" id="WCSAxes.set_xlabel"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.set_xlabel">[docs]</a>    <span class="k">def</span> <span class="nf">set_xlabel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xlabel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">labelpad</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set x-label.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">xlabel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xlabel</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">xlabel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;set_xlabel() missing 1 required positional argument: &#39;xlabel&#39;&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;b&#39;</span> <span class="ow">in</span> <span class="n">coord</span><span class="o">.</span><span class="n">axislabels</span><span class="o">.</span><span class="n">get_visible_axes</span><span class="p">()</span> <span class="ow">or</span>
+                <span class="s1">&#39;h&#39;</span> <span class="ow">in</span> <span class="n">coord</span><span class="o">.</span><span class="n">axislabels</span><span class="o">.</span><span class="n">get_visible_axes</span><span class="p">()):</span>
+                <span class="n">coord</span><span class="o">.</span><span class="n">set_axislabel</span><span class="p">(</span><span class="n">xlabel</span><span class="p">,</span> <span class="n">minpad</span><span class="o">=</span><span class="n">labelpad</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">break</span></div>
+
+<div class="viewcode-block" id="WCSAxes.set_ylabel"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.set_ylabel">[docs]</a>    <span class="k">def</span> <span class="nf">set_ylabel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">labelpad</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set y-label&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ylabel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ylabel</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ylabel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;set_ylabel() missing 1 required positional argument: &#39;ylabel&#39;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_class</span> <span class="ow">is</span> <span class="n">RectangularFrame1D</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ylabel</span><span class="p">,</span> <span class="n">labelpad</span><span class="o">=</span><span class="n">labelpad</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;l&#39;</span> <span class="ow">in</span> <span class="n">coord</span><span class="o">.</span><span class="n">axislabels</span><span class="o">.</span><span class="n">get_visible_axes</span><span class="p">()</span> <span class="ow">or</span>
+                <span class="s1">&#39;c&#39;</span> <span class="ow">in</span> <span class="n">coord</span><span class="o">.</span><span class="n">axislabels</span><span class="o">.</span><span class="n">get_visible_axes</span><span class="p">()):</span>
+                <span class="n">coord</span><span class="o">.</span><span class="n">set_axislabel</span><span class="p">(</span><span class="n">ylabel</span><span class="p">,</span> <span class="n">minpad</span><span class="o">=</span><span class="n">labelpad</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">break</span></div>
+
+<div class="viewcode-block" id="WCSAxes.get_xlabel"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.get_xlabel">[docs]</a>    <span class="k">def</span> <span class="nf">get_xlabel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;b&#39;</span> <span class="ow">in</span> <span class="n">coord</span><span class="o">.</span><span class="n">axislabels</span><span class="o">.</span><span class="n">get_visible_axes</span><span class="p">()</span> <span class="ow">or</span>
+                <span class="s1">&#39;h&#39;</span> <span class="ow">in</span> <span class="n">coord</span><span class="o">.</span><span class="n">axislabels</span><span class="o">.</span><span class="n">get_visible_axes</span><span class="p">()):</span>
+                <span class="k">return</span> <span class="n">coord</span><span class="o">.</span><span class="n">get_axislabel</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="WCSAxes.get_ylabel"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.get_ylabel">[docs]</a>    <span class="k">def</span> <span class="nf">get_ylabel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_class</span> <span class="ow">is</span> <span class="n">RectangularFrame1D</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_ylabel</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;l&#39;</span> <span class="ow">in</span> <span class="n">coord</span><span class="o">.</span><span class="n">axislabels</span><span class="o">.</span><span class="n">get_visible_axes</span><span class="p">()</span> <span class="ow">or</span>
+                <span class="s1">&#39;c&#39;</span> <span class="ow">in</span> <span class="n">coord</span><span class="o">.</span><span class="n">axislabels</span><span class="o">.</span><span class="n">get_visible_axes</span><span class="p">()):</span>
+                <span class="k">return</span> <span class="n">coord</span><span class="o">.</span><span class="n">get_axislabel</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="WCSAxes.get_coords_overlay"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.get_coords_overlay">[docs]</a>    <span class="k">def</span> <span class="nf">get_coords_overlay</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">coord_meta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># Here we can&#39;t use get_transform because that deals with</span>
+        <span class="c1"># pixel-to-pixel transformations when passing a WCS object.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">WCS</span><span class="p">):</span>
+            <span class="n">transform</span><span class="p">,</span> <span class="n">coord_meta</span> <span class="o">=</span> <span class="n">transform_coord_meta_from_wcs</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_class</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_transform_no_transdata</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">coord_meta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">coord_meta</span> <span class="o">=</span> <span class="n">get_coord_meta</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">CoordinatesMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+                                <span class="n">coord_meta</span><span class="o">=</span><span class="n">coord_meta</span><span class="p">,</span>
+                                <span class="n">frame_class</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">frame_class</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_coords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+
+        <span class="c1"># Common settings for overlay</span>
+        <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_axislabel_position</span><span class="p">(</span><span class="s1">&#39;t&#39;</span><span class="p">)</span>
+        <span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_axislabel_position</span><span class="p">(</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ticklabel_position</span><span class="p">(</span><span class="s1">&#39;t&#39;</span><span class="p">)</span>
+        <span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ticklabel_position</span><span class="p">(</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">overlay_coords</span> <span class="o">=</span> <span class="n">coords</span>
+
+        <span class="k">return</span> <span class="n">coords</span></div>
+
+<div class="viewcode-block" id="WCSAxes.get_transform"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.get_transform">[docs]</a>    <span class="k">def</span> <span class="nf">get_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a transform from the specified frame to display coordinates.</span>
+
+<span class="sd">        This does not include the transData transformation</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        frame : :class:`~astropy.wcs.WCS` or :class:`~matplotlib.transforms.Transform` or str</span>
+<span class="sd">            The ``frame`` parameter can have several possible types:</span>
+<span class="sd">                * :class:`~astropy.wcs.WCS` instance: assumed to be a</span>
+<span class="sd">                  transformation from pixel to world coordinates, where the</span>
+<span class="sd">                  world coordinates are the same as those in the WCS</span>
+<span class="sd">                  transformation used for this ``WCSAxes`` instance. This is</span>
+<span class="sd">                  used for example to show contours, since this involves</span>
+<span class="sd">                  plotting an array in pixel coordinates that are not the</span>
+<span class="sd">                  final data coordinate and have to be transformed to the</span>
+<span class="sd">                  common world coordinate system first.</span>
+<span class="sd">                * :class:`~matplotlib.transforms.Transform` instance: it is</span>
+<span class="sd">                  assumed to be a transform to the world coordinates that are</span>
+<span class="sd">                  part of the WCS used to instantiate this ``WCSAxes``</span>
+<span class="sd">                  instance.</span>
+<span class="sd">                * ``&#39;pixel&#39;`` or ``&#39;world&#39;``: return a transformation that</span>
+<span class="sd">                  allows users to plot in pixel/data coordinates (essentially</span>
+<span class="sd">                  an identity transform) and ``world`` (the default</span>
+<span class="sd">                  world-to-pixel transformation used to instantiate the</span>
+<span class="sd">                  ``WCSAxes`` instance).</span>
+<span class="sd">                * ``&#39;fk5&#39;`` or ``&#39;galactic&#39;``: return a transformation from</span>
+<span class="sd">                  the specified frame to the pixel/data coordinates.</span>
+<span class="sd">                * :class:`~astropy.coordinates.BaseCoordinateFrame` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_transform_no_transdata</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span><span class="o">.</span><span class="n">inverted</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">transData</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_transform_no_transdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a transform from data to the specified frame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="p">(</span><span class="n">BaseLowLevelWCS</span><span class="p">,</span> <span class="n">BaseHighLevelWCS</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">BaseHighLevelWCS</span><span class="p">):</span>
+                <span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">low_level_wcs</span>
+
+            <span class="n">transform</span><span class="p">,</span> <span class="n">coord_meta</span> <span class="o">=</span> <span class="n">transform_coord_meta_from_wcs</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_class</span><span class="p">)</span>
+            <span class="n">transform_world2pixel</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">inverted</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_pixel2world</span><span class="o">.</span><span class="n">frame_out</span> <span class="o">==</span> <span class="n">transform_world2pixel</span><span class="o">.</span><span class="n">frame_in</span><span class="p">:</span>
+
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_pixel2world</span> <span class="o">+</span> <span class="n">transform_world2pixel</span>
+
+            <span class="k">else</span><span class="p">:</span>
+
+                <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_transform_pixel2world</span> <span class="o">+</span>
+                        <span class="n">CoordinateTransform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_transform_pixel2world</span><span class="o">.</span><span class="n">frame_out</span><span class="p">,</span>
+                                            <span class="n">transform_world2pixel</span><span class="o">.</span><span class="n">frame_in</span><span class="p">)</span> <span class="o">+</span>
+                        <span class="n">transform_world2pixel</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">frame</span> <span class="o">==</span> <span class="s1">&#39;pixel&#39;</span><span class="p">:</span>
+
+            <span class="k">return</span> <span class="n">Affine2D</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">Transform</span><span class="p">):</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_pixel2world</span> <span class="o">+</span> <span class="n">frame</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">frame</span> <span class="o">==</span> <span class="s1">&#39;world&#39;</span><span class="p">:</span>
+
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_pixel2world</span>
+
+            <span class="k">else</span><span class="p">:</span>
+
+                <span class="n">coordinate_transform</span> <span class="o">=</span> <span class="n">CoordinateTransform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_transform_pixel2world</span><span class="o">.</span><span class="n">frame_out</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">coordinate_transform</span><span class="o">.</span><span class="n">same_frames</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_pixel2world</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform_pixel2world</span> <span class="o">+</span> <span class="n">coordinate_transform</span>
+
+<div class="viewcode-block" id="WCSAxes.get_tightbbox"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.get_tightbbox">[docs]</a>    <span class="k">def</span> <span class="nf">get_tightbbox</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">renderer</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="c1"># FIXME: we should determine what to do with the extra arguments here.</span>
+        <span class="c1"># Note that the expected signature of this method is different in</span>
+        <span class="c1"># Matplotlib 3.x compared to 2.x, but we only support 3.x now.</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_visible</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="n">bb</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bboxes</span> <span class="k">if</span> <span class="n">b</span> <span class="ow">and</span> <span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">width</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">b</span><span class="o">.</span><span class="n">height</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)]</span>
+        <span class="n">bb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_tightbbox</span><span class="p">(</span><span class="n">renderer</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">bb</span><span class="p">:</span>
+            <span class="n">_bbox</span> <span class="o">=</span> <span class="n">Bbox</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">_bbox</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_window_extent</span><span class="p">(</span><span class="n">renderer</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WCSAxes.grid"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.grid">[docs]</a>    <span class="k">def</span> <span class="nf">grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;major&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot gridlines for both coordinates.</span>
+
+<span class="sd">        Standard matplotlib appearance options (color, alpha, etc.) can be</span>
+<span class="sd">        passed as keyword arguments. This behaves like `matplotlib.axes.Axes`</span>
+<span class="sd">        except that if no arguments are specified, the grid is shown rather</span>
+<span class="sd">        than toggled.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        b : bool</span>
+<span class="sd">            Whether to show the gridlines.</span>
+<span class="sd">        axis : &#39;both&#39;, &#39;x&#39;, &#39;y&#39;</span>
+<span class="sd">            Which axis to turn the gridlines on/off for.</span>
+<span class="sd">        which : str</span>
+<span class="sd">            Currently only ``&#39;major&#39;`` is supported.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;coords&#39;</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">which</span> <span class="o">!=</span> <span class="s1">&#39;major&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Plotting the grid for the minor ticks is &#39;</span>
+                                      <span class="s1">&#39;not supported.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="s1">&#39;both&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">draw_grid</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">axis</span> <span class="o">==</span> <span class="s1">&#39;x&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">draw_grid</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">axis</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">draw_grid</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;axis should be one of x/y/both&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WCSAxes.tick_params"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxes.html#astropy.visualization.wcsaxes.WCSAxes.tick_params">[docs]</a>    <span class="k">def</span> <span class="nf">tick_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to set the tick and tick label parameters in the same way as the</span>
+<span class="sd">        :meth:`~matplotlib.axes.Axes.tick_params` method in Matplotlib.</span>
+
+<span class="sd">        This is provided for convenience, but the recommended API is to use</span>
+<span class="sd">        :meth:`~astropy.visualization.wcsaxes.CoordinateHelper.set_ticks`,</span>
+<span class="sd">        :meth:`~astropy.visualization.wcsaxes.CoordinateHelper.set_ticklabel`,</span>
+<span class="sd">        :meth:`~astropy.visualization.wcsaxes.CoordinateHelper.set_ticks_position`,</span>
+<span class="sd">        :meth:`~astropy.visualization.wcsaxes.CoordinateHelper.set_ticklabel_position`,</span>
+<span class="sd">        and :meth:`~astropy.visualization.wcsaxes.CoordinateHelper.grid`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        axis : int or str, optional</span>
+<span class="sd">            Which axis to apply the parameters to. This defaults to &#39;both&#39;</span>
+<span class="sd">            but this can also be set to an `int` or `str` that refers to the</span>
+<span class="sd">            axis to apply it to, following the valid values that can index</span>
+<span class="sd">            ``ax.coords``. Note that ``&#39;x&#39;`` and ``&#39;y``&#39; are also accepted in</span>
+<span class="sd">            the case of rectangular axes.</span>
+<span class="sd">        which : {&#39;both&#39;, &#39;major&#39;, &#39;minor&#39;}, optional</span>
+<span class="sd">            Which ticks to apply the settings to. By default, setting are</span>
+<span class="sd">            applied to both major and minor ticks. Note that if ``&#39;minor&#39;`` is</span>
+<span class="sd">            specified, only the length of the ticks can be set currently.</span>
+<span class="sd">        direction : {&#39;in&#39;, &#39;out&#39;}, optional</span>
+<span class="sd">            Puts ticks inside the axes, or outside the axes.</span>
+<span class="sd">        length : float, optional</span>
+<span class="sd">            Tick length in points.</span>
+<span class="sd">        width : float, optional</span>
+<span class="sd">            Tick width in points.</span>
+<span class="sd">        color : color, optional</span>
+<span class="sd">            Tick color (accepts any valid Matplotlib color)</span>
+<span class="sd">        pad : float, optional</span>
+<span class="sd">            Distance in points between tick and label.</span>
+<span class="sd">        labelsize : float or str, optional</span>
+<span class="sd">            Tick label font size in points or as a string (e.g., &#39;large&#39;).</span>
+<span class="sd">        labelcolor : color, optional</span>
+<span class="sd">            Tick label color (accepts any valid Matplotlib color)</span>
+<span class="sd">        colors : color, optional</span>
+<span class="sd">            Changes the tick color and the label color to the same value</span>
+<span class="sd">             (accepts any valid Matplotlib color).</span>
+<span class="sd">        bottom, top, left, right : bool, optional</span>
+<span class="sd">            Where to draw the ticks. Note that this can only be given if a</span>
+<span class="sd">            specific coordinate is specified via the ``axis`` argument, and it</span>
+<span class="sd">            will not work correctly if the frame is not rectangular.</span>
+<span class="sd">        labelbottom, labeltop, labelleft, labelright : bool, optional</span>
+<span class="sd">            Where to draw the tick labels. Note that this can only be given if a</span>
+<span class="sd">            specific coordinate is specified via the ``axis`` argument, and it</span>
+<span class="sd">            will not work correctly if the frame is not rectangular.</span>
+<span class="sd">        grid_color : color, optional</span>
+<span class="sd">            The color of the grid lines (accepts any valid Matplotlib color).</span>
+<span class="sd">        grid_alpha : float, optional</span>
+<span class="sd">            Transparency of grid lines: 0 (transparent) to 1 (opaque).</span>
+<span class="sd">        grid_linewidth : float, optional</span>
+<span class="sd">            Width of grid lines in points.</span>
+<span class="sd">        grid_linestyle : str, optional</span>
+<span class="sd">            The style of the grid lines (accepts any valid Matplotlib line</span>
+<span class="sd">            style).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;coords&#39;</span><span class="p">):</span>
+            <span class="c1"># Axes haven&#39;t been fully initialized yet, so just ignore, as</span>
+            <span class="c1"># Axes.__init__ calls this method</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="s1">&#39;both&#39;</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;bottom&#39;</span><span class="p">,</span> <span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="s1">&#39;top&#39;</span><span class="p">,</span> <span class="s1">&#39;right&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">pos</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot specify </span><span class="si">{</span><span class="n">pos</span><span class="si">}</span><span class="s2">= when axis=&#39;both&#39;&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s1">&#39;label&#39;</span> <span class="o">+</span> <span class="n">pos</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot specify label</span><span class="si">{</span><span class="n">pos</span><span class="si">}</span><span class="s2">= when axis=&#39;both&#39;&quot;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+                <span class="n">coord</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">axis</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">axis</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_class</span> <span class="ow">is</span> <span class="n">RectangularFrame</span><span class="p">:</span>
+
+            <span class="n">spine</span> <span class="o">=</span> <span class="s1">&#39;b&#39;</span> <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="s1">&#39;x&#39;</span> <span class="k">else</span> <span class="s1">&#39;l&#39;</span>
+
+            <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">spine</span> <span class="ow">in</span> <span class="n">coord</span><span class="o">.</span><span class="n">axislabels</span><span class="o">.</span><span class="n">get_visible_axes</span><span class="p">():</span>
+                    <span class="n">coord</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+
+
+<span class="c1"># In the following, we put the generated subplot class in a temporary class and</span>
+<span class="c1"># we then inherit it - if we don&#39;t do this, the generated class appears to</span>
+<span class="c1"># belong in matplotlib, not in WCSAxes, from the API&#39;s point of view.</span>
+
+
+<div class="viewcode-block" id="WCSAxesSubplot"><a class="viewcode-back" href="../../../../api/astropy.visualization.wcsaxes.WCSAxesSubplot.html#astropy.visualization.wcsaxes.WCSAxesSubplot">[docs]</a><span class="k">class</span> <span class="nc">WCSAxesSubplot</span><span class="p">(</span><span class="n">subplot_class_factory</span><span class="p">(</span><span class="n">WCSAxes</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A subclass class for WCSAxes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

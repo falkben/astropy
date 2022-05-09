@@ -1,0 +1,343 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.coordinates.distances &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.coordinates.distances</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module contains the classes and utility functions for distance and</span>
+<span class="sd">cartesian coordinates.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.exceptions</span> <span class="kn">import</span> <span class="n">AstropyWarning</span>
+<span class="kn">from</span> <span class="nn">.angles</span> <span class="kn">import</span> <span class="n">Angle</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Distance&#39;</span><span class="p">]</span>
+
+
+<span class="n">__doctest_requires__</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;*&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;scipy&#39;</span><span class="p">]}</span>
+
+
+<div class="viewcode-block" id="Distance"><a class="viewcode-back" href="../../../api/astropy.coordinates.Distance.html#astropy.coordinates.Distance">[docs]</a><span class="k">class</span> <span class="nc">Distance</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">SpecificTypeQuantity</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A one-dimensional distance.</span>
+
+<span class="sd">    This can be initialized by providing one of the following:</span>
+
+<span class="sd">    * Distance ``value`` (array or float) and a ``unit``</span>
+<span class="sd">    * |Quantity| object with dimensionality of length</span>
+<span class="sd">    * Redshift and (optionally) a `~astropy.cosmology.Cosmology`</span>
+<span class="sd">    * Distance modulus</span>
+<span class="sd">    * Parallax</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value : scalar or `~astropy.units.Quantity` [&#39;length&#39;]</span>
+<span class="sd">        The value of this distance.</span>
+<span class="sd">    unit : `~astropy.units.UnitBase` [&#39;length&#39;]</span>
+<span class="sd">        The unit for this distance.</span>
+<span class="sd">    z : float</span>
+<span class="sd">        A redshift for this distance.  It will be converted to a distance</span>
+<span class="sd">        by computing the luminosity distance for this redshift given the</span>
+<span class="sd">        cosmology specified by ``cosmology``. Must be given as a keyword</span>
+<span class="sd">        argument.</span>
+<span class="sd">    cosmology : `~astropy.cosmology.Cosmology` or None</span>
+<span class="sd">        A cosmology that will be used to compute the distance from ``z``.</span>
+<span class="sd">        If `None`, the current cosmology will be used (see</span>
+<span class="sd">        `astropy.cosmology` for details).</span>
+<span class="sd">    distmod : float or `~astropy.units.Quantity`</span>
+<span class="sd">        The distance modulus for this distance. Note that if ``unit`` is not</span>
+<span class="sd">        provided, a guess will be made at the unit between AU, pc, kpc, and Mpc.</span>
+<span class="sd">    parallax : `~astropy.units.Quantity` or `~astropy.coordinates.Angle`</span>
+<span class="sd">        The parallax in angular units.</span>
+<span class="sd">    dtype : `~numpy.dtype`, optional</span>
+<span class="sd">        See `~astropy.units.Quantity`.</span>
+<span class="sd">    copy : bool, optional</span>
+<span class="sd">        See `~astropy.units.Quantity`.</span>
+<span class="sd">    order : {&#39;C&#39;, &#39;F&#39;, &#39;A&#39;}, optional</span>
+<span class="sd">        See `~astropy.units.Quantity`.</span>
+<span class="sd">    subok : bool, optional</span>
+<span class="sd">        See `~astropy.units.Quantity`.</span>
+<span class="sd">    ndmin : int, optional</span>
+<span class="sd">        See `~astropy.units.Quantity`.</span>
+<span class="sd">    allow_negative : bool, optional</span>
+<span class="sd">        Whether to allow negative distances (which are possible in some</span>
+<span class="sd">        cosmologies).  Default: `False`.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    `~astropy.units.UnitsError`</span>
+<span class="sd">        If the ``unit`` is not a length unit.</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If value specified is less than 0 and ``allow_negative=False``.</span>
+
+<span class="sd">        If ``cosmology`` is provided when ``z`` is *not* given.</span>
+
+<span class="sd">        If either none or more than one of ``value``, ``z``, ``distmod``,</span>
+<span class="sd">        or ``parallax`` were given.</span>
+
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from astropy import units as u</span>
+<span class="sd">    &gt;&gt;&gt; from astropy.cosmology import WMAP5</span>
+<span class="sd">    &gt;&gt;&gt; Distance(10, u.Mpc)</span>
+<span class="sd">    &lt;Distance 10. Mpc&gt;</span>
+<span class="sd">    &gt;&gt;&gt; Distance(40*u.pc, unit=u.kpc)</span>
+<span class="sd">    &lt;Distance 0.04 kpc&gt;</span>
+<span class="sd">    &gt;&gt;&gt; Distance(z=0.23)                      # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Distance 1184.01657566 Mpc&gt;</span>
+<span class="sd">    &gt;&gt;&gt; Distance(z=0.23, cosmology=WMAP5)     # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Distance 1147.78831918 Mpc&gt;</span>
+<span class="sd">    &gt;&gt;&gt; Distance(distmod=24.47*u.mag)         # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Distance 783.42964277 kpc&gt;</span>
+<span class="sd">    &gt;&gt;&gt; Distance(parallax=21.34*u.mas)        # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Distance 46.86035614 pc&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_equivalent_unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+    <span class="n">_include_easy_conversion_members</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cosmology</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">distmod</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parallax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">subok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">allow_negative</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="n">n_not_none</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">value</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">distmod</span><span class="p">,</span> <span class="n">parallax</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">n_not_none</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;none of `value`, `z`, `distmod`, or `parallax` &#39;</span>
+                             <span class="s1">&#39;were given to Distance constructor&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">n_not_none</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;more than one of `value`, `z`, `distmod`, or &#39;</span>
+                             <span class="s1">&#39;`parallax` were given to Distance constructor&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># If something else but `value` was provided then a new array will</span>
+            <span class="c1"># be created anyways and there is no need to copy that.</span>
+            <span class="n">copy</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">z</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cosmology</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">default_cosmology</span>
+                <span class="n">cosmology</span> <span class="o">=</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+            <span class="n">value</span> <span class="o">=</span> <span class="n">cosmology</span><span class="o">.</span><span class="n">luminosity_distance</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">cosmology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;a `cosmology` was given but `z` was not &#39;</span>
+                             <span class="s1">&#39;provided in Distance constructor&#39;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">distmod</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_distmod_to_pc</span><span class="p">(</span><span class="n">distmod</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">unit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># if the unit is not specified, guess based on the mean of</span>
+                <span class="c1"># the log of the distance</span>
+                <span class="n">meanlogval</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">meanlogval</span> <span class="o">&gt;</span> <span class="mi">6</span><span class="p">:</span>
+                    <span class="n">unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Mpc</span>
+                <span class="k">elif</span> <span class="n">meanlogval</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="n">unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">kpc</span>
+                <span class="k">elif</span> <span class="n">meanlogval</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">3</span><span class="p">:</span>  <span class="c1"># ~200 AU</span>
+                    <span class="n">unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">AU</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">pc</span>
+
+        <span class="k">elif</span> <span class="n">parallax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">unit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">pc</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">parallax</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">unit</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">parallax</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">parallax</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">allow_negative</span><span class="p">:</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                        <span class="s2">&quot;negative parallaxes are converted to NaN &quot;</span>
+                        <span class="s2">&quot;distances even when `allow_negative=True`, &quot;</span>
+                        <span class="s2">&quot;because negative parallaxes cannot be transformed &quot;</span>
+                        <span class="s2">&quot;into distances. See the discussion in this paper: &quot;</span>
+                        <span class="s2">&quot;https://arxiv.org/abs/1507.02105&quot;</span><span class="p">,</span> <span class="n">AstropyWarning</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;some parallaxes are negative, which are not &quot;</span>
+                        <span class="s2">&quot;interpretable as distances. See the discussion in &quot;</span>
+                        <span class="s2">&quot;this paper: https://arxiv.org/abs/1507.02105 . You &quot;</span>
+                        <span class="s2">&quot;can convert negative parallaxes to NaN distances by &quot;</span>
+                        <span class="s2">&quot;providing the `allow_negative=True` argument.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># now we have arguments like for a Quantity, so let it do the work</span>
+        <span class="n">distance</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">unit</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="n">copy</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span>
+            <span class="n">subok</span><span class="o">=</span><span class="n">subok</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="n">ndmin</span><span class="p">)</span>
+
+        <span class="c1"># This invalid catch block can be removed when the minimum numpy</span>
+        <span class="c1"># version is &gt;= 1.19 (NUMPY_LT_1_19)</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">):</span>
+            <span class="n">any_negative</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">value</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">allow_negative</span> <span class="ow">and</span> <span class="n">any_negative</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;distance must be &gt;= 0. Use the argument &quot;</span>
+                             <span class="s2">&quot;`allow_negative=True` to allow negative values.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">distance</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">z</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Short for ``self.compute_z()``&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_z</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Distance.compute_z"><a class="viewcode-back" href="../../../api/astropy.coordinates.Distance.html#astropy.coordinates.Distance.compute_z">[docs]</a>    <span class="k">def</span> <span class="nf">compute_z</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cosmology</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">atzkw</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The redshift for this distance assuming its physical distance is</span>
+<span class="sd">        a luminosity distance.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cosmology : `~astropy.cosmology.Cosmology` or None</span>
+<span class="sd">            The cosmology to assume for this calculation, or `None` to use the</span>
+<span class="sd">            current cosmology (see `astropy.cosmology` for details).</span>
+<span class="sd">        **atzkw</span>
+<span class="sd">            keyword arguments for :func:`~astropy.cosmology.z_at_value`</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        z : `~astropy.units.Quantity`</span>
+<span class="sd">            The redshift of this distance given the provided ``cosmology``.</span>
+
+<span class="sd">        Warnings</span>
+<span class="sd">        --------</span>
+<span class="sd">        This method can be slow for large arrays.</span>
+<span class="sd">        The redshift is determined using :func:`astropy.cosmology.z_at_value`,</span>
+<span class="sd">        which handles vector inputs (e.g. an array of distances) by</span>
+<span class="sd">        element-wise calling of :func:`scipy.optimize.minimize_scalar`.</span>
+<span class="sd">        For faster results consider using an interpolation table;</span>
+<span class="sd">        :func:`astropy.cosmology.z_at_value` provides details.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`astropy.cosmology.z_at_value` : Find the redshift corresponding to a</span>
+<span class="sd">            :meth:`astropy.cosmology.FLRW.luminosity_distance`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">z_at_value</span>
+
+        <span class="k">if</span> <span class="n">cosmology</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">astropy.cosmology</span> <span class="kn">import</span> <span class="n">default_cosmology</span>
+            <span class="n">cosmology</span> <span class="o">=</span> <span class="n">default_cosmology</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+        <span class="n">atzkw</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;ztol&quot;</span><span class="p">,</span> <span class="mf">1.e-10</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">z_at_value</span><span class="p">(</span><span class="n">cosmology</span><span class="o">.</span><span class="n">luminosity_distance</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">atzkw</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">distmod</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The distance modulus as a `~astropy.units.Quantity`&quot;&quot;&quot;</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="mf">5.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">))</span> <span class="o">-</span> <span class="mf">5.</span>
+        <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">mag</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_distmod_to_pc</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dm</span><span class="p">):</span>
+        <span class="n">dm</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">mag</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="mi">10</span> <span class="o">**</span> <span class="p">((</span><span class="n">dm</span><span class="o">.</span><span class="n">value</span> <span class="o">+</span> <span class="mi">5</span><span class="p">)</span> <span class="o">/</span> <span class="mf">5.</span><span class="p">),</span> <span class="n">u</span><span class="o">.</span><span class="n">pc</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parallax</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The parallax angle as an `~astropy.coordinates.Angle` object&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Angle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">milliarcsecond</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">parallax</span><span class="p">()))</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

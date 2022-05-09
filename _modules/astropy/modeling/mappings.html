@@ -1,0 +1,428 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.modeling.mappings &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.modeling.mappings</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Special models useful for complex compound models where control is needed over</span>
+<span class="sd">which outputs from a source model are mapped to which inputs of a target model.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># pylint: disable=invalid-name</span>
+
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">Quantity</span>
+
+<span class="kn">from</span> <span class="nn">.core</span> <span class="kn">import</span> <span class="n">FittableModel</span><span class="p">,</span> <span class="n">Model</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Mapping&#39;</span><span class="p">,</span> <span class="s1">&#39;Identity&#39;</span><span class="p">,</span> <span class="s1">&#39;UnitsMapping&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Mapping"><a class="viewcode-back" href="../../../api/astropy.modeling.mappings.Mapping.html#astropy.modeling.mappings.Mapping">[docs]</a><span class="k">class</span> <span class="nc">Mapping</span><span class="p">(</span><span class="n">FittableModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Allows inputs to be reordered, duplicated or dropped.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mapping : tuple</span>
+<span class="sd">        A tuple of integers representing indices of the inputs to this model</span>
+<span class="sd">        to return and in what order to return them.  See</span>
+<span class="sd">        :ref:`astropy:compound-model-mappings` for more details.</span>
+<span class="sd">    n_inputs : int</span>
+<span class="sd">        Number of inputs; if `None` (default) then ``max(mapping) + 1`` is</span>
+<span class="sd">        used (i.e. the highest input index used in the mapping).</span>
+<span class="sd">    name : str, optional</span>
+<span class="sd">        A human-friendly name associated with this model instance</span>
+<span class="sd">        (particularly useful for identifying the individual components of a</span>
+<span class="sd">        compound model).</span>
+<span class="sd">    meta : dict-like</span>
+<span class="sd">        Free-form metadata to associate with this model.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    TypeError</span>
+<span class="sd">        Raised when number of inputs is less that ``max(mapping)``.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; from astropy.modeling.models import Polynomial2D, Shift, Mapping</span>
+<span class="sd">    &gt;&gt;&gt; poly1 = Polynomial2D(1, c0_0=1, c1_0=2, c0_1=3)</span>
+<span class="sd">    &gt;&gt;&gt; poly2 = Polynomial2D(1, c0_0=1, c1_0=2.4, c0_1=2.1)</span>
+<span class="sd">    &gt;&gt;&gt; model = (Shift(1) &amp; Shift(2)) | Mapping((0, 1, 0, 1)) | (poly1 &amp; poly2)</span>
+<span class="sd">    &gt;&gt;&gt; model(1, 2)  # doctest: +FLOAT_CMP</span>
+<span class="sd">    (17.0, 14.2)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">linear</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># FittableModel is non-linear by default</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapping</span><span class="p">,</span> <span class="n">n_inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span> <span class="o">=</span> <span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_outputs</span> <span class="o">=</span> <span class="p">()</span>
+        <span class="k">if</span> <span class="n">n_inputs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_n_inputs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_n_inputs</span> <span class="o">=</span> <span class="n">n_inputs</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_outputs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">meta</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="s1">&#39;x&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_inputs</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="s1">&#39;x&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_outputs</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span> <span class="o">=</span> <span class="n">mapping</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_units_strict</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_units_allow_dimensionless</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">}</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_inputs</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_outputs</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Integers representing indices of the inputs.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;&lt;Mapping(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mapping</span><span class="si">}</span><span class="s1">)&gt;&#39;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;&lt;Mapping(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mapping</span><span class="si">}</span><span class="s1">, name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s1">)&gt;&#39;</span>
+
+<div class="viewcode-block" id="Mapping.evaluate"><a class="viewcode-back" href="../../../api/astropy.modeling.mappings.Mapping.html#astropy.modeling.mappings.Mapping.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_inputs</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;Mapping&quot;</span>
+
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> expects </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_inputs</span><span class="si">}</span><span class="s1"> inputs; got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_outputs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A `Mapping` representing the inverse of the current mapping.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        `NotImplementedError`</span>
+<span class="sd">            An inverse does no exist on mappings that drop some of its inputs</span>
+<span class="sd">            (there is then no way to reconstruct the inputs that were dropped).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">mapping</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mapping</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_inputs</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Mappings such as </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mapping</span><span class="si">}</span><span class="s2"> that drop one or more of their inputs &quot;</span>
+                <span class="s2">&quot;are not invertible at this time.&quot;</span><span class="p">)</span>
+
+        <span class="n">inv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span>
+        <span class="n">inv</span><span class="o">.</span><span class="n">_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outputs</span>
+        <span class="n">inv</span><span class="o">.</span><span class="n">_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span>
+        <span class="n">inv</span><span class="o">.</span><span class="n">_n_inputs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">inv</span><span class="o">.</span><span class="n">_inputs</span><span class="p">)</span>
+        <span class="n">inv</span><span class="o">.</span><span class="n">_n_outputs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">inv</span><span class="o">.</span><span class="n">_outputs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">inv</span></div>
+
+
+<div class="viewcode-block" id="Identity"><a class="viewcode-back" href="../../../api/astropy.modeling.mappings.Identity.html#astropy.modeling.mappings.Identity">[docs]</a><span class="k">class</span> <span class="nc">Identity</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns inputs unchanged.</span>
+
+<span class="sd">    This class is useful in compound models when some of the inputs must be</span>
+<span class="sd">    passed unchanged to the next model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n_inputs : int</span>
+<span class="sd">        Specifies the number of inputs this identity model accepts.</span>
+<span class="sd">    name : str, optional</span>
+<span class="sd">        A human-friendly name associated with this model instance</span>
+<span class="sd">        (particularly useful for identifying the individual components of a</span>
+<span class="sd">        compound model).</span>
+<span class="sd">    meta : dict-like</span>
+<span class="sd">        Free-form metadata to associate with this model.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Transform ``(x, y)`` by a shift in x, followed by scaling the two inputs::</span>
+
+<span class="sd">        &gt;&gt;&gt; from astropy.modeling.models import (Polynomial1D, Shift, Scale,</span>
+<span class="sd">        ...                                      Identity)</span>
+<span class="sd">        &gt;&gt;&gt; model = (Shift(1) &amp; Identity(1)) | Scale(1.2) &amp; Scale(2)</span>
+<span class="sd">        &gt;&gt;&gt; model(1,1)  # doctest: +FLOAT_CMP</span>
+<span class="sd">        (2.4, 2.0)</span>
+<span class="sd">        &gt;&gt;&gt; model.inverse(2.4, 2) # doctest: +FLOAT_CMP</span>
+<span class="sd">        (1.0, 1.0)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">linear</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># FittableModel is non-linear by default</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_inputs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">mapping</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n_inputs</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">meta</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;&lt;Identity(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_inputs</span><span class="si">}</span><span class="s1">)&gt;&#39;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;&lt;Identity(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_inputs</span><span class="si">}</span><span class="s1">, name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s1">)&gt;&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The inverse transformation.</span>
+
+<span class="sd">        In this case of `Identity`, ``self.inverse is self``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="UnitsMapping"><a class="viewcode-back" href="../../../api/astropy.modeling.mappings.UnitsMapping.html#astropy.modeling.mappings.UnitsMapping">[docs]</a><span class="k">class</span> <span class="nc">UnitsMapping</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Mapper that operates on the units of the input, first converting to</span>
+<span class="sd">    canonical units, then assigning new units without further conversion.</span>
+<span class="sd">    Used by Model.coerce_units to support units on otherwise unitless models</span>
+<span class="sd">    such as Polynomial1D.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mapping : tuple</span>
+<span class="sd">        A tuple of (input_unit, output_unit) pairs, one per input, matched to the</span>
+<span class="sd">        inputs by position.  The first element of the each pair is the unit that</span>
+<span class="sd">        the model will accept (specify ``dimensionless_unscaled``</span>
+<span class="sd">        to accept dimensionless input).  The second element is the unit that the</span>
+<span class="sd">        model will return.  Specify ``dimensionless_unscaled``</span>
+<span class="sd">        to return dimensionless Quantity, and `None` to return raw values without</span>
+<span class="sd">        Quantity.</span>
+<span class="sd">    input_units_equivalencies : dict, optional</span>
+<span class="sd">        Default equivalencies to apply to input values.  If set, this should be a</span>
+<span class="sd">        dictionary where each key is a string that corresponds to one of the</span>
+<span class="sd">        model inputs.</span>
+<span class="sd">    input_units_allow_dimensionless : dict or bool, optional</span>
+<span class="sd">        Allow dimensionless input. If this is True, input values to evaluate will</span>
+<span class="sd">        gain the units specified in input_units. If this is a dictionary then it</span>
+<span class="sd">        should map input name to a bool to allow dimensionless numbers for that</span>
+<span class="sd">        input.</span>
+<span class="sd">    name : str, optional</span>
+<span class="sd">        A human-friendly name associated with this model instance</span>
+<span class="sd">        (particularly useful for identifying the individual components of a</span>
+<span class="sd">        compound model).</span>
+<span class="sd">    meta : dict-like, optional</span>
+<span class="sd">        Free-form metadata to associate with this model.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Wrapping a unitless model to require and convert units:</span>
+
+<span class="sd">    &gt;&gt;&gt; from astropy.modeling.models import Polynomial1D, UnitsMapping</span>
+<span class="sd">    &gt;&gt;&gt; from astropy import units as u</span>
+<span class="sd">    &gt;&gt;&gt; poly = Polynomial1D(1, c0=1, c1=2)</span>
+<span class="sd">    &gt;&gt;&gt; model = UnitsMapping(((u.m, None),)) | poly</span>
+<span class="sd">    &gt;&gt;&gt; model = model | UnitsMapping(((None, u.s),))</span>
+<span class="sd">    &gt;&gt;&gt; model(u.Quantity(10, u.m))  # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 21. s&gt;</span>
+<span class="sd">    &gt;&gt;&gt; model(u.Quantity(1000, u.cm)) # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 21. s&gt;</span>
+<span class="sd">    &gt;&gt;&gt; model(u.Quantity(10, u.cm)) # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 1.2 s&gt;</span>
+
+<span class="sd">    Wrapping a unitless model but still permitting unitless input:</span>
+
+<span class="sd">    &gt;&gt;&gt; from astropy.modeling.models import Polynomial1D, UnitsMapping</span>
+<span class="sd">    &gt;&gt;&gt; from astropy import units as u</span>
+<span class="sd">    &gt;&gt;&gt; poly = Polynomial1D(1, c0=1, c1=2)</span>
+<span class="sd">    &gt;&gt;&gt; model = UnitsMapping(((u.m, None),), input_units_allow_dimensionless=True) | poly</span>
+<span class="sd">    &gt;&gt;&gt; model = model | UnitsMapping(((None, u.s),))</span>
+<span class="sd">    &gt;&gt;&gt; model(u.Quantity(10, u.m))  # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 21. s&gt;</span>
+<span class="sd">    &gt;&gt;&gt; model(10)  # doctest: +FLOAT_CMP</span>
+<span class="sd">    &lt;Quantity 21. s&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">mapping</span><span class="p">,</span>
+        <span class="n">input_units_equivalencies</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">input_units_allow_dimensionless</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">meta</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span> <span class="o">=</span> <span class="n">mapping</span>
+
+        <span class="n">none_mapping_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">([</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">mapping</span> <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">none_mapping_count</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">none_mapping_count</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mapping</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;If one return unit is None, then all must be None&quot;</span><span class="p">)</span>
+
+        <span class="c1"># These attributes are read and handled by Model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_units_strict</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_units_equivalencies</span> <span class="o">=</span> <span class="n">input_units_equivalencies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_units_allow_dimensionless</span> <span class="o">=</span> <span class="n">input_units_allow_dimensionless</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="o">=</span><span class="n">meta</span><span class="p">)</span>
+
+        <span class="c1"># Can&#39;t invoke this until after super().__init__, since</span>
+        <span class="c1"># we need self.inputs and self.outputs to be populated.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rebuild_units</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_rebuild_units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_units</span> <span class="o">=</span> <span class="p">{</span><span class="n">input_name</span><span class="p">:</span> <span class="n">input_unit</span>
+                             <span class="k">for</span> <span class="n">input_name</span><span class="p">,</span> <span class="p">(</span><span class="n">input_unit</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapping</span><span class="p">)}</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">inputs</span>
+
+    <span class="nd">@inputs</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">UnitsMapping</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span><span class="o">.</span><span class="n">inputs</span><span class="o">.</span><span class="n">fset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rebuild_units</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">outputs</span>
+
+    <span class="nd">@outputs</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">UnitsMapping</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span><span class="o">.</span><span class="n">outputs</span><span class="o">.</span><span class="n">fset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rebuild_units</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">input_units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_units</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span>
+
+<div class="viewcode-block" id="UnitsMapping.evaluate"><a class="viewcode-back" href="../../../api/astropy.modeling.mappings.UnitsMapping.html#astropy.modeling.mappings.UnitsMapping.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">arg</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">return_unit</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mapping</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">value</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">arg</span>
+            <span class="k">if</span> <span class="n">return_unit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Quantity</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">return_unit</span><span class="p">,</span> <span class="n">subok</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_outputs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;UnitsMapping(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mapping</span><span class="si">}</span><span class="s2">)&gt;&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;UnitsMapping(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mapping</span><span class="si">}</span><span class="s2">, name=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">)&gt;&quot;</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

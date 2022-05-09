@@ -1,0 +1,391 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modifying a Table &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Table Operations" href="operations.html" />
+    <link rel="prev" title="Accessing a Table" href="access_table.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="operations.html" title="Table Operations">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="access_table.html" title="Accessing a Table">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Data Tables (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table</span></code>)</a> &#187;</li>
+      
+      <li>Modifying a Table</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="modifying-a-table">
+<span id="modify-table"></span><h1>Modifying a Table<a class="headerlink" href="#modifying-a-table" title="Permalink to this headline">¶</a></h1>
+<p>The data values within a <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> object can be modified in much the same manner
+as for <code class="docutils literal notranslate"><span class="pre">numpy</span></code> <a class="reference external" href="https://numpy.org/doc/stable/user/basics.rec.html">structured arrays</a> by accessing columns or
+rows of data and assigning values appropriately. A key enhancement provided by
+the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> class is the ability to modify the structure of the table: you can
+add or remove columns, and add new rows of data.</p>
+<div class="section" id="quick-overview">
+<h2>Quick Overview<a class="headerlink" href="#quick-overview" title="Permalink to this headline">¶</a></h2>
+<p>The code below shows the basics of modifying a table and its data.</p>
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+<p><strong>Make a table</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">),</span> <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;key1&#39;</span><span class="p">:</span> <span class="s1">&#39;val1&#39;</span><span class="p">}})</span>
+</pre></div>
+</div>
+<p><strong>Modify data values</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">][:]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>  <span class="c1"># Set all values of column &#39;a&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">30</span>                 <span class="c1"># Set row 2 of column &#39;a&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>              <span class="c1"># Set all values of row 1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;b&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">9</span>                 <span class="c1"># Set column &#39;b&#39; of row 1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">][</span><span class="s1">&#39;c&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>              <span class="c1"># Set column &#39;c&#39; of rows 0, 1, 2</span>
+</pre></div>
+</div>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">table[row][column]</span></code> assignments will not work with <code class="docutils literal notranslate"><span class="pre">numpy</span></code>
+“fancy” <code class="docutils literal notranslate"><span class="pre">row</span></code> indexing (in that case <code class="docutils literal notranslate"><span class="pre">table[row]</span></code> would be a <em>copy</em> instead
+of a <em>view</em>). “Fancy” <code class="docutils literal notranslate"><span class="pre">numpy</span></code> indices include a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>, or
+<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a> of <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a> (e.g., the return from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.where.html#numpy.where" title="(in NumPy v1.22)"><code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.where()</span></code></a>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]][</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">5.</span><span class="p">]</span>             <span class="c1"># doesn&#39;t change table t</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])][</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">5.</span><span class="p">]</span>   <span class="c1"># doesn&#39;t change table t</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">)][</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">3.</span>     <span class="c1"># doesn&#39;t change table t</span>
+</pre></div>
+</div>
+<p>Instead use <code class="docutils literal notranslate"><span class="pre">table[column][row]</span></code> order:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">][[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">5.</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">5.</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">][</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">3.</span>
+</pre></div>
+</div>
+<p>You can also modify data columns with <code class="docutils literal notranslate"><span class="pre">unit</span></code> set in a way that follows
+the conventions of <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Quantity</span></code></a> by using the
+<a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column.quantity" title="astropy.table.Column.quantity"><code class="xref py py-attr docutils literal notranslate"><span class="pre">quantity</span></code></a> property:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tu</span> <span class="o">=</span> <span class="n">Table</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">]],</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tu</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tu</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">quantity</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tu</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+<span class="go">&lt;Column name=&#39;a&#39; dtype=&#39;float64&#39; unit=&#39;m&#39; length=2&gt;</span>
+<span class="go">1000.0</span>
+<span class="go">2000.0</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The best way to combine the functionality of the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> and <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>
+classes is to use a <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a>. See <a class="reference internal" href="mixin_columns.html#quantity-and-qtable"><span class="std std-ref">Quantity and QTable</span></a> for more
+information.</p>
+</div>
+<p><strong>Add a column or columns</strong></p>
+<p>A single column can be added to a table using syntax like adding a key-value
+pair to a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>. The value on the right hand side can be a
+<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> or <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a> of the correct size, or a scalar value that will be
+<a class="reference external" href="https://numpy.org/doc/stable/user/basics.broadcasting.html">broadcast</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;d1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;d2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;d3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">6</span>  <span class="c1"># all 5 rows set to 6</span>
+</pre></div>
+</div>
+<p>For more explicit control, the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.add_column" title="astropy.table.Table.add_column"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_column()</span></code></a> and
+<a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.add_columns" title="astropy.table.Table.add_columns"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_columns()</span></code></a> methods can be used to add one or
+multiple columns to a table. In both cases the new column(s) can be specified as
+a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>, <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-class docutils literal notranslate"><span class="pre">Column</span></code></a>, <a class="reference internal" href="../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-class docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a>, or a scalar:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Column</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">5</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;aa&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Insert before first table column</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;bb&#39;</span><span class="p">)</span>  <span class="c1"># Add column of all 1.0 to end of table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">5</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;e&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Add Column using the existing column name &#39;e&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">add_columns</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="s1">&#39;i&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Finally, columns can also be added from <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> objects, which automatically
+sets the <code class="docutils literal notranslate"><span class="pre">unit</span></code> attribute on the column (but you might find it more
+convenient to add a <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> to a <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a> instead, see
+<a class="reference internal" href="mixin_columns.html#quantity-and-qtable"><span class="std std-ref">Quantity and QTable</span></a> for details):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">6.</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">]</span>
+<span class="go">&lt;Column name=&#39;d&#39; dtype=&#39;float64&#39; unit=&#39;m&#39; length=5&gt;</span>
+<span class="go">1.0</span>
+<span class="go">2.0</span>
+<span class="go">3.0</span>
+<span class="go">4.0</span>
+<span class="go">5.0</span>
+</pre></div>
+</div>
+<p><strong>Remove columns</strong></p>
+<p>To remove a column from a table:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">remove_column</span><span class="p">(</span><span class="s1">&#39;d1&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">remove_columns</span><span class="p">([</span><span class="s1">&#39;aa&#39;</span><span class="p">,</span> <span class="s1">&#39;d2&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;d3&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="s1">&#39;i&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">keep_columns</span><span class="p">([</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><strong>Replace a column</strong></p>
+<p>You can entirely replace an existing column with a new column by setting the
+column to any object that could be used to initialize a table column (e.g.,  a
+<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> or <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>). For example, you could change the data type of the
+<code class="docutils literal notranslate"><span class="pre">a</span></code> column from <code class="docutils literal notranslate"><span class="pre">int</span></code> to <code class="docutils literal notranslate"><span class="pre">float</span></code> using:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If the right-hand side value is not column-like, then an in-place update using
+<a class="reference external" href="https://numpy.org/doc/stable/user/basics.broadcasting.html">broadcasting</a>
+will be done, for example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># Internally does t[&#39;a&#39;][:] = 1</span>
+</pre></div>
+</div>
+<p><strong>Perform a dictionary-style update</strong></p>
+<p>It is possible to perform a dictionary-style update, which adds new columns to
+the table and replaces existing ones:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span> <span class="o">=</span> <span class="n">Table</span><span class="p">({</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="s1">&#39;bar&#39;</span><span class="p">],</span> <span class="s1">&#39;val&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]},</span> <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;n&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t2</span> <span class="o">=</span> <span class="n">Table</span><span class="p">({</span><span class="s1">&#39;val&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">],</span> <span class="s1">&#39;val2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.</span><span class="p">,</span> <span class="mf">10.</span><span class="p">]},</span> <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span>
+<span class="go">&lt;Table length=2&gt;</span>
+<span class="go">name   val     val2</span>
+<span class="go">str3 float64 float64</span>
+<span class="go">---- ------- -------</span>
+<span class="go"> foo     1.0    10.0</span>
+<span class="go"> bar     2.0    10.0</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.update" title="astropy.table.Table.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code></a> also takes care of silently <a class="reference internal" href="operations.html#merging-metadata"><span class="std std-ref">Merging Metadata</span></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t1</span><span class="o">.</span><span class="n">meta</span>
+<span class="go">{&#39;n&#39;: 2, &#39;id&#39;: 0}</span>
+</pre></div>
+</div>
+<p>The input of <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.update" title="astropy.table.Table.update"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update()</span></code></a> does not have to be a <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a>,
+it can be anything that can be used for <a class="reference internal" href="construct_table.html#construct-table"><span class="std std-ref">Constructing a Table</span></a> with a
+compatible number of rows.</p>
+<p><strong>Rename columns</strong></p>
+<p>To rename a column:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">rename_column</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;a_new&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;b_new&#39;</span>
+</pre></div>
+</div>
+<p><strong>Add a row of data</strong></p>
+<p>To add a row:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">add_row</span><span class="p">([</span><span class="o">-</span><span class="mi">8</span><span class="p">,</span> <span class="o">-</span><span class="mi">9</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><strong>Remove rows</strong></p>
+<p>To remove a row:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">remove_row</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">remove_rows</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">remove_rows</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><strong>Sort by one or more columns</strong></p>
+<p>To sort columns:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s1">&#39;b_new&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">sort</span><span class="p">([</span><span class="s1">&#39;a_new&#39;</span><span class="p">,</span> <span class="s1">&#39;b_new&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><strong>Reverse table rows</strong></p>
+<p>To reverse the order of table rows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Modify metadata</strong></p>
+<p>To modify metadata:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;value&#39;</span>
+</pre></div>
+</div>
+<p><strong>Select or reorder columns</strong></p>
+<p>A new table with a subset or reordered list of columns can be
+created as shown in the following example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t_acb</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Another way to do the same thing is to provide a list or tuple
+as the item, as shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">new_order</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">]</span>  <span class="c1"># List or tuple</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t_acb</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="n">new_order</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="caveats">
+<h2>Caveats<a class="headerlink" href="#caveats" title="Permalink to this headline">¶</a></h2>
+<p>Modifying the table data and properties is fairly clear-cut, but one thing
+to keep in mind is that adding a row <em>may</em> require a new copy in memory of the
+table data. This depends on the detailed layout of Python objects in memory
+and cannot be reliably controlled. In some cases it may be possible to build a
+table row by row in less than O(N**2) time but you cannot count on it.</p>
+<p>Another subtlety to keep in mind is that in some cases the return value of an
+operation results in a new table in memory while in other cases it results in a
+view of the existing table data. As an example, imagine trying to set two table
+elements using column selection with <code class="docutils literal notranslate"><span class="pre">t['a',</span> <span class="pre">'c']</span></code> in combination with row
+index selection:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]],</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go"> a   b   c</span>
+<span class="go">--- --- ---</span>
+<span class="go">  1   3   5</span>
+<span class="go">  2   4   6</span>
+</pre></div>
+</div>
+<p>This might be surprising because the data values did not change and there
+was no error. In fact, what happened is that <code class="docutils literal notranslate"><span class="pre">t['a',</span> <span class="pre">'c']</span></code> created a
+new temporary table in memory as a <em>copy</em> of the original and then updated the
+first row of the copy. The original <code class="docutils literal notranslate"><span class="pre">t</span></code> table was unaffected and the new
+temporary table disappeared once the statement was complete. The takeaway
+is to pay attention to how certain operations are performed one step at
+a time.</p>
+</div>
+<div class="section" id="in-place-versus-replace-column-update">
+<span id="table-replace-1-3"></span><h2>In-Place Versus Replace Column Update<a class="headerlink" href="#in-place-versus-replace-column-update" title="Permalink to this headline">¶</a></h2>
+<p>Consider this code snippet:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">10.5</span><span class="p">,</span> <span class="mf">20.5</span><span class="p">,</span> <span class="mf">30.5</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>There are a couple of ways this could be handled. It could update the existing
+array values in-place (truncating to integer), or it could replace the entire
+column with a new column based on the supplied data values.</p>
+<p>The answer for <code class="docutils literal notranslate"><span class="pre">astropy</span></code> is that the operation shown above does a <em>complete
+replacement</em> of the column object. In this case it makes a new column object
+with float values by internally calling <code class="docutils literal notranslate"><span class="pre">t.replace_column('a',</span> <span class="pre">[10.5,</span> <span class="pre">20.5,</span>
+<span class="pre">30.5])</span></code>. In general this behavior is more consistent with Python and <a class="reference external" href="https://pandas.pydata.org">pandas</a> behavior.</p>
+<p><strong>Forcing in-place update</strong></p>
+<p>It is possible to force an in-place update of a column as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">t</span><span class="p">[</span><span class="n">colname</span><span class="p">][:]</span> <span class="o">=</span> <span class="n">value</span>
+</pre></div>
+</div>
+<p><strong>Finding the source of problems</strong></p>
+<p>In order to find potential problems related to replacing columns, there is the
+option <a class="reference internal" href="../api/astropy.table.Conf.html#astropy.table.Conf.replace_warnings" title="astropy.table.Conf.replace_warnings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table.conf.replace_warnings</span></code></a> in the <a class="reference internal" href="../config/index.html#astropy-config"><span class="std std-ref">Configuration System (astropy.config)</span></a>. This
+controls a set of warnings that are emitted under certain circumstances when a
+table column is replaced. This option must be set to a list that includes zero
+or more of the following string values:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">always</span></code> :</dt><dd><p>Print a warning every time a column gets replaced via the
+<code class="docutils literal notranslate"><span class="pre">__setitem__()</span></code> syntax (i.e., <code class="docutils literal notranslate"><span class="pre">t['a']</span> <span class="pre">=</span> <span class="pre">new_col</span></code>).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">slice</span></code> :</dt><dd><p>Print a warning when a column that appears to be a <a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">slice</span></code></a> of
+a parent column is replaced.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">refcount</span></code> :</dt><dd><p>Print a warning when the Python reference count for the
+column changes. This indicates that a stale object exists that might
+be used elsewhere in the code and give unexpected results.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">attributes</span></code> :</dt><dd><p>Print a warning if any of the standard column attributes changed.</p>
+</dd>
+</dl>
+<p>The default value for the <code class="docutils literal notranslate"><span class="pre">table.conf.replace_warnings</span></code> option is
+<code class="docutils literal notranslate"><span class="pre">[]</span></code> (no warnings).</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Modifying a Table</a><ul>
+<li><a class="reference internal" href="#quick-overview">Quick Overview</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#caveats">Caveats</a></li>
+<li><a class="reference internal" href="#in-place-versus-replace-column-update">In-Place Versus Replace Column Update</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/table/modify_table.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

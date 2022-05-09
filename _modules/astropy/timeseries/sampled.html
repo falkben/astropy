@@ -1,0 +1,484 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.timeseries.sampled &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.timeseries.sampled</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">groups</span><span class="p">,</span> <span class="n">QTable</span><span class="p">,</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span><span class="p">,</span> <span class="n">TimeDelta</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">Quantity</span><span class="p">,</span> <span class="n">UnitsError</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.decorators</span> <span class="kn">import</span> <span class="n">deprecated_renamed_argument</span>
+<span class="kn">from</span> <span class="nn">astropy.timeseries.core</span> <span class="kn">import</span> <span class="n">BaseTimeSeries</span><span class="p">,</span> <span class="n">autocheck_required_columns</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;TimeSeries&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="TimeSeries"><a class="viewcode-back" href="../../../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries">[docs]</a><span class="nd">@autocheck_required_columns</span>
+<span class="k">class</span> <span class="nc">TimeSeries</span><span class="p">(</span><span class="n">BaseTimeSeries</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to represent time series data in tabular form.</span>
+
+<span class="sd">    `~astropy.timeseries.TimeSeries` provides a class for representing time</span>
+<span class="sd">    series as a collection of values of different quantities measured at specific</span>
+<span class="sd">    points in time (for time series with finite time bins, see the</span>
+<span class="sd">    `~astropy.timeseries.BinnedTimeSeries` class).</span>
+<span class="sd">    `~astropy.timeseries.TimeSeries` is a sub-class of `~astropy.table.QTable`</span>
+<span class="sd">    and thus provides all the standard table maniplation methods available to</span>
+<span class="sd">    tables, but it also provides additional conveniences for dealing with time</span>
+<span class="sd">    series, such as a flexible initializer for setting up the times, a method</span>
+<span class="sd">    for folding time series, and a ``time`` attribute for easy access to the</span>
+<span class="sd">    time values.</span>
+
+<span class="sd">    See also: https://docs.astropy.org/en/stable/timeseries/</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : numpy ndarray, dict, list, `~astropy.table.Table`, or table-like object, optional</span>
+<span class="sd">        Data to initialize time series. This does not need to contain the times,</span>
+<span class="sd">        which can be provided separately, but if it does contain the times they</span>
+<span class="sd">        should be in a column called ``&#39;time&#39;`` to be automatically recognized.</span>
+<span class="sd">    time : `~astropy.time.Time`, `~astropy.time.TimeDelta` or iterable</span>
+<span class="sd">        The times at which the values are sampled - this can be either given</span>
+<span class="sd">        directly as a `~astropy.time.Time` or `~astropy.time.TimeDelta` array</span>
+<span class="sd">        or as any iterable that initializes the `~astropy.time.Time` class. If</span>
+<span class="sd">        this is given, then the remaining time-related arguments should not be used.</span>
+<span class="sd">    time_start : `~astropy.time.Time` or str</span>
+<span class="sd">        The time of the first sample in the time series. This is an alternative</span>
+<span class="sd">        to providing ``time`` and requires that ``time_delta`` is also provided.</span>
+<span class="sd">    time_delta : `~astropy.time.TimeDelta` or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">        The step size in time for the series. This can either be a scalar if</span>
+<span class="sd">        the time series is evenly sampled, or an array of values if it is not.</span>
+<span class="sd">    n_samples : int</span>
+<span class="sd">        The number of time samples for the series. This is only used if both</span>
+<span class="sd">        ``time_start`` and ``time_delta`` are provided and are scalar values.</span>
+<span class="sd">    **kwargs : dict, optional</span>
+<span class="sd">        Additional keyword arguments are passed to `~astropy.table.QTable`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_required_columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">time_start</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">time_delta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># For some operations, an empty time series needs to be created, then</span>
+        <span class="c1"># columns added one by one. We should check that when columns are added</span>
+        <span class="c1"># manually, time is added first and is of the right type.</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">time</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">time_start</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">time_delta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_required_columns_relax</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">return</span>
+
+        <span class="c1"># First if time has been given in the table data, we should extract it</span>
+        <span class="c1"># and treat it as if it had been passed as a keyword argument.</span>
+
+        <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">n_samples</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">n_samples</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;&#39;n_samples&#39; has been given both and it is not the &quot;</span>
+                                    <span class="s2">&quot;same length as the input data.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;time&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;&#39;time&#39; has been given both in the table and as a keyword argument&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">time</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">time_start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Either &#39;time&#39; or &#39;time_start&#39; should be specified&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">time_start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Cannot specify both &#39;time&#39; and &#39;time_start&#39;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="p">(</span><span class="n">Time</span><span class="p">,</span> <span class="n">TimeDelta</span><span class="p">)):</span>
+            <span class="n">time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">time_start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">time_start</span><span class="p">,</span> <span class="p">(</span><span class="n">Time</span><span class="p">,</span> <span class="n">TimeDelta</span><span class="p">)):</span>
+            <span class="n">time_start</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">time_start</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">time_delta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">time_delta</span><span class="p">,</span> <span class="p">(</span><span class="n">Quantity</span><span class="p">,</span> <span class="n">TimeDelta</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;&#39;time_delta&#39; should be a Quantity or a TimeDelta&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">time_delta</span><span class="p">,</span> <span class="n">TimeDelta</span><span class="p">):</span>
+            <span class="n">time_delta</span> <span class="o">=</span> <span class="n">time_delta</span><span class="o">.</span><span class="n">sec</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span>
+
+        <span class="k">if</span> <span class="n">time_start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="c1"># We interpret this as meaning that time is that of the first</span>
+            <span class="c1"># sample and that the interval is given by time_delta.</span>
+
+            <span class="k">if</span> <span class="n">time_delta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;&#39;time&#39; is scalar, so &#39;time_delta&#39; is required&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">time_delta</span><span class="o">.</span><span class="n">isscalar</span><span class="p">:</span>
+                <span class="n">time_delta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">time_delta</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
+
+            <span class="n">time_delta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">time_delta</span><span class="p">)</span>
+            <span class="n">time_delta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">time_delta</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">time_delta</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span>
+
+            <span class="n">time</span> <span class="o">=</span> <span class="n">time_start</span> <span class="o">+</span> <span class="n">time_delta</span>
+
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">colnames</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">time</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Length of &#39;time&#39; (</span><span class="si">{}</span><span class="s2">) should match &quot;</span>
+                             <span class="s2">&quot;data length (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">time</span><span class="p">),</span> <span class="n">n_samples</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="n">time_delta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;&#39;time_delta&#39; should not be specified since &quot;</span>
+                            <span class="s2">&quot;&#39;time&#39; is an array&quot;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_delay_required_column_checks</span><span class="p">():</span>
+            <span class="k">if</span> <span class="s1">&#39;time&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">remove_column</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The time values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="TimeSeries.fold"><a class="viewcode-back" href="../../../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries.fold">[docs]</a>    <span class="nd">@deprecated_renamed_argument</span><span class="p">(</span><span class="s1">&#39;midpoint_epoch&#39;</span><span class="p">,</span> <span class="s1">&#39;epoch_time&#39;</span><span class="p">,</span> <span class="s1">&#39;4.0&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">fold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">period</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epoch_time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epoch_phase</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+             <span class="n">wrap_phase</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">normalize_phase</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a new `~astropy.timeseries.TimeSeries` folded with a period and</span>
+<span class="sd">        epoch.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        period : `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The period to use for folding</span>
+<span class="sd">        epoch_time : `~astropy.time.Time`</span>
+<span class="sd">            The time to use as the reference epoch, at which the relative time</span>
+<span class="sd">            offset / phase will be ``epoch_phase``. Defaults to the first time</span>
+<span class="sd">            in the time series.</span>
+<span class="sd">        epoch_phase : float or `~astropy.units.Quantity` [&#39;dimensionless&#39;, &#39;time&#39;]</span>
+<span class="sd">            Phase of ``epoch_time``. If ``normalize_phase`` is `True`, this</span>
+<span class="sd">            should be a dimensionless value, while if ``normalize_phase`` is</span>
+<span class="sd">            ``False``, this should be a `~astropy.units.Quantity` with time</span>
+<span class="sd">            units. Defaults to 0.</span>
+<span class="sd">        wrap_phase : float or `~astropy.units.Quantity` [&#39;dimensionless&#39;, &#39;time&#39;]</span>
+<span class="sd">            The value of the phase above which values are wrapped back by one</span>
+<span class="sd">            period. If ``normalize_phase`` is `True`, this should be a</span>
+<span class="sd">            dimensionless value, while if ``normalize_phase`` is ``False``,</span>
+<span class="sd">            this should be a `~astropy.units.Quantity` with time units.</span>
+<span class="sd">            Defaults to half the period, so that the resulting time series goes</span>
+<span class="sd">            from ``-period / 2`` to ``period / 2`` (if ``normalize_phase`` is</span>
+<span class="sd">            `False`) or -0.5 to 0.5 (if ``normalize_phase`` is `True`).</span>
+<span class="sd">        normalize_phase : bool</span>
+<span class="sd">            If `False` phase is returned as `~astropy.time.TimeDelta`,</span>
+<span class="sd">            otherwise as a dimensionless `~astropy.units.Quantity`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        folded_timeseries : `~astropy.timeseries.TimeSeries`</span>
+<span class="sd">            The folded time series object with phase as the ``time`` column.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">period</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">)</span> <span class="ow">or</span> <span class="n">period</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_type</span> <span class="o">!=</span> <span class="s1">&#39;time&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnitsError</span><span class="p">(</span><span class="s1">&#39;period should be a Quantity in units of time&#39;</span><span class="p">)</span>
+
+        <span class="n">folded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">epoch_time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">epoch_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">epoch_time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">epoch_time</span><span class="p">)</span>
+
+        <span class="n">period_sec</span> <span class="o">=</span> <span class="n">period</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">normalize_phase</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">epoch_phase</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">)</span> <span class="ow">and</span> <span class="n">epoch_phase</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_type</span> <span class="o">!=</span> <span class="s1">&#39;dimensionless&#39;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">UnitsError</span><span class="p">(</span><span class="s1">&#39;epoch_phase should be a dimensionless Quantity &#39;</span>
+                                 <span class="s1">&#39;or a float when normalize_phase=True&#39;</span><span class="p">)</span>
+            <span class="n">epoch_phase_sec</span> <span class="o">=</span> <span class="n">epoch_phase</span> <span class="o">*</span> <span class="n">period_sec</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">epoch_phase</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">epoch_phase_sec</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">epoch_phase</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">)</span> <span class="ow">or</span> <span class="n">epoch_phase</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_type</span> <span class="o">!=</span> <span class="s1">&#39;time&#39;</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">UnitsError</span><span class="p">(</span><span class="s1">&#39;epoch_phase should be a Quantity in units &#39;</span>
+                                     <span class="s1">&#39;of time when normalize_phase=False&#39;</span><span class="p">)</span>
+                <span class="n">epoch_phase_sec</span> <span class="o">=</span> <span class="n">epoch_phase</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">wrap_phase</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">wrap_phase</span> <span class="o">=</span> <span class="n">period_sec</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">normalize_phase</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wrap_phase</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">wrap_phase</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">one</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">UnitsError</span><span class="p">(</span><span class="s1">&#39;wrap_phase should be dimensionless when &#39;</span>
+                                     <span class="s1">&#39;normalize_phase=True&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">wrap_phase</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">wrap_phase</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;wrap_phase should be between 0 and 1&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">wrap_phase</span> <span class="o">=</span> <span class="n">wrap_phase</span> <span class="o">*</span> <span class="n">period_sec</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wrap_phase</span><span class="p">,</span> <span class="n">Quantity</span><span class="p">)</span> <span class="ow">and</span> <span class="n">wrap_phase</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_type</span> <span class="o">==</span> <span class="s1">&#39;time&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">wrap_phase</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">wrap_phase</span> <span class="o">&gt;</span> <span class="n">period</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;wrap_phase should be between 0 and the period&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">wrap_phase</span> <span class="o">=</span> <span class="n">wrap_phase</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">UnitsError</span><span class="p">(</span><span class="s1">&#39;wrap_phase should be a Quantity in units &#39;</span>
+                                     <span class="s1">&#39;of time when normalize_phase=False&#39;</span><span class="p">)</span>
+
+        <span class="n">relative_time_sec</span> <span class="o">=</span> <span class="p">(((</span><span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">-</span> <span class="n">epoch_time</span><span class="p">)</span><span class="o">.</span><span class="n">sec</span>
+                              <span class="o">+</span> <span class="n">epoch_phase_sec</span>
+                              <span class="o">+</span> <span class="p">(</span><span class="n">period_sec</span> <span class="o">-</span> <span class="n">wrap_phase</span><span class="p">))</span> <span class="o">%</span> <span class="n">period_sec</span>
+                             <span class="o">-</span> <span class="p">(</span><span class="n">period_sec</span> <span class="o">-</span> <span class="n">wrap_phase</span><span class="p">))</span>
+
+        <span class="n">folded_time</span> <span class="o">=</span> <span class="n">TimeDelta</span><span class="p">(</span><span class="n">relative_time_sec</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">normalize_phase</span><span class="p">:</span>
+            <span class="n">folded_time</span> <span class="o">=</span> <span class="p">(</span><span class="n">folded_time</span> <span class="o">/</span> <span class="n">period</span><span class="p">)</span><span class="o">.</span><span class="n">decompose</span><span class="p">()</span>
+            <span class="n">period</span> <span class="o">=</span> <span class="n">period_sec</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">with</span> <span class="n">folded</span><span class="o">.</span><span class="n">_delay_required_column_checks</span><span class="p">():</span>
+            <span class="n">folded</span><span class="o">.</span><span class="n">remove_column</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+            <span class="n">folded</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="n">folded_time</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">folded</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_list_or_tuple_of_str</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s1">&#39;time&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">QTable</span><span class="p">([</span><span class="bp">self</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">item</span><span class="p">],</span>
+                             <span class="n">meta</span><span class="o">=</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">),</span>
+                             <span class="n">copy_indices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_copy_indices</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">_groups</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.</span><span class="n">TableGroups</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">_indices</span><span class="p">,</span>
+                                                 <span class="n">keys</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">_keys</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">out</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TimeSeries.add_column"><a class="viewcode-back" href="../../../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries.add_column">[docs]</a>    <span class="k">def</span> <span class="nf">add_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See :meth:`~astropy.table.Table.add_column`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Note that the docstring is inherited from QTable</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="s1">&#39;time&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_index</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="TimeSeries.add_columns"><a class="viewcode-back" href="../../../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries.add_columns">[docs]</a>    <span class="k">def</span> <span class="nf">add_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        See :meth:`~astropy.table.Table.add_columns`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Note that the docstring is inherited from QTable</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">add_columns</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="s1">&#39;time&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_index</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="TimeSeries.from_pandas"><a class="viewcode-back" href="../../../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries.from_pandas">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">time_scale</span><span class="o">=</span><span class="s1">&#39;utc&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert a :class:`~pandas.DataFrame` to a</span>
+<span class="sd">        :class:`astropy.timeseries.TimeSeries`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : :class:`pandas.DataFrame`</span>
+<span class="sd">            A pandas :class:`pandas.DataFrame` instance.</span>
+<span class="sd">        time_scale : str</span>
+<span class="sd">            The time scale to pass into `astropy.time.Time`.</span>
+<span class="sd">            Defaults to ``UTC``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">DatetimeIndex</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Input should be a pandas DataFrame&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">DatetimeIndex</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;DataFrame does not have a DatetimeIndex&quot;</span><span class="p">)</span>
+
+        <span class="n">time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">time_scale</span><span class="p">)</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">TimeSeries</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">table</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TimeSeries.to_pandas"><a class="viewcode-back" href="../../../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries.to_pandas">[docs]</a>    <span class="k">def</span> <span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert this :class:`~astropy.timeseries.TimeSeries` to a</span>
+<span class="sd">        :class:`~pandas.DataFrame` with a :class:`~pandas.DatetimeIndex` index.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dataframe : :class:`pandas.DataFrame`</span>
+<span class="sd">            A pandas :class:`pandas.DataFrame` instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Table</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TimeSeries.read"><a class="viewcode-back" href="../../../api/astropy.timeseries.TimeSeries.html#astropy.timeseries.TimeSeries.read">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">time_column</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">time_format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">time_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read and parse a file and returns a `astropy.timeseries.TimeSeries`.</span>
+
+<span class="sd">        This method uses the unified I/O infrastructure in Astropy which makes</span>
+<span class="sd">        it easy to define readers/writers for various classes</span>
+<span class="sd">        (https://docs.astropy.org/en/stable/io/unified.html). By default, this</span>
+<span class="sd">        method will try and use readers defined specifically for the</span>
+<span class="sd">        `astropy.timeseries.TimeSeries` class - however, it is also</span>
+<span class="sd">        possible to use the ``format`` keyword to specify formats defined for</span>
+<span class="sd">        the `astropy.table.Table` class - in this case, you will need to also</span>
+<span class="sd">        provide the column names for column containing the start times for the</span>
+<span class="sd">        bins, as well as other column names (see the Parameters section below</span>
+<span class="sd">        for details)::</span>
+
+<span class="sd">            &gt;&gt;&gt; from astropy.timeseries import TimeSeries</span>
+<span class="sd">            &gt;&gt;&gt; ts = TimeSeries.read(&#39;sampled.dat&#39;, format=&#39;ascii.ecsv&#39;,</span>
+<span class="sd">            ...                      time_column=&#39;date&#39;)  # doctest: +SKIP</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            File to parse.</span>
+<span class="sd">        format : str</span>
+<span class="sd">            File format specifier.</span>
+<span class="sd">        time_column : str, optional</span>
+<span class="sd">            The name of the time column.</span>
+<span class="sd">        time_format : str, optional</span>
+<span class="sd">            The time format for the time column.</span>
+<span class="sd">        time_scale : str, optional</span>
+<span class="sd">            The time scale for the time column.</span>
+<span class="sd">        *args : tuple, optional</span>
+<span class="sd">            Positional arguments passed through to the data reader.</span>
+<span class="sd">        **kwargs : dict, optional</span>
+<span class="sd">            Keyword arguments passed through to the data reader.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        out : `astropy.timeseries.sampled.TimeSeries`</span>
+<span class="sd">            TimeSeries corresponding to file contents.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+
+            <span class="c1"># First we try the readers defined for the BinnedTimeSeries class</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+
+            <span class="c1"># Otherwise we fall back to the default Table readers</span>
+
+            <span class="k">if</span> <span class="n">time_column</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;``time_column`` should be provided since the default Table readers are being used.&quot;</span><span class="p">)</span>
+
+            <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="nb">format</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">time_column</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">colnames</span><span class="p">:</span>
+                <span class="n">time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">time_column</span><span class="p">],</span> <span class="n">scale</span><span class="o">=</span><span class="n">time_scale</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">time_format</span><span class="p">)</span>
+                <span class="n">table</span><span class="o">.</span><span class="n">remove_column</span><span class="p">(</span><span class="n">time_column</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Time column &#39;</span><span class="si">{</span><span class="n">time_column</span><span class="si">}</span><span class="s2">&#39; not found in the input data.&quot;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">TimeSeries</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">table</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

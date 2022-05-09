@@ -1,0 +1,922 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.timeseries.periodograms.bls.core &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+    <script src="../../../../../_static/jquery.js"></script>
+    <script src="../../../../../_static/underscore.js"></script>
+    <script src="../../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.timeseries.periodograms.bls.core</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;BoxLeastSquares&quot;</span><span class="p">,</span> <span class="s2">&quot;BoxLeastSquaresResults&quot;</span><span class="p">]</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span><span class="p">,</span> <span class="n">TimeDelta</span>
+<span class="kn">from</span> <span class="nn">astropy.timeseries.periodograms.lombscargle.core</span> <span class="kn">import</span> <span class="n">has_units</span><span class="p">,</span> <span class="n">strip_units</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">methods</span>
+<span class="kn">from</span> <span class="nn">astropy.timeseries.periodograms.base</span> <span class="kn">import</span> <span class="n">BasePeriodogram</span>
+
+
+<span class="k">def</span> <span class="nf">validate_unit_consistency</span><span class="p">(</span><span class="n">reference_object</span><span class="p">,</span> <span class="n">input_object</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">has_units</span><span class="p">(</span><span class="n">reference_object</span><span class="p">):</span>
+        <span class="n">input_object</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">input_object</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">reference_object</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">has_units</span><span class="p">(</span><span class="n">input_object</span><span class="p">):</span>
+            <span class="n">input_object</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">input_object</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">units</span><span class="o">.</span><span class="n">one</span><span class="p">)</span>
+            <span class="n">input_object</span> <span class="o">=</span> <span class="n">input_object</span><span class="o">.</span><span class="n">value</span>
+    <span class="k">return</span> <span class="n">input_object</span>
+
+
+<div class="viewcode-block" id="BoxLeastSquares"><a class="viewcode-back" href="../../../../../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares">[docs]</a><span class="k">class</span> <span class="nc">BoxLeastSquares</span><span class="p">(</span><span class="n">BasePeriodogram</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute the box least squares periodogram</span>
+
+<span class="sd">    This method is a commonly used tool for discovering transiting exoplanets</span>
+<span class="sd">    or eclipsing binaries in photometric time series datasets. This</span>
+<span class="sd">    implementation is based on the &quot;box least squares (BLS)&quot; method described</span>
+<span class="sd">    in [1]_ and [2]_.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    t : array-like, `~astropy.units.Quantity`, `~astropy.time.Time`, or `~astropy.time.TimeDelta`</span>
+<span class="sd">        Sequence of observation times.</span>
+<span class="sd">    y : array-like or `~astropy.units.Quantity`</span>
+<span class="sd">        Sequence of observations associated with times ``t``.</span>
+<span class="sd">    dy : float, array-like, or `~astropy.units.Quantity`, optional</span>
+<span class="sd">        Error or sequence of observational errors associated with times ``t``.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    Generate noisy data with a transit:</span>
+
+<span class="sd">    &gt;&gt;&gt; rand = np.random.default_rng(42)</span>
+<span class="sd">    &gt;&gt;&gt; t = rand.uniform(0, 10, 500)</span>
+<span class="sd">    &gt;&gt;&gt; y = np.ones_like(t)</span>
+<span class="sd">    &gt;&gt;&gt; y[np.abs((t + 1.0)%2.0-1)&lt;0.08] = 1.0 - 0.1</span>
+<span class="sd">    &gt;&gt;&gt; y += 0.01 * rand.standard_normal(len(t))</span>
+
+<span class="sd">    Compute the transit periodogram on a heuristically determined period grid</span>
+<span class="sd">    and find the period with maximum power:</span>
+
+<span class="sd">    &gt;&gt;&gt; model = BoxLeastSquares(t, y)</span>
+<span class="sd">    &gt;&gt;&gt; results = model.autopower(0.16)</span>
+<span class="sd">    &gt;&gt;&gt; results.period[np.argmax(results.power)]  # doctest: +FLOAT_CMP</span>
+<span class="sd">    2.000412388152837</span>
+
+<span class="sd">    Compute the periodogram on a user-specified period grid:</span>
+
+<span class="sd">    &gt;&gt;&gt; periods = np.linspace(1.9, 2.1, 5)</span>
+<span class="sd">    &gt;&gt;&gt; results = model.power(periods, 0.16)</span>
+<span class="sd">    &gt;&gt;&gt; results.power  # doctest: +FLOAT_CMP</span>
+<span class="sd">    array([0.01723948, 0.0643028 , 0.1338783 , 0.09428816, 0.03577543])</span>
+
+<span class="sd">    If the inputs are AstroPy Quantities with units, the units will be</span>
+<span class="sd">    validated and the outputs will also be Quantities with appropriate units:</span>
+
+<span class="sd">    &gt;&gt;&gt; from astropy import units as u</span>
+<span class="sd">    &gt;&gt;&gt; t = t * u.day</span>
+<span class="sd">    &gt;&gt;&gt; y = y * u.dimensionless_unscaled</span>
+<span class="sd">    &gt;&gt;&gt; model = BoxLeastSquares(t, y)</span>
+<span class="sd">    &gt;&gt;&gt; results = model.autopower(0.16 * u.day)</span>
+<span class="sd">    &gt;&gt;&gt; results.period.unit</span>
+<span class="sd">    Unit(&quot;d&quot;)</span>
+<span class="sd">    &gt;&gt;&gt; results.power.unit</span>
+<span class="sd">    Unit(dimensionless)</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [1] Kovacs, Zucker, &amp; Mazeh (2002), A&amp;A, 391, 369</span>
+<span class="sd">        (arXiv:astro-ph/0206099)</span>
+<span class="sd">    .. [2] Hartman &amp; Bakos (2016), Astronomy &amp; Computing, 17, 1</span>
+<span class="sd">        (arXiv:1605.06811)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># If t is a TimeDelta, convert it to a quantity. The units we convert</span>
+        <span class="c1"># to don&#39;t really matter since the user gets a Quantity back at the end</span>
+        <span class="c1"># so can convert to any units they like.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">TimeDelta</span><span class="p">):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;day&#39;</span><span class="p">)</span>
+
+        <span class="c1"># We want to expose self.t as being the times the user passed in, but</span>
+        <span class="c1"># if the times are absolute, we need to convert them to relative times</span>
+        <span class="c1"># internally, so we use self._trel and self._tstart for this.</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">t</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="p">(</span><span class="n">Time</span><span class="p">,</span> <span class="n">TimeDelta</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tstart</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">trel</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tstart</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">day</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_tstart</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">trel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_inputs</span><span class="p">(</span><span class="n">trel</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BoxLeastSquares.autoperiod"><a class="viewcode-back" href="../../../../../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.autoperiod">[docs]</a>    <span class="k">def</span> <span class="nf">autoperiod</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span>
+                   <span class="n">minimum_period</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">maximum_period</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">minimum_n_transit</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">frequency_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Determine a suitable grid of periods</span>
+
+<span class="sd">        This method uses a set of heuristics to select a conservative period</span>
+<span class="sd">        grid that is uniform in frequency. This grid might be too fine for</span>
+<span class="sd">        some user&#39;s needs depending on the precision requirements or the</span>
+<span class="sd">        sampling of the data. The grid can be made coarser by increasing</span>
+<span class="sd">        ``frequency_factor``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        duration : float, array-like, or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The set of durations that will be considered.</span>
+<span class="sd">        minimum_period, maximum_period : float or `~astropy.units.Quantity` [&#39;time&#39;], optional</span>
+<span class="sd">            The minimum/maximum periods to search. If not provided, these will</span>
+<span class="sd">            be computed as described in the notes below.</span>
+<span class="sd">        minimum_n_transit : int, optional</span>
+<span class="sd">            If ``maximum_period`` is not provided, this is used to compute the</span>
+<span class="sd">            maximum period to search by asserting that any systems with at</span>
+<span class="sd">            least ``minimum_n_transits`` will be within the range of searched</span>
+<span class="sd">            periods. Note that this is not the same as requiring that</span>
+<span class="sd">            ``minimum_n_transits`` be required for detection. The default</span>
+<span class="sd">            value is ``3``.</span>
+<span class="sd">        frequency_factor : float, optional</span>
+<span class="sd">            A factor to control the frequency spacing as described in the</span>
+<span class="sd">            notes below. The default value is ``1.0``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        period : array-like or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The set of periods computed using these heuristics with the same</span>
+<span class="sd">            units as ``t``.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The default minimum period is chosen to be twice the maximum duration</span>
+<span class="sd">        because there won&#39;t be much sensitivity to periods shorter than that.</span>
+
+<span class="sd">        The default maximum period is computed as</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            maximum_period = (max(t) - min(t)) / minimum_n_transits</span>
+
+<span class="sd">        ensuring that any systems with at least ``minimum_n_transits`` are</span>
+<span class="sd">        within the range of searched periods.</span>
+
+<span class="sd">        The frequency spacing is given by</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            df = frequency_factor * min(duration) / (max(t) - min(t))**2</span>
+
+<span class="sd">        so the grid can be made finer by decreasing ``frequency_factor`` or</span>
+<span class="sd">        coarser by increasing ``frequency_factor``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">duration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_duration</span><span class="p">(</span><span class="n">duration</span><span class="p">)</span>
+        <span class="n">baseline</span> <span class="o">=</span> <span class="n">strip_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+        <span class="n">min_duration</span> <span class="o">=</span> <span class="n">strip_units</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">duration</span><span class="p">))</span>
+
+        <span class="c1"># Estimate the required frequency spacing</span>
+        <span class="c1"># Because of the sparsity of a transit, this must be much finer than</span>
+        <span class="c1"># the frequency resolution for a sinusoidal fit. For a sinusoidal fit,</span>
+        <span class="c1"># df would be 1/baseline (see LombScargle), but here this should be</span>
+        <span class="c1"># scaled proportionally to the duration in units of baseline.</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">frequency_factor</span> <span class="o">*</span> <span class="n">min_duration</span> <span class="o">/</span> <span class="n">baseline</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="c1"># If a minimum period is not provided, choose one that is twice the</span>
+        <span class="c1"># maximum duration because we won&#39;t be sensitive to any periods</span>
+        <span class="c1"># shorter than that.</span>
+        <span class="k">if</span> <span class="n">minimum_period</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">minimum_period</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">strip_units</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">duration</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">minimum_period</span> <span class="o">=</span> <span class="n">validate_unit_consistency</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="p">,</span> <span class="n">minimum_period</span><span class="p">)</span>
+            <span class="n">minimum_period</span> <span class="o">=</span> <span class="n">strip_units</span><span class="p">(</span><span class="n">minimum_period</span><span class="p">)</span>
+
+        <span class="c1"># If no maximum period is provided, choose one by requiring that</span>
+        <span class="c1"># all signals with at least minimum_n_transit should be detectable.</span>
+        <span class="k">if</span> <span class="n">maximum_period</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">minimum_n_transit</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;minimum_n_transit must be greater than 1&quot;</span><span class="p">)</span>
+            <span class="n">maximum_period</span> <span class="o">=</span> <span class="n">baseline</span> <span class="o">/</span> <span class="p">(</span><span class="n">minimum_n_transit</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">maximum_period</span> <span class="o">=</span> <span class="n">validate_unit_consistency</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="p">,</span> <span class="n">maximum_period</span><span class="p">)</span>
+            <span class="n">maximum_period</span> <span class="o">=</span> <span class="n">strip_units</span><span class="p">(</span><span class="n">maximum_period</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">maximum_period</span> <span class="o">&lt;</span> <span class="n">minimum_period</span><span class="p">:</span>
+            <span class="n">minimum_period</span><span class="p">,</span> <span class="n">maximum_period</span> <span class="o">=</span> <span class="n">maximum_period</span><span class="p">,</span> <span class="n">minimum_period</span>
+        <span class="k">if</span> <span class="n">minimum_period</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;minimum_period must be positive&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Convert bounds to frequency</span>
+        <span class="n">minimum_frequency</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">strip_units</span><span class="p">(</span><span class="n">maximum_period</span><span class="p">)</span>
+        <span class="n">maximum_frequency</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">strip_units</span><span class="p">(</span><span class="n">minimum_period</span><span class="p">)</span>
+
+        <span class="c1"># Compute the number of frequencies and the frequency grid</span>
+        <span class="n">nf</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">((</span><span class="n">maximum_frequency</span> <span class="o">-</span> <span class="n">minimum_frequency</span><span class="p">)</span><span class="o">/</span><span class="n">df</span><span class="p">))</span>
+        <span class="k">return</span> <span class="mf">1.0</span><span class="o">/</span><span class="p">(</span><span class="n">maximum_frequency</span><span class="o">-</span><span class="n">df</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nf</span><span class="p">))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t_unit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BoxLeastSquares.autopower"><a class="viewcode-back" href="../../../../../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.autopower">[docs]</a>    <span class="k">def</span> <span class="nf">autopower</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">objective</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">oversample</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                  <span class="n">minimum_n_transit</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">minimum_period</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">maximum_period</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">frequency_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the periodogram at set of heuristically determined periods</span>
+
+<span class="sd">        This method calls :func:`BoxLeastSquares.autoperiod` to determine</span>
+<span class="sd">        the period grid and then :func:`BoxLeastSquares.power` to compute</span>
+<span class="sd">        the periodogram. See those methods for documentation of the arguments.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">period</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">autoperiod</span><span class="p">(</span><span class="n">duration</span><span class="p">,</span>
+                                 <span class="n">minimum_n_transit</span><span class="o">=</span><span class="n">minimum_n_transit</span><span class="p">,</span>
+                                 <span class="n">minimum_period</span><span class="o">=</span><span class="n">minimum_period</span><span class="p">,</span>
+                                 <span class="n">maximum_period</span><span class="o">=</span><span class="n">maximum_period</span><span class="p">,</span>
+                                 <span class="n">frequency_factor</span><span class="o">=</span><span class="n">frequency_factor</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">period</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">objective</span><span class="o">=</span><span class="n">objective</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+                          <span class="n">oversample</span><span class="o">=</span><span class="n">oversample</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BoxLeastSquares.power"><a class="viewcode-back" href="../../../../../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.power">[docs]</a>    <span class="k">def</span> <span class="nf">power</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">period</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">objective</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">oversample</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the periodogram for a set of periods</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        period : array-like or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The periods where the power should be computed</span>
+<span class="sd">        duration : float, array-like, or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The set of durations to test</span>
+<span class="sd">        objective : {&#39;likelihood&#39;, &#39;snr&#39;}, optional</span>
+<span class="sd">            The scalar that should be optimized to find the best fit phase,</span>
+<span class="sd">            duration, and depth. This can be either ``&#39;likelihood&#39;`` (default)</span>
+<span class="sd">            to optimize the log-likelihood of the model, or ``&#39;snr&#39;`` to</span>
+<span class="sd">            optimize the signal-to-noise with which the transit depth is</span>
+<span class="sd">            measured.</span>
+<span class="sd">        method : {&#39;fast&#39;, &#39;slow&#39;}, optional</span>
+<span class="sd">            The computational method used to compute the periodogram. This is</span>
+<span class="sd">            mainly included for the purposes of testing and most users will</span>
+<span class="sd">            want to use the optimized ``&#39;fast&#39;`` method (default) that is</span>
+<span class="sd">            implemented in Cython.  ``&#39;slow&#39;`` is a brute-force method that is</span>
+<span class="sd">            used to test the results of the ``&#39;fast&#39;`` method.</span>
+<span class="sd">        oversample : int, optional</span>
+<span class="sd">            The number of bins per duration that should be used. This sets the</span>
+<span class="sd">            time resolution of the phase fit with larger values of</span>
+<span class="sd">            ``oversample`` yielding a finer grid and higher computational cost.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        results : BoxLeastSquaresResults</span>
+<span class="sd">            The periodogram results as a :class:`BoxLeastSquaresResults`</span>
+<span class="sd">            object.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``oversample`` is not an integer greater than 0 or if</span>
+<span class="sd">            ``objective`` or ``method`` are not valid.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">period</span><span class="p">,</span> <span class="n">duration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_period_and_duration</span><span class="p">(</span><span class="n">period</span><span class="p">,</span> <span class="n">duration</span><span class="p">)</span>
+
+        <span class="c1"># Check for absurdities in the ``oversample`` choice</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">oversample</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">oversample</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;oversample must be an int, got </span><span class="si">{</span><span class="n">oversample</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">oversample</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;oversample must be greater than or equal to 1&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Select the periodogram objective</span>
+        <span class="k">if</span> <span class="n">objective</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">objective</span> <span class="o">=</span> <span class="s2">&quot;likelihood&quot;</span>
+        <span class="n">allowed_objectives</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;snr&quot;</span><span class="p">,</span> <span class="s2">&quot;likelihood&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">objective</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_objectives</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">((</span><span class="s2">&quot;Unrecognized method &#39;</span><span class="si">{0}</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="s2">&quot;allowed methods are: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="p">)</span>
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">allowed_objectives</span><span class="p">))</span>
+        <span class="n">use_likelihood</span> <span class="o">=</span> <span class="p">(</span><span class="n">objective</span> <span class="o">==</span> <span class="s2">&quot;likelihood&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Select the computational method</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="s2">&quot;fast&quot;</span>
+        <span class="n">allowed_methods</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;fast&quot;</span><span class="p">,</span> <span class="s2">&quot;slow&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_methods</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">((</span><span class="s2">&quot;Unrecognized method &#39;</span><span class="si">{0}</span><span class="s2">&#39;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                              <span class="s2">&quot;allowed methods are: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="p">)</span>
+                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">allowed_methods</span><span class="p">))</span>
+
+        <span class="c1"># Format and check the input arrays</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">t_ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ivar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ivar</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dy</span><span class="p">),</span>
+                                              <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="c1"># Make sure that the period and duration arrays are C-order</span>
+        <span class="n">period_fmt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="n">period</span><span class="p">),</span>
+                                          <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">duration</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="n">duration</span><span class="p">),</span>
+                                        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+        <span class="c1"># Select the correct implementation for the chosen method</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;fast&quot;</span><span class="p">:</span>
+            <span class="n">bls</span> <span class="o">=</span> <span class="n">methods</span><span class="o">.</span><span class="n">bls_fast</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bls</span> <span class="o">=</span> <span class="n">methods</span><span class="o">.</span><span class="n">bls_slow</span>
+
+        <span class="c1"># Run the implementation</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">bls</span><span class="p">(</span>
+            <span class="n">t</span> <span class="o">-</span> <span class="n">t_ref</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">ivar</span><span class="p">,</span> <span class="n">period_fmt</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span>
+            <span class="n">oversample</span><span class="p">,</span> <span class="n">use_likelihood</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_format_results</span><span class="p">(</span><span class="n">t_ref</span><span class="p">,</span> <span class="n">objective</span><span class="p">,</span> <span class="n">period</span><span class="p">,</span> <span class="n">results</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_as_relative_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">times</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert the provided times (if absolute) to relative times using the</span>
+<span class="sd">        current _tstart value. If the times provided are relative, they are</span>
+<span class="sd">        returned without conversion (though we still do some checks).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">TimeDelta</span><span class="p">):</span>
+            <span class="n">times</span> <span class="o">=</span> <span class="n">times</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;day&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tstart</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">Time</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> was provided as an absolute time but &#39;</span>
+                                <span class="s1">&#39;the BoxLeastSquares class was initialized &#39;</span>
+                                <span class="s1">&#39;with relative times.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">Time</span><span class="p">):</span>
+                <span class="n">times</span> <span class="o">=</span> <span class="p">(</span><span class="n">times</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tstart</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">day</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> was provided as a relative time but &#39;</span>
+                                <span class="s1">&#39;the BoxLeastSquares class was initialized &#39;</span>
+                                <span class="s1">&#39;with absolute times.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+
+        <span class="n">times</span> <span class="o">=</span> <span class="n">validate_unit_consistency</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">times</span>
+
+    <span class="k">def</span> <span class="nf">_as_absolute_time_if_needed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">times</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert the provided times to absolute times using the current _tstart</span>
+<span class="sd">        value, if needed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tstart</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Some time formats/scales can&#39;t represent dates/times too far</span>
+            <span class="c1"># off from the present, so we need to mask values offset by</span>
+            <span class="c1"># more than 100,000 yr (the periodogram algorithm can return</span>
+            <span class="c1"># transit times of e.g 1e300 for some periods).</span>
+            <span class="n">reset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">times</span><span class="o">.</span><span class="n">to_value</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">year</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">100000</span>
+            <span class="n">times</span><span class="p">[</span><span class="n">reset</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tstart</span> <span class="o">+</span> <span class="n">times</span>
+            <span class="n">times</span><span class="p">[</span><span class="n">reset</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="k">return</span> <span class="n">times</span>
+
+<div class="viewcode-block" id="BoxLeastSquares.model"><a class="viewcode-back" href="../../../../../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.model">[docs]</a>    <span class="k">def</span> <span class="nf">model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_model</span><span class="p">,</span> <span class="n">period</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">transit_time</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the transit model at the given period, duration, and phase</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        t_model : array-like, `~astropy.units.Quantity`, or `~astropy.time.Time`</span>
+<span class="sd">            Times at which to compute the model.</span>
+<span class="sd">        period : float or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The period of the transits.</span>
+<span class="sd">        duration : float or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The duration of the transit.</span>
+<span class="sd">        transit_time : float or `~astropy.units.Quantity` or `~astropy.time.Time`</span>
+<span class="sd">            The mid-transit time of a reference transit.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        y_model : array-like or `~astropy.units.Quantity`</span>
+<span class="sd">            The model evaluated at the times ``t_model`` with units of ``y``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">period</span><span class="p">,</span> <span class="n">duration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_period_and_duration</span><span class="p">(</span><span class="n">period</span><span class="p">,</span> <span class="n">duration</span><span class="p">)</span>
+
+        <span class="n">transit_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_relative_time</span><span class="p">(</span><span class="s1">&#39;transit_time&#39;</span><span class="p">,</span> <span class="n">transit_time</span><span class="p">)</span>
+        <span class="n">t_model</span> <span class="o">=</span> <span class="n">strip_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_relative_time</span><span class="p">(</span><span class="s1">&#39;t_model&#39;</span><span class="p">,</span> <span class="n">t_model</span><span class="p">))</span>
+
+        <span class="n">period</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="n">period</span><span class="p">))</span>
+        <span class="n">duration</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="n">duration</span><span class="p">))</span>
+        <span class="n">transit_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="n">transit_time</span><span class="p">))</span>
+
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ivar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ivar</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dy</span><span class="p">),</span>
+                                              <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="c1"># Compute the depth</span>
+        <span class="n">hp</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">period</span>
+        <span class="n">m_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">t</span><span class="o">-</span><span class="n">transit_time</span><span class="o">+</span><span class="n">hp</span><span class="p">)</span> <span class="o">%</span> <span class="n">period</span> <span class="o">-</span> <span class="n">hp</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">duration</span>
+        <span class="n">m_out</span> <span class="o">=</span> <span class="o">~</span><span class="n">m_in</span>
+        <span class="n">y_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">m_in</span><span class="p">]</span> <span class="o">*</span> <span class="n">ivar</span><span class="p">[</span><span class="n">m_in</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ivar</span><span class="p">[</span><span class="n">m_in</span><span class="p">])</span>
+        <span class="n">y_out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">m_out</span><span class="p">]</span> <span class="o">*</span> <span class="n">ivar</span><span class="p">[</span><span class="n">m_out</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ivar</span><span class="p">[</span><span class="n">m_out</span><span class="p">])</span>
+
+        <span class="c1"># Evaluate the model</span>
+        <span class="n">y_model</span> <span class="o">=</span> <span class="n">y_out</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t_model</span><span class="p">)</span>
+        <span class="n">m_model</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">t_model</span><span class="o">-</span><span class="n">transit_time</span><span class="o">+</span><span class="n">hp</span><span class="p">)</span> <span class="o">%</span> <span class="n">period</span><span class="o">-</span><span class="n">hp</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">duration</span>
+        <span class="n">y_model</span><span class="p">[</span><span class="n">m_model</span><span class="p">]</span> <span class="o">=</span> <span class="n">y_in</span>
+
+        <span class="k">return</span> <span class="n">y_model</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y_unit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BoxLeastSquares.compute_stats"><a class="viewcode-back" href="../../../../../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.compute_stats">[docs]</a>    <span class="k">def</span> <span class="nf">compute_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">period</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">transit_time</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute descriptive statistics for a given transit model</span>
+
+<span class="sd">        These statistics are commonly used for vetting of transit candidates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        period : float or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The period of the transits.</span>
+<span class="sd">        duration : float or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The duration of the transit.</span>
+<span class="sd">        transit_time : float or `~astropy.units.Quantity` or `~astropy.time.Time`</span>
+<span class="sd">            The mid-transit time of a reference transit.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        stats : dict</span>
+<span class="sd">            A dictionary containing several descriptive statistics:</span>
+
+<span class="sd">            - ``depth``: The depth and uncertainty (as a tuple with two</span>
+<span class="sd">                values) on the depth for the fiducial model.</span>
+<span class="sd">            - ``depth_odd``: The depth and uncertainty on the depth for a</span>
+<span class="sd">                model where the period is twice the fiducial period.</span>
+<span class="sd">            - ``depth_even``: The depth and uncertainty on the depth for a</span>
+<span class="sd">                model where the period is twice the fiducial period and the</span>
+<span class="sd">                phase is offset by one orbital period.</span>
+<span class="sd">            - ``depth_half``: The depth and uncertainty for a model with a</span>
+<span class="sd">                period of half the fiducial period.</span>
+<span class="sd">            - ``depth_phased``: The depth and uncertainty for a model with the</span>
+<span class="sd">                fiducial period and the phase offset by half a period.</span>
+<span class="sd">            - ``harmonic_amplitude``: The amplitude of the best fit sinusoidal</span>
+<span class="sd">                model.</span>
+<span class="sd">            - ``harmonic_delta_log_likelihood``: The difference in log</span>
+<span class="sd">                likelihood between a sinusoidal model and the transit model.</span>
+<span class="sd">                If ``harmonic_delta_log_likelihood`` is greater than zero, the</span>
+<span class="sd">                sinusoidal model is preferred.</span>
+<span class="sd">            - ``transit_times``: The mid-transit time for each transit in the</span>
+<span class="sd">                baseline.</span>
+<span class="sd">            - ``per_transit_count``: An array with a count of the number of</span>
+<span class="sd">                data points in each unique transit included in the baseline.</span>
+<span class="sd">            - ``per_transit_log_likelihood``: An array with the value of the</span>
+<span class="sd">                log likelihood for each unique transit included in the</span>
+<span class="sd">                baseline.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">period</span><span class="p">,</span> <span class="n">duration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_period_and_duration</span><span class="p">(</span><span class="n">period</span><span class="p">,</span> <span class="n">duration</span><span class="p">)</span>
+        <span class="n">transit_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_relative_time</span><span class="p">(</span><span class="s1">&#39;transit_time&#39;</span><span class="p">,</span> <span class="n">transit_time</span><span class="p">)</span>
+
+        <span class="n">period</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="n">period</span><span class="p">))</span>
+        <span class="n">duration</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="n">duration</span><span class="p">))</span>
+        <span class="n">transit_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="n">transit_time</span><span class="p">))</span>
+
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ivar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ivar</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dy</span><span class="p">),</span>
+                                              <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="c1"># This a helper function that will compute the depth for several</span>
+        <span class="c1"># different hypothesized transit models with different parameters</span>
+        <span class="k">def</span> <span class="nf">_compute_depth</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">y_out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">var_out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">var_out</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">var_out</span><span class="p">)):</span>
+                <span class="n">var_m</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ivar</span><span class="p">[</span><span class="n">m</span><span class="p">])</span>
+                <span class="n">y_m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">*</span> <span class="n">ivar</span><span class="p">[</span><span class="n">m</span><span class="p">])</span> <span class="o">*</span> <span class="n">var_m</span>
+                <span class="k">if</span> <span class="n">y_out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">y_m</span><span class="p">,</span> <span class="n">var_m</span>
+                <span class="k">return</span> <span class="n">y_out</span> <span class="o">-</span> <span class="n">y_m</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">var_m</span> <span class="o">+</span> <span class="n">var_out</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+
+        <span class="c1"># Compute the depth of the fiducial model and the two models at twice</span>
+        <span class="c1"># the period</span>
+        <span class="n">hp</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">period</span>
+        <span class="n">m_in</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">t</span><span class="o">-</span><span class="n">transit_time</span><span class="o">+</span><span class="n">hp</span><span class="p">)</span> <span class="o">%</span> <span class="n">period</span> <span class="o">-</span> <span class="n">hp</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">duration</span>
+        <span class="n">m_out</span> <span class="o">=</span> <span class="o">~</span><span class="n">m_in</span>
+        <span class="n">m_odd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">t</span><span class="o">-</span><span class="n">transit_time</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">period</span><span class="p">)</span> <span class="o">-</span> <span class="n">period</span><span class="p">)</span> \
+            <span class="o">&lt;</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">duration</span>
+        <span class="n">m_even</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">t</span><span class="o">-</span><span class="n">transit_time</span><span class="o">+</span><span class="n">period</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">period</span><span class="p">)</span> <span class="o">-</span> <span class="n">period</span><span class="p">)</span> \
+            <span class="o">&lt;</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">duration</span>
+
+        <span class="n">y_out</span><span class="p">,</span> <span class="n">var_out</span> <span class="o">=</span> <span class="n">_compute_depth</span><span class="p">(</span><span class="n">m_out</span><span class="p">)</span>
+        <span class="n">depth</span> <span class="o">=</span> <span class="n">_compute_depth</span><span class="p">(</span><span class="n">m_in</span><span class="p">,</span> <span class="n">y_out</span><span class="p">,</span> <span class="n">var_out</span><span class="p">)</span>
+        <span class="n">depth_odd</span> <span class="o">=</span> <span class="n">_compute_depth</span><span class="p">(</span><span class="n">m_odd</span><span class="p">,</span> <span class="n">y_out</span><span class="p">,</span> <span class="n">var_out</span><span class="p">)</span>
+        <span class="n">depth_even</span> <span class="o">=</span> <span class="n">_compute_depth</span><span class="p">(</span><span class="n">m_even</span><span class="p">,</span> <span class="n">y_out</span><span class="p">,</span> <span class="n">var_out</span><span class="p">)</span>
+        <span class="n">y_in</span> <span class="o">=</span> <span class="n">y_out</span> <span class="o">-</span> <span class="n">depth</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Compute the depth of the model at a phase of 0.5*period</span>
+        <span class="n">m_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">t</span><span class="o">-</span><span class="n">transit_time</span><span class="p">)</span> <span class="o">%</span> <span class="n">period</span> <span class="o">-</span> <span class="n">hp</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">duration</span>
+        <span class="n">depth_phase</span> <span class="o">=</span> <span class="n">_compute_depth</span><span class="p">(</span><span class="n">m_phase</span><span class="p">,</span>
+                                     <span class="o">*</span><span class="n">_compute_depth</span><span class="p">((</span><span class="o">~</span><span class="n">m_phase</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">m_out</span><span class="p">))</span>
+
+        <span class="c1"># Compute the depth of a model with a period of 0.5*period</span>
+        <span class="n">m_half</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">t</span><span class="o">-</span><span class="n">transit_time</span><span class="o">+</span><span class="mf">0.25</span><span class="o">*</span><span class="n">period</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="n">period</span><span class="p">)</span>
+                        <span class="o">-</span> <span class="mf">0.25</span><span class="o">*</span><span class="n">period</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">duration</span>
+        <span class="n">depth_half</span> <span class="o">=</span> <span class="n">_compute_depth</span><span class="p">(</span><span class="n">m_half</span><span class="p">,</span> <span class="o">*</span><span class="n">_compute_depth</span><span class="p">(</span><span class="o">~</span><span class="n">m_half</span><span class="p">))</span>
+
+        <span class="c1"># Compute the number of points in each transit</span>
+        <span class="n">transit_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">((</span><span class="n">t</span><span class="p">[</span><span class="n">m_in</span><span class="p">]</span><span class="o">-</span><span class="n">transit_time</span><span class="p">)</span> <span class="o">/</span> <span class="n">period</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">transit_times</span> <span class="o">=</span> <span class="n">period</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">transit_id</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span>
+                                           <span class="n">transit_id</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">transit_time</span>
+        <span class="n">unique_ids</span><span class="p">,</span> <span class="n">unique_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">transit_id</span><span class="p">,</span>
+                                              <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">unique_ids</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">transit_id</span><span class="p">)</span>
+        <span class="n">transit_id</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">transit_id</span><span class="p">)</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">transit_id</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">counts</span><span class="p">[</span><span class="n">unique_ids</span><span class="p">]</span> <span class="o">=</span> <span class="n">unique_counts</span>
+
+        <span class="c1"># Compute the per-transit log likelihood</span>
+        <span class="n">ll</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">ivar</span><span class="p">[</span><span class="n">m_in</span><span class="p">]</span> <span class="o">*</span> <span class="p">((</span><span class="n">y</span><span class="p">[</span><span class="n">m_in</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_in</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">m_in</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_out</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">lls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">unique_ids</span><span class="p">:</span>
+            <span class="n">lls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ll</span><span class="p">[</span><span class="n">transit_id</span> <span class="o">==</span> <span class="n">i</span><span class="p">])</span>
+        <span class="n">full_ll</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ivar</span><span class="p">[</span><span class="n">m_in</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">m_in</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_in</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">full_ll</span> <span class="o">-=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ivar</span><span class="p">[</span><span class="n">m_out</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">m_out</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_out</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># Compute the log likelihood of a sine model</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">t</span><span class="o">/</span><span class="n">period</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">t</span><span class="o">/</span><span class="n">period</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="p">))</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">A</span> <span class="o">*</span> <span class="n">ivar</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]),</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">y</span> <span class="o">*</span> <span class="n">ivar</span><span class="p">))</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+        <span class="n">sin_ll</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">y</span><span class="o">-</span><span class="n">mod</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">ivar</span><span class="p">)</span>
+
+        <span class="c1"># Format the results</span>
+        <span class="n">y_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y_unit</span><span class="p">()</span>
+        <span class="n">ll_unit</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ll_unit</span> <span class="o">=</span> <span class="n">y_unit</span> <span class="o">*</span> <span class="n">y_unit</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">transit_times</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_absolute_time_if_needed</span><span class="p">(</span><span class="s1">&#39;transit_times&#39;</span><span class="p">,</span> <span class="n">transit_times</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t_unit</span><span class="p">()),</span>
+            <span class="n">per_transit_count</span><span class="o">=</span><span class="n">counts</span><span class="p">,</span>
+            <span class="n">per_transit_log_likelihood</span><span class="o">=</span><span class="n">lls</span> <span class="o">*</span> <span class="n">ll_unit</span><span class="p">,</span>
+            <span class="n">depth</span><span class="o">=</span><span class="p">(</span><span class="n">depth</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_unit</span><span class="p">,</span> <span class="n">depth</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_unit</span><span class="p">),</span>
+            <span class="n">depth_phased</span><span class="o">=</span><span class="p">(</span><span class="n">depth_phase</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_unit</span><span class="p">,</span> <span class="n">depth_phase</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_unit</span><span class="p">),</span>
+            <span class="n">depth_half</span><span class="o">=</span><span class="p">(</span><span class="n">depth_half</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_unit</span><span class="p">,</span> <span class="n">depth_half</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_unit</span><span class="p">),</span>
+            <span class="n">depth_odd</span><span class="o">=</span><span class="p">(</span><span class="n">depth_odd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_unit</span><span class="p">,</span> <span class="n">depth_odd</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_unit</span><span class="p">),</span>
+            <span class="n">depth_even</span><span class="o">=</span><span class="p">(</span><span class="n">depth_even</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_unit</span><span class="p">,</span> <span class="n">depth_even</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_unit</span><span class="p">),</span>
+            <span class="n">harmonic_amplitude</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">w</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span> <span class="o">*</span> <span class="n">y_unit</span><span class="p">,</span>
+            <span class="n">harmonic_delta_log_likelihood</span><span class="o">=</span><span class="p">(</span><span class="n">sin_ll</span> <span class="o">-</span> <span class="n">full_ll</span><span class="p">)</span> <span class="o">*</span> <span class="n">ll_unit</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="BoxLeastSquares.transit_mask"><a class="viewcode-back" href="../../../../../api/astropy.timeseries.BoxLeastSquares.html#astropy.timeseries.BoxLeastSquares.transit_mask">[docs]</a>    <span class="k">def</span> <span class="nf">transit_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">period</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">transit_time</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute which data points are in transit for a given parameter set</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        t : array-like or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            Times where the mask should be evaluated.</span>
+<span class="sd">        period : float or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The period of the transits.</span>
+<span class="sd">        duration : float or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The duration of the transit.</span>
+<span class="sd">        transit_time : float or `~astropy.units.Quantity` or `~astropy.time.Time`</span>
+<span class="sd">            The mid-transit time of a reference transit.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        transit_mask : array-like</span>
+<span class="sd">            A boolean array where ``True`` indicates and in transit point and</span>
+<span class="sd">            ``False`` indicates and out-of-transit point.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">period</span><span class="p">,</span> <span class="n">duration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_period_and_duration</span><span class="p">(</span><span class="n">period</span><span class="p">,</span> <span class="n">duration</span><span class="p">)</span>
+        <span class="n">transit_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_relative_time</span><span class="p">(</span><span class="s1">&#39;transit_time&#39;</span><span class="p">,</span> <span class="n">transit_time</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">strip_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_relative_time</span><span class="p">(</span><span class="s1">&#39;t&#39;</span><span class="p">,</span> <span class="n">t</span><span class="p">))</span>
+
+        <span class="n">period</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="n">period</span><span class="p">))</span>
+        <span class="n">duration</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="n">duration</span><span class="p">))</span>
+        <span class="n">transit_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">strip_units</span><span class="p">(</span><span class="n">transit_time</span><span class="p">))</span>
+
+        <span class="n">hp</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">period</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">t</span><span class="o">-</span><span class="n">transit_time</span><span class="o">+</span><span class="n">hp</span><span class="p">)</span> <span class="o">%</span> <span class="n">period</span> <span class="o">-</span> <span class="n">hp</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">duration</span></div>
+
+    <span class="k">def</span> <span class="nf">_validate_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Private method used to check the consistency of the inputs</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        t : array-like, `~astropy.units.Quantity`, `~astropy.time.Time`, or `~astropy.time.TimeDelta`</span>
+<span class="sd">            Sequence of observation times.</span>
+<span class="sd">        y : array-like or `~astropy.units.Quantity`</span>
+<span class="sd">            Sequence of observations associated with times t.</span>
+<span class="sd">        dy : float, array-like, or `~astropy.units.Quantity`</span>
+<span class="sd">            Error or sequence of observational errors associated with times t.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        t, y, dy : array-like, `~astropy.units.Quantity`, or `~astropy.time.Time`</span>
+<span class="sd">            The inputs with consistent shapes and units.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the dimensions are incompatible or if the units of dy cannot be</span>
+<span class="sd">            converted to the units of y.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Validate shapes of inputs</span>
+        <span class="k">if</span> <span class="n">dy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">t</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_arrays</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">subok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_arrays</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">subok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Inputs (t, y, dy) must be 1-dimensional&quot;</span><span class="p">)</span>
+
+        <span class="c1"># validate units of inputs if any is a Quantity</span>
+        <span class="k">if</span> <span class="n">dy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dy</span> <span class="o">=</span> <span class="n">validate_unit_consistency</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dy</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">dy</span>
+
+    <span class="k">def</span> <span class="nf">_validate_duration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">duration</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Private method used to check a set of test durations</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        duration : float, array-like, or `~astropy.units.Quantity`</span>
+<span class="sd">            The set of durations that will be considered.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        duration : array-like or `~astropy.units.Quantity`</span>
+<span class="sd">            The input reformatted with the correct shape and units.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the units of duration cannot be converted to the units of t.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">duration</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">duration</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">duration</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">duration</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;duration must be 1-dimensional&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">validate_unit_consistency</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="p">,</span> <span class="n">duration</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_period_and_duration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">period</span><span class="p">,</span> <span class="n">duration</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Private method used to check a set of periods and durations</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        period : float, array-like, or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The set of test periods.</span>
+<span class="sd">        duration : float, array-like, or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The set of durations that will be considered.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        period, duration : array-like or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The inputs reformatted with the correct shapes and units.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the units of period or duration cannot be converted to the</span>
+<span class="sd">            units of t.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">duration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_duration</span><span class="p">(</span><span class="n">duration</span><span class="p">)</span>
+        <span class="n">period</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">period</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">period</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">period</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;period must be 1-dimensional&quot;</span><span class="p">)</span>
+        <span class="n">period</span> <span class="o">=</span> <span class="n">validate_unit_consistency</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="p">,</span> <span class="n">period</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">period</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">duration</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The maximum transit duration must be shorter &quot;</span>
+                             <span class="s2">&quot;than the minimum period&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">period</span><span class="p">,</span> <span class="n">duration</span>
+
+    <span class="k">def</span> <span class="nf">_format_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_ref</span><span class="p">,</span> <span class="n">objective</span><span class="p">,</span> <span class="n">period</span><span class="p">,</span> <span class="n">results</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;A private method used to wrap and add units to the periodogram</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        t_ref : float</span>
+<span class="sd">            The minimum time in the time series (a reference time).</span>
+<span class="sd">        objective : str</span>
+<span class="sd">            The name of the objective used in the optimization.</span>
+<span class="sd">        period : array-like or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">            The set of trial periods.</span>
+<span class="sd">        results : tuple</span>
+<span class="sd">            The output of one of the periodogram implementations.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span><span class="n">power</span><span class="p">,</span> <span class="n">depth</span><span class="p">,</span> <span class="n">depth_err</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">transit_time</span><span class="p">,</span> <span class="n">depth_snr</span><span class="p">,</span>
+         <span class="n">log_likelihood</span><span class="p">)</span> <span class="o">=</span> <span class="n">results</span>
+        <span class="n">transit_time</span> <span class="o">+=</span> <span class="n">t_ref</span>
+
+        <span class="k">if</span> <span class="n">has_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="p">):</span>
+            <span class="n">transit_time</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">transit_time</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+            <span class="n">transit_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_as_absolute_time_if_needed</span><span class="p">(</span><span class="s1">&#39;transit_time&#39;</span><span class="p">,</span> <span class="n">transit_time</span><span class="p">)</span>
+            <span class="n">duration</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">duration</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">has_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">):</span>
+            <span class="n">depth</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">depth</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+            <span class="n">depth_err</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">depth_err</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+
+            <span class="n">depth_snr</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">depth_snr</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">units</span><span class="o">.</span><span class="n">one</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">objective</span> <span class="o">==</span> <span class="s2">&quot;likelihood&quot;</span><span class="p">:</span>
+                    <span class="n">power</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">power</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">unit</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">power</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">power</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">units</span><span class="o">.</span><span class="n">one</span><span class="p">)</span>
+                <span class="n">log_likelihood</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">log_likelihood</span><span class="p">,</span>
+                                                <span class="n">unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">unit</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">power</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">power</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">units</span><span class="o">.</span><span class="n">one</span><span class="p">)</span>
+                <span class="n">log_likelihood</span> <span class="o">=</span> <span class="n">units</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">log_likelihood</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">units</span><span class="o">.</span><span class="n">one</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">BoxLeastSquaresResults</span><span class="p">(</span>
+            <span class="n">objective</span><span class="p">,</span> <span class="n">period</span><span class="p">,</span> <span class="n">power</span><span class="p">,</span> <span class="n">depth</span><span class="p">,</span> <span class="n">depth_err</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">transit_time</span><span class="p">,</span>
+            <span class="n">depth_snr</span><span class="p">,</span> <span class="n">log_likelihood</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_t_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">has_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trel</span><span class="o">.</span><span class="n">unit</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">_y_unit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">has_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">unit</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="BoxLeastSquaresResults"><a class="viewcode-back" href="../../../../../api/astropy.timeseries.BoxLeastSquaresResults.html#astropy.timeseries.BoxLeastSquaresResults">[docs]</a><span class="k">class</span> <span class="nc">BoxLeastSquaresResults</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The results of a BoxLeastSquares search</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    objective : str</span>
+<span class="sd">        The scalar used to optimize to find the best fit phase, duration, and</span>
+<span class="sd">        depth. See :func:`BoxLeastSquares.power` for more information.</span>
+<span class="sd">    period : array-like or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">        The set of test periods.</span>
+<span class="sd">    power : array-like or `~astropy.units.Quantity`</span>
+<span class="sd">        The periodogram evaluated at the periods in ``period``. If</span>
+<span class="sd">        ``objective`` is:</span>
+
+<span class="sd">        * ``&#39;likelihood&#39;``: the values of ``power`` are the</span>
+<span class="sd">          log likelihood maximized over phase, depth, and duration, or</span>
+<span class="sd">        * ``&#39;snr&#39;``: the values of ``power`` are the signal-to-noise with</span>
+<span class="sd">          which the depth is measured maximized over phase, depth, and</span>
+<span class="sd">          duration.</span>
+
+<span class="sd">    depth : array-like or `~astropy.units.Quantity`</span>
+<span class="sd">        The estimated depth of the maximum power model at each period.</span>
+<span class="sd">    depth_err : array-like or `~astropy.units.Quantity`</span>
+<span class="sd">        The 1-sigma uncertainty on ``depth``.</span>
+<span class="sd">    duration : array-like or `~astropy.units.Quantity` [&#39;time&#39;]</span>
+<span class="sd">        The maximum power duration at each period.</span>
+<span class="sd">    transit_time : array-like, `~astropy.units.Quantity`, or `~astropy.time.Time`</span>
+<span class="sd">        The maximum power phase of the transit in units of time. This</span>
+<span class="sd">        indicates the mid-transit time and it will always be in the range</span>
+<span class="sd">        (0, period).</span>
+<span class="sd">    depth_snr : array-like or `~astropy.units.Quantity`</span>
+<span class="sd">        The signal-to-noise with which the depth is measured at maximum power.</span>
+<span class="sd">    log_likelihood : array-like or `~astropy.units.Quantity`</span>
+<span class="sd">        The log likelihood of the maximum power model.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span>
+            <span class="p">(</span><span class="s2">&quot;objective&quot;</span><span class="p">,</span> <span class="s2">&quot;period&quot;</span><span class="p">,</span> <span class="s2">&quot;power&quot;</span><span class="p">,</span> <span class="s2">&quot;depth&quot;</span><span class="p">,</span> <span class="s2">&quot;depth_err&quot;</span><span class="p">,</span>
+             <span class="s2">&quot;duration&quot;</span><span class="p">,</span> <span class="s2">&quot;transit_time&quot;</span><span class="p">,</span> <span class="s2">&quot;depth_snr&quot;</span><span class="p">,</span> <span class="s2">&quot;log_likelihood&quot;</span><span class="p">),</span>
+            <span class="n">args</span>
+        <span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="fm">__setattr__</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="fm">__setitem__</span>
+    <span class="fm">__delattr__</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="fm">__delitem__</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="o">.</span><span class="n">rjust</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;: &#39;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                              <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">())])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;()&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__dir__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

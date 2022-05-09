@@ -1,0 +1,1223 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Using the SkyCoord High-Level Class &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Transforming between Systems" href="transforming.html" />
+    <link rel="prev" title="Working with Angles" href="angles.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="transforming.html" title="Transforming between Systems">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="angles.html" title="Working with Angles">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Astronomical Coordinate Systems (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code>)</a> &#187;</li>
+      
+      <li>Using the SkyCoord High-Level Class</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="using-the-skycoord-high-level-class">
+<span id="astropy-coordinates-high-level"></span><h1>Using the SkyCoord High-Level Class<a class="headerlink" href="#using-the-skycoord-high-level-class" title="Permalink to this headline">¶</a></h1>
+<p>The <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> class provides a simple and flexible user interface for
+celestial coordinate representation, manipulation, and transformation between
+coordinate frames. This is a high-level class that serves as a wrapper
+around the low-level coordinate frame classes like <a class="reference internal" href="../api/astropy.coordinates.ICRS.html#astropy.coordinates.ICRS" title="astropy.coordinates.ICRS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ICRS</span></code></a>
+and <a class="reference internal" href="../api/astropy.coordinates.FK5.html#astropy.coordinates.FK5" title="astropy.coordinates.FK5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK5</span></code></a> which do most of the heavy lifting.</p>
+<p>The key distinctions between <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> and the low-level classes
+(<a class="reference internal" href="frames.html"><span class="doc">Using and Designing Coordinate Frames</span></a>) are as follows:</p>
+<ul class="simple">
+<li><p>The <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object can maintain the union of frame attributes for all
+built-in and user-defined coordinate frames in the
+<code class="docutils literal notranslate"><span class="pre">astropy.coordinates.frame_transform_graph</span></code>. Individual frame classes hold
+only the required attributes (e.g., equinox, observation time, or observer
+location) for that frame. This means that a transformation from
+<a class="reference internal" href="../api/astropy.coordinates.FK4.html#astropy.coordinates.FK4" title="astropy.coordinates.FK4"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK4</span></code></a> (with equinox and observation time) to
+<a class="reference internal" href="../api/astropy.coordinates.ICRS.html#astropy.coordinates.ICRS" title="astropy.coordinates.ICRS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ICRS</span></code></a> (with neither) and back to
+<a class="reference internal" href="../api/astropy.coordinates.FK4.html#astropy.coordinates.FK4" title="astropy.coordinates.FK4"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK4</span></code></a> via the low-level classes would not remember the
+original equinox and observation time. Since the <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object stores
+all attributes, such a round-trip transformation will return to the same
+coordinate object.</p></li>
+<li><p>The <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> class is more flexible with inputs to accommodate a wide
+variety of user preferences and available data formats, whereas the frame
+classes expect to receive quantity-like objects with angular units.</p></li>
+<li><p>The <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> class has a number of convenience methods that are useful
+in typical analysis.</p></li>
+<li><p>At present, <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> objects can use only coordinate frames that have
+transformations defined in the <code class="docutils literal notranslate"><span class="pre">astropy.coordinates.frame_transform_graph</span></code>
+transform graph object.</p></li>
+</ul>
+<div class="section" id="creating-skycoord-objects">
+<h2>Creating SkyCoord Objects<a class="headerlink" href="#creating-skycoord-objects" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> class accepts a wide variety of inputs for initialization.
+At a minimum, these must provide one or more celestial coordinate values
+with unambiguous units. Typically you must also specify the coordinate
+frame, though this is not required.</p>
+<p>Common patterns are shown below. In this description the values in upper
+case like <code class="docutils literal notranslate"><span class="pre">COORD</span></code> or <code class="docutils literal notranslate"><span class="pre">FRAME</span></code> represent inputs which are described in detail
+in the <a class="reference internal" href="#initialization-syntax">Initialization Syntax</a> section. Elements in square brackets like
+<code class="docutils literal notranslate"><span class="pre">[unit=UNIT]</span></code> are optional.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">SkyCoord</span><span class="p">(</span><span class="n">COORD</span><span class="p">,</span> <span class="p">[</span><span class="n">FRAME</span><span class="p">],</span> <span class="n">keyword_args</span> <span class="o">...</span><span class="p">)</span>
+<span class="n">SkyCoord</span><span class="p">(</span><span class="n">LON</span><span class="p">,</span> <span class="n">LAT</span><span class="p">,</span> <span class="p">[</span><span class="n">frame</span><span class="o">=</span><span class="n">FRAME</span><span class="p">],</span> <span class="p">[</span><span class="n">unit</span><span class="o">=</span><span class="n">UNIT</span><span class="p">],</span> <span class="n">keyword_args</span> <span class="o">...</span><span class="p">)</span>
+<span class="n">SkyCoord</span><span class="p">([</span><span class="n">FRAME</span><span class="p">],</span> <span class="o">&lt;</span><span class="n">lon_attr</span><span class="o">&gt;=</span><span class="n">LON</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">lat_attr</span><span class="o">&gt;=</span><span class="n">LAT</span><span class="p">,</span> <span class="n">keyword_args</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The examples below illustrate common ways of initializing a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object.
+These all reflect initializing using spherical coordinates, which is the
+default for all built-in frames. In order to understand working with coordinates
+using a different representation, such as Cartesian or cylindrical, see the
+section on <a class="reference internal" href="#representations">Representations</a>. First, some imports:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>  <span class="c1"># High-level coordinates</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">ICRS</span><span class="p">,</span> <span class="n">Galactic</span><span class="p">,</span> <span class="n">FK4</span><span class="p">,</span> <span class="n">FK5</span>  <span class="c1"># Low-level frames</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">Angle</span><span class="p">,</span> <span class="n">Latitude</span><span class="p">,</span> <span class="n">Longitude</span>  <span class="c1"># Angles</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</pre></div>
+</div>
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+<p>The coordinate values and frame specification can be provided using
+positional and keyword arguments. First we show positional arguments for
+RA and Dec:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">SkyCoord</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;deg&#39;</span><span class="p">)</span>  <span class="c1"># Defaults to ICRS  </span>
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec) in deg</span>
+<span class="go">    (10., 20.)&gt;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">SkyCoord</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">30</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;icrs&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;deg&#39;</span><span class="p">)</span>  
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec) in deg</span>
+<span class="go">    [(1., -30.), (2., 45.), (3.,   8.)]&gt;</span>
+</pre></div>
+</div>
+<p>Notice that the first example above does not explicitly give a frame. In
+this case, the default is taken to be the ICRS system (approximately
+correct for “J2000” equatorial coordinates). It is always better to
+explicitly specify the frame when it is known to be ICRS, however, as
+anyone reading the code will be better able to understand the intent.</p>
+<p>String inputs in common formats are acceptable, and the frame can be supplied
+as either a class type like <a class="reference internal" href="../api/astropy.coordinates.FK4.html#astropy.coordinates.FK4" title="astropy.coordinates.FK4"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK4</span></code></a>, an instance of a
+frame class, a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> instance (from which the frame
+will be extracted), or the lowercase version of a frame name as a string, for
+example, <code class="docutils literal notranslate"><span class="pre">&quot;fk4&quot;</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">coords</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;1:12:43.2 +1:12:43&quot;</span><span class="p">,</span> <span class="s2">&quot;1 12 43.2 +1 12 43&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">FK4</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">hourangle</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">),</span> <span class="n">obstime</span><span class="o">=</span><span class="s2">&quot;J1992.21&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">FK4</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="s2">&quot;J1992.21&quot;</span><span class="p">),</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">hourangle</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;fk4&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;hourangle,deg&#39;</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="s2">&quot;J1992.21&quot;</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s2">&quot;1h12m43.2s&quot;</span><span class="p">,</span> <span class="s2">&quot;+1d12m43s&quot;</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">Galactic</span><span class="p">)</span>  <span class="c1"># Units from strings</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s2">&quot;1h12m43.2s +1d12m43s&quot;</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">Galactic</span><span class="p">)</span>  <span class="c1"># Units from string</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">l</span><span class="o">=</span><span class="s2">&quot;1h12m43.2s&quot;</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="s2">&quot;+1d12m43s&quot;</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;galactic&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s2">&quot;1h12.72m +1d12.71m&quot;</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;galactic&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that frame instances with data and <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SkyCoord</span></code></a>
+instances can only be passed as frames using the <code class="docutils literal notranslate"><span class="pre">frame=</span></code> keyword argument
+and not as positional arguments.</p>
+<p>For representations that have <code class="docutils literal notranslate"><span class="pre">ra</span></code> and <code class="docutils literal notranslate"><span class="pre">dec</span></code> attributes you can supply a
+coordinate string in a number of other common formats. Examples include:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s2">&quot;15h17+89d15&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s2">&quot;275d11m15.6954s+17d59m59.876s&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s2">&quot;8 00 -5 00.6&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s2">&quot;J080000.00-050036.00&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="s2">&quot;J1874221.31+122328.03&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Astropy <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Quantity</span></code></a>-type objects are acceptable and encouraged
+as a form of input:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ra</span> <span class="o">=</span> <span class="n">Longitude</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>  <span class="c1"># Could also use Angle</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">4.5</span><span class="p">,</span> <span class="mf">5.2</span><span class="p">,</span> <span class="mf">6.3</span><span class="p">])</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span>  <span class="c1"># Astropy Quantity</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;icrs&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="n">dec</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">ICRS</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="s1">&#39;2001-01-02T12:34:56&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Finally, it is possible to initialize from a low-level coordinate frame object.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">FK4</span><span class="p">(</span><span class="mi">1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="s1">&#39;J2010.11&#39;</span><span class="p">,</span> <span class="n">equinox</span><span class="o">=</span><span class="s1">&#39;B1965&#39;</span><span class="p">)</span>  <span class="c1"># Override defaults</span>
+</pre></div>
+</div>
+<p>A key subtlety highlighted here is that when low-level objects are created they
+have certain default attribute values. For instance, the
+<a class="reference internal" href="../api/astropy.coordinates.FK4.html#astropy.coordinates.FK4" title="astropy.coordinates.FK4"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK4</span></code></a> frame uses <code class="docutils literal notranslate"><span class="pre">equinox='B1950.0</span></code> and
+<code class="docutils literal notranslate"><span class="pre">obstime=equinox</span></code> as defaults. If this object is used to initialize a
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> it is possible to override the low-level object attributes that were
+not explicitly set. If the coordinate above were created with
+<code class="docutils literal notranslate"><span class="pre">c</span> <span class="pre">=</span> <span class="pre">FK4(1</span> <span class="pre">*</span> <span class="pre">u.deg,</span> <span class="pre">2</span> <span class="pre">*</span> <span class="pre">u.deg,</span> <span class="pre">equinox='B1960')</span></code> then creating a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a>
+with a different <code class="docutils literal notranslate"><span class="pre">equinox</span></code> would raise an exception.</p>
+</div>
+<div class="section" id="initialization-syntax">
+<h3>Initialization Syntax<a class="headerlink" href="#initialization-syntax" title="Permalink to this headline">¶</a></h3>
+<p>For spherical representations, which are the most common and are the default
+input format for all built-in frames, the syntax for <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> is given
+below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">SkyCoord</span><span class="p">(</span><span class="n">COORD</span><span class="p">,</span> <span class="p">[</span><span class="n">FRAME</span> <span class="o">|</span> <span class="n">frame</span><span class="o">=</span><span class="n">FRAME</span><span class="p">],</span> <span class="p">[</span><span class="n">unit</span><span class="o">=</span><span class="n">UNIT</span><span class="p">],</span> <span class="n">keyword_args</span> <span class="o">...</span><span class="p">)</span>
+<span class="n">SkyCoord</span><span class="p">(</span><span class="n">LON</span><span class="p">,</span> <span class="n">LAT</span><span class="p">,</span> <span class="p">[</span><span class="n">DISTANCE</span><span class="p">],</span> <span class="p">[</span><span class="n">FRAME</span> <span class="o">|</span> <span class="n">frame</span><span class="o">=</span><span class="n">FRAME</span><span class="p">],</span> <span class="p">[</span><span class="n">unit</span><span class="o">=</span><span class="n">UNIT</span><span class="p">],</span> <span class="n">keyword_args</span> <span class="o">...</span><span class="p">)</span>
+<span class="n">SkyCoord</span><span class="p">([</span><span class="n">FRAME</span> <span class="o">|</span> <span class="n">frame</span><span class="o">=</span><span class="n">FRAME</span><span class="p">],</span> <span class="o">&lt;</span><span class="n">lon_name</span><span class="o">&gt;=</span><span class="n">LON</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">lat_name</span><span class="o">&gt;=</span><span class="n">LAT</span><span class="p">,</span> <span class="p">[</span><span class="n">unit</span><span class="o">=</span><span class="n">UNIT</span><span class="p">],</span>
+         <span class="n">keyword_args</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In the above description, elements in all capital letters (e.g., <code class="docutils literal notranslate"><span class="pre">FRAME</span></code>)
+describe a user input of that element type. Elements in square brackets are
+optional. For nonspherical inputs, see the <a class="reference internal" href="#representations">Representations</a> section.</p>
+<p><strong>LON</strong>, <strong>LAT</strong></p>
+<p>Longitude and latitude value can be specified as separate positional arguments.
+The following options are available for longitude and latitude:</p>
+<ul class="simple">
+<li><p>Single angle value:</p>
+<ul>
+<li><p><a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> object</p></li>
+<li><p>Plain numeric value with <code class="docutils literal notranslate"><span class="pre">unit</span></code> keyword specifying the unit</p></li>
+<li><p>Angle string which is formatted for <a class="reference internal" href="angles.html#angle-creation"><span class="std std-ref">Creation</span></a> of
+<a class="reference internal" href="../api/astropy.coordinates.Longitude.html#astropy.coordinates.Longitude" title="astropy.coordinates.Longitude"><code class="xref py py-class docutils literal notranslate"><span class="pre">Longitude</span></code></a> or <a class="reference internal" href="../api/astropy.coordinates.Latitude.html#astropy.coordinates.Latitude" title="astropy.coordinates.Latitude"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Latitude</span></code></a> objects</p></li>
+</ul>
+</li>
+<li><p>List or <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> array, or NumPy array of angle values</p></li>
+<li><p><a class="reference internal" href="../api/astropy.coordinates.Angle.html#astropy.coordinates.Angle" title="astropy.coordinates.Angle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Angle</span></code></a>, <a class="reference internal" href="../api/astropy.coordinates.Longitude.html#astropy.coordinates.Longitude" title="astropy.coordinates.Longitude"><code class="xref py py-class docutils literal notranslate"><span class="pre">Longitude</span></code></a>, or <a class="reference internal" href="../api/astropy.coordinates.Latitude.html#astropy.coordinates.Latitude" title="astropy.coordinates.Latitude"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Latitude</span></code></a> object, which can be scalar or
+array-valued</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>While <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> is flexible with respect to specifying longitude and
+latitude component inputs, the frame classes expect to receive
+<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>-like objects with angular units (i.e., <a class="reference internal" href="../api/astropy.coordinates.Angle.html#astropy.coordinates.Angle" title="astropy.coordinates.Angle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Angle</span></code></a> or <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>).
+For example, when specifying components, the frame classes (e.g., <code class="docutils literal notranslate"><span class="pre">ICRS</span></code>)
+must be created as</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">(</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span> 
+<span class="go">&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="go">    (0., 0.)&gt;</span>
+</pre></div>
+</div>
+<p>and other methods of flexible initialization (that work with <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a>)
+will not work</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span> 
+<span class="go">UnitTypeError: Longitude instances require units equivalent to &#39;rad&#39;, but no unit was given.</span>
+</pre></div>
+</div>
+</div>
+<p><strong>DISTANCE</strong></p>
+<p>The distance to the object from the frame center can be optionally specified:</p>
+<ul class="simple">
+<li><p>Single distance value:</p>
+<ul>
+<li><p><a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> or <a class="reference internal" href="../api/astropy.coordinates.Distance.html#astropy.coordinates.Distance" title="astropy.coordinates.Distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Distance</span></code></a> object</p></li>
+<li><p>Plain numeric value for a dimensionless distance</p></li>
+<li><p>Plain numeric value with <code class="docutils literal notranslate"><span class="pre">unit</span></code> keyword specifying the unit</p></li>
+</ul>
+</li>
+<li><p>List, or <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a>, or <a class="reference internal" href="../api/astropy.coordinates.Distance.html#astropy.coordinates.Distance" title="astropy.coordinates.Distance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Distance</span></code></a> array, or NumPy array
+of angle values</p></li>
+</ul>
+<p><strong>COORD</strong></p>
+<p>This input form uses a single object to supply coordinate data. For the case
+of spherical coordinate frames, the coordinate can include one or more
+longitude and latitude pairs in one of the following ways:</p>
+<ul class="simple">
+<li><p>Single coordinate string with a LON and LAT value separated by a space. The
+respective values can be any string which is formatted for
+<a class="reference internal" href="angles.html#angle-creation"><span class="std std-ref">Creation</span></a> of <a class="reference internal" href="../api/astropy.coordinates.Longitude.html#astropy.coordinates.Longitude" title="astropy.coordinates.Longitude"><code class="xref py py-class docutils literal notranslate"><span class="pre">Longitude</span></code></a> or <a class="reference internal" href="../api/astropy.coordinates.Latitude.html#astropy.coordinates.Latitude" title="astropy.coordinates.Latitude"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Latitude</span></code></a> objects, respectively.</p></li>
+<li><p>List or NumPy array of such coordinate strings.</p></li>
+<li><p>List of (LON, LAT) tuples, where each LON and LAT are scalars (not arrays).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">N</span> <span class="pre">x</span> <span class="pre">2</span></code> NumPy or <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> array of values where the first column is
+longitude and the second column is latitude, for example,
+<code class="docutils literal notranslate"><span class="pre">[[270,</span> <span class="pre">-30],</span> <span class="pre">[355,</span> <span class="pre">+85]]</span> <span class="pre">*</span> <span class="pre">u.deg</span></code>.</p></li>
+<li><p>List of (LON, LAT, DISTANCE) tuples.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">N</span> <span class="pre">x</span> <span class="pre">3</span></code> NumPy or <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> array of values where columns are
+longitude, latitude, and distance, respectively.</p></li>
+</ul>
+<p>The input can also be more generalized objects that are not necessarily
+represented in the standard spherical coordinates:</p>
+<ul class="simple">
+<li><p>Coordinate frame object (e.g., <code class="docutils literal notranslate"><span class="pre">FK4(1*u.deg,</span> <span class="pre">2*u.deg,</span> <span class="pre">obstime='J2012.2')</span></code>).</p></li>
+<li><p><a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object (which just makes a copy of the object).</p></li>
+<li><p><a class="reference internal" href="../api/astropy.coordinates.BaseRepresentation.html#astropy.coordinates.BaseRepresentation" title="astropy.coordinates.BaseRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseRepresentation</span></code></a> subclass object like
+<a class="reference internal" href="../api/astropy.coordinates.SphericalRepresentation.html#astropy.coordinates.SphericalRepresentation" title="astropy.coordinates.SphericalRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SphericalRepresentation</span></code></a>,
+<a class="reference internal" href="../api/astropy.coordinates.CylindricalRepresentation.html#astropy.coordinates.CylindricalRepresentation" title="astropy.coordinates.CylindricalRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CylindricalRepresentation</span></code></a>, or
+<a class="reference internal" href="../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartesianRepresentation</span></code></a>.</p></li>
+</ul>
+<p><strong>FRAME</strong></p>
+<p>This can be a <a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame" title="astropy.coordinates.BaseCoordinateFrame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseCoordinateFrame</span></code></a> frame class, an
+instance of such a class, or the corresponding string alias. The frame
+classes that are built in to Astropy are <a class="reference internal" href="../api/astropy.coordinates.ICRS.html#astropy.coordinates.ICRS" title="astropy.coordinates.ICRS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ICRS</span></code></a>,
+<a class="reference internal" href="../api/astropy.coordinates.FK5.html#astropy.coordinates.FK5" title="astropy.coordinates.FK5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK5</span></code></a>, <a class="reference internal" href="../api/astropy.coordinates.FK4.html#astropy.coordinates.FK4" title="astropy.coordinates.FK4"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK4</span></code></a>,
+<a class="reference internal" href="../api/astropy.coordinates.FK4NoETerms.html#astropy.coordinates.FK4NoETerms" title="astropy.coordinates.FK4NoETerms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK4NoETerms</span></code></a>, <a class="reference internal" href="../api/astropy.coordinates.Galactic.html#astropy.coordinates.Galactic" title="astropy.coordinates.Galactic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Galactic</span></code></a>, and
+<a class="reference internal" href="../api/astropy.coordinates.AltAz.html#astropy.coordinates.AltAz" title="astropy.coordinates.AltAz"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AltAz</span></code></a>. The string aliases are lowercase versions of the
+class name.</p>
+<p>If the frame is not supplied then you will see a special <code class="docutils literal notranslate"><span class="pre">ICRS</span></code>
+identifier. This indicates that the frame is unspecified and operations
+that require comparing coordinates (even within that object) are not allowed.</p>
+<p><strong>unit=UNIT</strong></p>
+<p>The unit specifier can be one of the following:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../api/astropy.units.Unit.html#astropy.units.Unit" title="astropy.units.Unit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unit</span></code></a> object, which is an angular unit that is equivalent to
+<code class="docutils literal notranslate"><span class="pre">Unit('radian')</span></code>.</p></li>
+<li><p>Single string with a valid angular unit name.</p></li>
+<li><p>2-tuple of <a class="reference internal" href="../api/astropy.units.Unit.html#astropy.units.Unit" title="astropy.units.Unit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unit</span></code></a> objects or string unit names specifying the
+LON and LAT unit, respectively (e.g., <code class="docutils literal notranslate"><span class="pre">('hourangle',</span> <span class="pre">'degree')</span></code>).</p></li>
+<li><p>Single string with two unit names separated by a comma (e.g.,
+<code class="docutils literal notranslate"><span class="pre">'hourangle,degree'</span></code>).</p></li>
+</ul>
+<p>If only a single unit is provided then it applies to both LON and LAT.</p>
+<p><strong>Other keyword arguments</strong></p>
+<p>In lieu of positional arguments to specify the longitude and latitude, the
+frame-specific names can be used as keyword arguments:</p>
+<dl class="simple">
+<dt><em>ra</em>, <em>dec</em>: <strong>LON</strong>, <strong>LAT</strong> values, optional</dt><dd><p>RA and Dec for frames where these are representation, including [FIXME]
+<a class="reference internal" href="../api/astropy.coordinates.ICRS.html#astropy.coordinates.ICRS" title="astropy.coordinates.ICRS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ICRS</span></code></a>, <a class="reference internal" href="../api/astropy.coordinates.FK5.html#astropy.coordinates.FK5" title="astropy.coordinates.FK5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK5</span></code></a>,
+<a class="reference internal" href="../api/astropy.coordinates.FK4.html#astropy.coordinates.FK4" title="astropy.coordinates.FK4"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK4</span></code></a>, and <a class="reference internal" href="../api/astropy.coordinates.FK4NoETerms.html#astropy.coordinates.FK4NoETerms" title="astropy.coordinates.FK4NoETerms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK4NoETerms</span></code></a>.</p>
+</dd>
+<dt><em>l</em>, <em>b</em>:  <strong>LON</strong>, <strong>LAT</strong> values, optional</dt><dd><p>Galactic <code class="docutils literal notranslate"><span class="pre">l</span></code> and <code class="docutils literal notranslate"><span class="pre">b</span></code> for the <a class="reference internal" href="../api/astropy.coordinates.Galactic.html#astropy.coordinates.Galactic" title="astropy.coordinates.Galactic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Galactic</span></code></a> frame.</p>
+</dd>
+</dl>
+<p>The following keywords can be specified for any frame:</p>
+<dl class="simple">
+<dt><em>distance</em>: distance quantity-like, optional</dt><dd><p>Distance from reference from center to source</p>
+</dd>
+<dt><em>obstime</em>: time-like, optional</dt><dd><p>Time of observation</p>
+</dd>
+<dt><em>equinox</em>: time-like, optional</dt><dd><p>Coordinate frame equinox</p>
+</dd>
+</dl>
+<p>If custom user-defined frames are included in the transform graph and they
+have additional frame attributes, then those attributes can also be
+set via corresponding keyword arguments in the <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> initialization.</p>
+</div>
+</div>
+<div class="section" id="array-operations">
+<span id="astropy-coordinates-array-operations"></span><h2>Array Operations<a class="headerlink" href="#array-operations" title="Permalink to this headline">¶</a></h2>
+<p>It is possible to store arrays of coordinates in a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object, and
+manipulations done in this way will be orders of magnitude faster than
+looping over a list of individual <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> objects.</p>
+<div class="section" id="id1">
+<h3>Examples<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>To store arrays of coordinates in a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ra</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">36000</span><span class="p">,</span> <span class="mi">1001</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">90</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span> <span class="mi">1001</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">SkyCoord</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;icrs&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">)]</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">timeit</span> <span class="n">sc_gal_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">galactic</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">sc_list</span><span class="p">]</span>  
+<span class="go">1 loops, best of 3: 20.4 s per loop</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;icrs&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">timeit</span> <span class="n">sc_gal</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">galactic</span>  
+<span class="go">100 loops, best of 3: 21.8 ms per loop</span>
+</pre></div>
+</div>
+<p>In addition to vectorized transformations, you can do the usual array slicing,
+dicing, and selection using the same methods and attributes that you use for
+<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray</span></code></a> instances. Corresponding functions, as well as others that
+affect the shape, such as <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.atleast_1d.html#numpy.atleast_1d" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">atleast_1d</span></code></a> and <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.rollaxis.html#numpy.rollaxis" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rollaxis</span></code></a>, work as
+expected. (The relevant functions have to be explicitly enabled in <code class="docutils literal notranslate"><span class="pre">astropy</span></code>
+source code; let us know if a <code class="docutils literal notranslate"><span class="pre">numpy</span></code> function is not supported that you
+think should work.):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">north_mask</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">dec</span> <span class="o">&gt;</span> <span class="mi">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc_north</span> <span class="o">=</span> <span class="n">sc</span><span class="p">[</span><span class="n">north_mask</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">sc_north</span><span class="p">)</span>
+<span class="go">500</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>  
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec) in deg</span>
+<span class="go">    [( 72., -89.64), (108., -89.46)]&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="p">[</span><span class="mi">500</span><span class="p">]</span>
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec) in deg</span>
+<span class="go">    (0., 0.)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="mi">100</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec) in deg</span>
+<span class="go">    [[(0., -90.), (0., -72.), (0., -54.), (0., -36.), (0., -18.)],</span>
+<span class="go">     [(0.,   0.), (0.,  18.), (0.,  36.), (0.,  54.), (0.,  72.)]]&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">sc</span><span class="p">[::</span><span class="mi">100</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec) in deg</span>
+<span class="go">    [(0.,  90.), (0., -90.), (0., -72.), (0., -54.), (0., -36.),</span>
+<span class="go">     (0., -18.), (0.,   0.), (0.,  18.), (0.,  36.), (0.,  54.),</span>
+<span class="go">     (0.,  72.)]&gt;</span>
+</pre></div>
+</div>
+<p>Note that similarly to the <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray</span></code></a> methods, all but <code class="docutils literal notranslate"><span class="pre">flatten</span></code> try to
+use new views of the data, with the data copied only if that is impossible
+(as discussed, for example, in the documentation for NumPy
+<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.reshape.html#numpy.reshape" title="(in NumPy v1.22)"><code class="xref py py-func docutils literal notranslate"><span class="pre">reshape()</span></code></a>).</p>
+</div>
+<div class="section" id="modifying-coordinate-objects-in-place">
+<span id="astropy-coordinates-modifying-in-place"></span><h3>Modifying Coordinate Objects In-place<a class="headerlink" href="#modifying-coordinate-objects-in-place" title="Permalink to this headline">¶</a></h3>
+<p>Coordinate values in a array-valued <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object can be modified in-place
+(added in astropy 4.1). This requires that the new values be set from an
+another <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object that is equivalent in all ways except for the actual
+coordinate data values. In this way, no frame transformations are required and
+the item setting operation is extremely robust.</p>
+<p>Specifically, the right hand <code class="docutils literal notranslate"><span class="pre">value</span></code> must be strictly consistent with the
+object being modified:</p>
+<ul class="simple">
+<li><p>Identical class</p></li>
+<li><p>Equivalent frames (<a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame.is_equivalent_frame" title="astropy.coordinates.BaseCoordinateFrame.is_equivalent_frame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_equivalent_frame</span></code></a>)</p></li>
+<li><p>Identical representation_types</p></li>
+<li><p>Identical representation differentials keys</p></li>
+<li><p>Identical frame attributes</p></li>
+<li><p>Identical “extra” frame attributes (e.g., <code class="docutils literal notranslate"><span class="pre">obstime</span></code> for an ICRS coord)</p></li>
+</ul>
+<p>To modify an array of coordinates in a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object use the same
+syntax for a numpy array:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc2</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="mi">10</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">20</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sc2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span>
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec) in deg</span>
+<span class="go">    [(10., 20.), ( 2.,  4.)]&gt;</span>
+</pre></div>
+</div>
+<p>You can insert a scalar or array-valued <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object into another
+compatible <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc2</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="mi">10</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">20</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">sc2</span><span class="p">)</span>
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec) in deg</span>
+<span class="go">    [( 1.,  3.), (10., 20.), ( 2.,  4.)]&gt;</span>
+</pre></div>
+</div>
+<p>With the ability to modify a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object in-place, all of the
+<a class="reference internal" href="../table/operations.html#table-operations"><span class="std std-ref">Table Operations</span></a> such as joining, stacking, and inserting are
+functional with <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> mixin columns (so long as no masking is required).</p>
+<p>These methods are relatively slow because they require setting from an
+existing <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object and they perform extensive validation to ensure
+that the operation is valid. For some applications it may be necessary to
+take a different lower-level approach which is described in the section
+<a class="reference internal" href="inplace.html#astropy-coordinates-fast-in-place"><span class="std std-ref">Fast In-Place Modification of Coordinates</span></a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>You may be tempted to try an apparently obvious way of modifying a coordinate
+object in place by updating the component attributes directly, for example
+<code class="docutils literal notranslate"><span class="pre">sc1.ra[1]</span> <span class="pre">=</span> <span class="pre">40</span> <span class="pre">*</span> <span class="pre">u.deg</span></code>. However, while this will <em>appear</em> to give a correct
+result it does not actually modify the underlying representation data. This
+is related to the current implementation of performance-based caching.
+The current cache implementation is similarly unable to handle in-place changes
+to the representation (<code class="docutils literal notranslate"><span class="pre">.data</span></code>) or frame attributes such as <code class="docutils literal notranslate"><span class="pre">.obstime</span></code>.</p>
+</div>
+</div>
+</div>
+<div class="section" id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object has a number of useful attributes which come in handy.
+By digging through these we will learn a little bit about <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> and how it
+works.</p>
+<p>To begin, one of the most important tools for
+learning about attributes and methods of objects is “TAB-discovery.” From
+within IPython you can type an object name, the period, and then the &lt;TAB&gt; key
+to see what is available. This can often be faster than reading the
+documentation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;icrs&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;deg&#39;</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="s1">&#39;2013-01-02 14:25:36&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.&lt;</span><span class="n">TAB</span><span class="o">&gt;</span>  
+<span class="go">sc.T                                   sc.match_to_catalog_3d</span>
+<span class="go">sc.altaz                               sc.match_to_catalog_sky</span>
+<span class="go">sc.barycentrictrueecliptic             sc.name</span>
+<span class="go">sc.cartesian                           sc.ndim</span>
+<span class="go">sc.cirs                                sc.obsgeoloc</span>
+<span class="go">sc.copy                                sc.obsgeovel</span>
+<span class="go">sc.data                                sc.obstime</span>
+<span class="go">sc.dec                                 sc.obswl</span>
+<span class="go">sc.default_representation              sc.position_angle</span>
+<span class="go">sc.diagonal                            sc.precessedgeocentric</span>
+<span class="go">sc.distance                            sc.pressure</span>
+<span class="go">sc.equinox                             sc.ra</span>
+<span class="go">sc.fk4                                 sc.ravel</span>
+<span class="go">sc.fk4noeterms                         sc.realize_frame</span>
+<span class="go">sc.fk5                                 sc.relative_humidity</span>
+<span class="go">sc.flatten                             sc.represent_as</span>
+<span class="go">sc.frame                               sc.representation_component_names</span>
+<span class="go">sc.frame_attributes                    sc.representation_component_units</span>
+<span class="go">sc.frame_specific_representation_info  sc.representation_info</span>
+<span class="go">sc.from_name                           sc.reshape</span>
+<span class="go">sc.from_pixel                          sc.roll</span>
+<span class="go">sc.galactic                            sc.search_around_3d</span>
+<span class="go">sc.galactocentric                      sc.search_around_sky</span>
+<span class="go">sc.galcen_distance                     sc.separation</span>
+<span class="go">sc.gcrs                                sc.separation_3d</span>
+<span class="go">sc.geocentrictrueecliptic              sc.shape</span>
+<span class="go">sc.get_constellation                   sc.size</span>
+<span class="go">sc.get_frame_attr_names                sc.skyoffset_frame</span>
+<span class="go">sc.guess_from_table                    sc.spherical</span>
+<span class="go">sc.has_data                            sc.spherical_offsets_to</span>
+<span class="go">sc.hcrs                                sc.squeeze</span>
+<span class="go">sc.heliocentrictrueecliptic            sc.supergalactic</span>
+<span class="go">sc.icrs                                sc.swapaxes</span>
+<span class="go">sc.info                                sc.take</span>
+<span class="go">sc.is_equivalent_frame                 sc.temperature</span>
+<span class="go">sc.is_frame_attr_default               sc.to_pixel</span>
+<span class="go">sc.is_transformable_to                 sc.to_string</span>
+<span class="go">sc.isscalar                            sc.transform_to</span>
+<span class="go">sc.itrs                                sc.transpose</span>
+<span class="go">sc.location                            sc.z_sun</span>
+</pre></div>
+</div>
+<p>Here we see many attributes and methods. The most recognizable may be the
+longitude and latitude attributes which are named <code class="docutils literal notranslate"><span class="pre">ra</span></code> and <code class="docutils literal notranslate"><span class="pre">dec</span></code> for the
+<code class="docutils literal notranslate"><span class="pre">ICRS</span></code> frame:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">ra</span>  
+<span class="go">&lt;Longitude 1. deg&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">dec</span>  
+<span class="go">&lt;Latitude 2. deg&gt;</span>
+</pre></div>
+</div>
+<p>Next, notice that all of the built-in frame names <code class="docutils literal notranslate"><span class="pre">icrs</span></code>, <code class="docutils literal notranslate"><span class="pre">galactic</span></code>,
+<code class="docutils literal notranslate"><span class="pre">fk5</span></code>, <code class="docutils literal notranslate"><span class="pre">fk4</span></code>, and <code class="docutils literal notranslate"><span class="pre">fk4noeterms</span></code> are there. Through the magic of Python
+properties, accessing these attributes calls the object
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.transform_to" title="astropy.coordinates.SkyCoord.transform_to"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transform_to</span></code></a> method appropriately and returns a
+new <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object in the requested frame:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_gal</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">galactic</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc_gal</span>  
+<span class="go">&lt;SkyCoord (Galactic): (l, b) in deg</span>
+<span class="go">    (99.63785528, -58.70969293)&gt;</span>
+</pre></div>
+</div>
+<p>Other attributes you may recognize are <code class="docutils literal notranslate"><span class="pre">distance</span></code>, <code class="docutils literal notranslate"><span class="pre">equinox</span></code>,
+<code class="docutils literal notranslate"><span class="pre">obstime</span></code>, and <code class="docutils literal notranslate"><span class="pre">shape</span></code>.</p>
+<div class="section" id="digging-deeper">
+<h3>Digging Deeper<a class="headerlink" href="#digging-deeper" title="Permalink to this headline">¶</a></h3>
+<p><em>[Casual users can skip this section]</em></p>
+<p>After transforming to Galactic, the longitude and latitude values are now
+labeled <code class="docutils literal notranslate"><span class="pre">l</span></code> and <code class="docutils literal notranslate"><span class="pre">b</span></code>, following the normal convention for Galactic
+coordinates. How does the object know what to call its values? The answer
+lies in some less obvious attributes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_gal</span><span class="o">.</span><span class="n">representation_component_names</span>
+<span class="go">{&#39;l&#39;: &#39;lon&#39;, &#39;b&#39;: &#39;lat&#39;, &#39;distance&#39;: &#39;distance&#39;}</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc_gal</span><span class="o">.</span><span class="n">representation_component_units</span>
+<span class="go">{&#39;l&#39;: Unit(&quot;deg&quot;), &#39;b&#39;: Unit(&quot;deg&quot;)}</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc_gal</span><span class="o">.</span><span class="n">representation_type</span>
+<span class="go">&lt;class &#39;astropy.coordinates.representation.SphericalRepresentation&#39;&gt;</span>
+</pre></div>
+</div>
+<p>Together these tell the object that <code class="docutils literal notranslate"><span class="pre">l</span></code> and <code class="docutils literal notranslate"><span class="pre">b</span></code> are the longitude and
+latitude, and that they should both be displayed in units of degrees as
+a spherical-type coordinate (and not, for example, a Cartesian coordinate).
+Furthermore, the frame’s <code class="docutils literal notranslate"><span class="pre">representation_component_names</span></code> attribute defines
+the coordinate keyword arguments that <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> will accept.</p>
+<p>Another important attribute is <code class="docutils literal notranslate"><span class="pre">frame_attr_names</span></code>, which defines the
+additional attributes that are required to fully define the frame:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_fk4</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;fk4&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;deg&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc_fk4</span><span class="o">.</span><span class="n">get_frame_attr_names</span><span class="p">()</span>
+<span class="go">{&#39;equinox&#39;: &lt;Time object: scale=&#39;tt&#39; format=&#39;byear_str&#39; value=B1950.000&gt;, &#39;obstime&#39;: None}</span>
+</pre></div>
+</div>
+<p>The key values correspond to the defaults if no explicit value is provided by
+the user. This example shows that the <a class="reference internal" href="../api/astropy.coordinates.FK4.html#astropy.coordinates.FK4" title="astropy.coordinates.FK4"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FK4</span></code></a> frame has two
+attributes, <code class="docutils literal notranslate"><span class="pre">equinox</span></code> and <code class="docutils literal notranslate"><span class="pre">obstime</span></code>, that are required to fully define the
+frame.</p>
+<p>Some trickery is happening here because many of these attributes are
+actually owned by the underlying coordinate <code class="docutils literal notranslate"><span class="pre">frame</span></code> object which does much of
+the real work. This is the middle layer in the three-tiered system of objects:
+representation (spherical, Cartesian, etc.), frame (a.k.a. low-level frame
+class), and <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> (a.k.a. high-level class; see
+<a class="reference internal" href="index.html#astropy-coordinates-overview"><span class="std std-ref">Overview of astropy.coordinates Concepts</span></a> and
+<a class="reference internal" href="definitions.html#astropy-coordinates-definitions"><span class="std std-ref">Important Definitions</span></a>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">frame</span>  
+<span class="go">&lt;ICRS Coordinate: (ra, dec) in deg</span>
+<span class="go">    (1., 2.)&gt;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">has_data</span> <span class="ow">is</span> <span class="n">sc</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">has_data</span>
+<span class="go">True</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">frame</span><span class="o">.&lt;</span><span class="n">TAB</span><span class="o">&gt;</span>  
+<span class="go">sc.frame.T                                   sc.frame.ra</span>
+<span class="go">sc.frame.cartesian                           sc.frame.ravel</span>
+<span class="go">sc.frame.copy                                sc.frame.realize_frame</span>
+<span class="go">sc.frame.data                                sc.frame.represent_as</span>
+<span class="go">sc.frame.dec                                 sc.frame.representation</span>
+<span class="go">sc.frame.default_representation              sc.frame.representation_component_names</span>
+<span class="go">sc.frame.diagonal                            sc.frame.representation_component_units</span>
+<span class="go">sc.frame.distance                            sc.frame.representation_info</span>
+<span class="go">sc.frame.flatten                             sc.frame.reshape</span>
+<span class="go">sc.frame.frame_attributes                    sc.frame.separation</span>
+<span class="go">sc.frame.frame_specific_representation_info  sc.frame.separation_3d</span>
+<span class="go">sc.frame.get_frame_attr_names                sc.frame.shape</span>
+<span class="go">sc.frame.has_data                            sc.frame.size</span>
+<span class="go">sc.frame.is_equivalent_frame                 sc.frame.spherical</span>
+<span class="go">sc.frame.is_frame_attr_default               sc.frame.squeeze</span>
+<span class="go">sc.frame.is_transformable_to                 sc.frame.swapaxes</span>
+<span class="go">sc.frame.isscalar                            sc.frame.take</span>
+<span class="go">sc.frame.name                                sc.frame.transform_to</span>
+<span class="go">sc.frame.ndim                                sc.frame.transpose</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">name</span>
+<span class="go">&#39;icrs&#39;</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object exposes the <code class="docutils literal notranslate"><span class="pre">frame</span></code> object attributes as its own. Though
+it might seem a tad confusing at first, this is a good thing because it makes
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> objects and <a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame" title="astropy.coordinates.BaseCoordinateFrame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseCoordinateFrame</span></code></a> objects
+behave very similarly and most routines can accept either one as input without
+much bother (duck typing!).</p>
+<p>The lowest layer in the stack is the abstract
+<a class="reference internal" href="../api/astropy.coordinates.UnitSphericalRepresentation.html#astropy.coordinates.UnitSphericalRepresentation" title="astropy.coordinates.UnitSphericalRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UnitSphericalRepresentation</span></code></a> object:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc_gal</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">data</span>  
+<span class="go">&lt;UnitSphericalRepresentation (lon, lat) in rad</span>
+<span class="go">    (1.73900863, -1.02467744)&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="transformations">
+<h2>Transformations<a class="headerlink" href="#transformations" title="Permalink to this headline">¶</a></h2>
+<p>The topic of transformations is covered in detail in the section on
+<a class="reference internal" href="transforming.html#astropy-coordinates-transforming"><span class="std std-ref">Transforming between Systems</span></a>.</p>
+<p>For completeness, here we will give some examples. Once you have defined
+your coordinates and the reference frame, you can transform from that frame to
+another frame. You can do this in a few different ways: if you only want the
+default version of that frame, you can use attribute-style access (as mentioned
+previously). For more control, you can use the
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.transform_to" title="astropy.coordinates.SkyCoord.transform_to"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transform_to</span></code></a> method, which accepts a frame
+name, frame class, frame instance, or <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a>.</p>
+<div class="section" id="id2">
+<h3>Examples<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>To transform from one frame to another:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">FK5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;icrs&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;deg&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">galactic</span>  
+<span class="go">&lt;SkyCoord (Galactic): (l, b) in deg</span>
+<span class="go">    (99.63785528, -58.70969293)&gt;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="s1">&#39;fk5&#39;</span><span class="p">)</span>  <span class="c1"># Same as sc.fk5 and sc.transform_to(FK5)  </span>
+<span class="go">&lt;SkyCoord (FK5: equinox=J2000.000): (ra, dec) in deg</span>
+<span class="go">        (1.00000656, 2.00000243)&gt;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">FK5</span><span class="p">(</span><span class="n">equinox</span><span class="o">=</span><span class="s1">&#39;J1975&#39;</span><span class="p">))</span>  <span class="c1"># Transform to FK5 with a different equinox  </span>
+<span class="go">&lt;SkyCoord (FK5: equinox=J1975.000): (ra, dec) in deg</span>
+<span class="go">        (0.67967282, 1.86083014)&gt;</span>
+</pre></div>
+</div>
+<p>Transforming to a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> instance is a convenient way of ensuring that two
+coordinates are in the exact same reference frame:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc2</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;fk4&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;deg&#39;</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="s1">&#39;J1978.123&#39;</span><span class="p">,</span> <span class="n">equinox</span><span class="o">=</span><span class="s1">&#39;B1960.0&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">sc2</span><span class="p">)</span>  
+<span class="go">&lt;SkyCoord (FK4: equinox=B1960.000, obstime=J1978.123): (ra, dec) in deg</span>
+<span class="go">    (0.48726331, 1.77731617)&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="representations">
+<span id="astropy-skycoord-representations"></span><h2>Representations<a class="headerlink" href="#representations" title="Permalink to this headline">¶</a></h2>
+<p>So far we have been using a spherical coordinate representation in all of the
+examples, and this is the default for the built-in frames. Frequently it is
+convenient to initialize or work with a coordinate using a different
+representation such as Cartesian or cylindrical. In this section, we discuss
+how to initialize an object using a different representation and how to
+change the representation of an object. For more information about
+representation objects themselves, see <a class="reference internal" href="representations.html#astropy-coordinates-representations"><span class="std std-ref">Using and Designing Coordinate Representations</span></a>.</p>
+<div class="section" id="initialization">
+<h3>Initialization<a class="headerlink" href="#initialization" title="Permalink to this headline">¶</a></h3>
+<p>Most of what you need to know can be inferred from the examples below and
+by extrapolating the previous documentation for spherical representations.
+Initialization requires setting the <code class="docutils literal notranslate"><span class="pre">representation_type</span></code> keyword and
+supplying the corresponding components for that representation.</p>
+<div class="section" id="id3">
+<h4>Examples<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<p>To initialize an object using a representation type other than spherical:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;kpc&#39;</span><span class="p">,</span> <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span>  
+<span class="go">&lt;SkyCoord (ICRS): (x, y, z) in kpc</span>
+<span class="go">    (1., 2., 3.)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">z</span>  
+<span class="go">(&lt;Quantity 1. kpc&gt;, &lt;Quantity 2. kpc&gt;, &lt;Quantity 3. kpc&gt;)</span>
+</pre></div>
+</div>
+<p>Other variations include:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">SkyCoord</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cylindrical&#39;</span><span class="p">)</span>  
+<span class="go">&lt;SkyCoord (ICRS): (rho, phi, z) in (, deg, )</span>
+<span class="go">    (1., 2., 3.)&gt;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">SkyCoord</span><span class="p">(</span><span class="n">rho</span><span class="o">=</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="n">phi</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">3</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cylindrical&#39;</span><span class="p">)</span>  
+<span class="go">&lt;SkyCoord (ICRS): (rho, phi, z) in (km, deg, m)</span>
+<span class="go">    (1., 2., 3.)&gt;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">SkyCoord</span><span class="p">(</span><span class="n">rho</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">phi</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">),</span> <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cylindrical&#39;</span><span class="p">)</span>  
+<span class="go">&lt;SkyCoord (ICRS): (rho, phi, z) in (km, deg, m)</span>
+<span class="go">    (1., 2., 3.)&gt;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">SkyCoord</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cylindrical&#39;</span><span class="p">)</span>  
+<span class="go">&lt;SkyCoord (ICRS): (rho, phi, z) in (, deg, )</span>
+<span class="go">    (1., 2., 3.)&gt;</span>
+</pre></div>
+</div>
+<p>In general terms, the allowed syntax is as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">SkyCoord</span><span class="p">(</span><span class="n">COORD</span><span class="p">,</span> <span class="p">[</span><span class="n">FRAME</span> <span class="o">|</span> <span class="n">frame</span><span class="o">=</span><span class="n">FRAME</span><span class="p">],</span> <span class="p">[</span><span class="n">unit</span><span class="o">=</span><span class="n">UNIT</span><span class="p">],</span> <span class="p">[</span><span class="n">representation_type</span><span class="o">=</span><span class="n">REPRESENTATION</span><span class="p">],</span>
+         <span class="n">keyword_args</span> <span class="o">...</span><span class="p">)</span>
+<span class="n">SkyCoord</span><span class="p">(</span><span class="n">COMP1</span><span class="p">,</span> <span class="n">COMP2</span><span class="p">,</span> <span class="p">[</span><span class="n">COMP3</span><span class="p">],</span> <span class="p">[</span><span class="n">FRAME</span> <span class="o">|</span> <span class="n">frame</span><span class="o">=</span><span class="n">FRAME</span><span class="p">],</span> <span class="p">[</span><span class="n">unit</span><span class="o">=</span><span class="n">UNIT</span><span class="p">],</span>
+         <span class="p">[</span><span class="n">representation_type</span><span class="o">=</span><span class="n">REPRESENTATION</span><span class="p">],</span> <span class="n">keyword_args</span> <span class="o">...</span><span class="p">)</span>
+<span class="n">SkyCoord</span><span class="p">([</span><span class="n">FRAME</span> <span class="o">|</span> <span class="n">frame</span><span class="o">=</span><span class="n">FRAME</span><span class="p">],</span> <span class="o">&lt;</span><span class="n">comp1_name</span><span class="o">&gt;=</span><span class="n">COMP1</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">comp2_name</span><span class="o">&gt;=</span><span class="n">COMP2</span><span class="p">,</span>
+         <span class="o">&lt;</span><span class="n">comp3_name</span><span class="o">&gt;=</span><span class="n">COMP3</span><span class="p">,</span> <span class="p">[</span><span class="n">representation_type</span><span class="o">=</span><span class="n">REPRESENTATION</span><span class="p">],</span> <span class="p">[</span><span class="n">unit</span><span class="o">=</span><span class="n">UNIT</span><span class="p">],</span>
+         <span class="n">keyword_args</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In this case, the <code class="docutils literal notranslate"><span class="pre">keyword_args</span></code> now includes the element
+<code class="docutils literal notranslate"><span class="pre">representation_type=REPRESENTATION</span></code>. In the above description, elements in
+all capital letters (e.g., <code class="docutils literal notranslate"><span class="pre">FRAME</span></code>) describe a user input of that element
+type. Elements in square brackets are optional.</p>
+<p><strong>COMP1</strong>, <strong>COMP2</strong>, <strong>COMP3</strong></p>
+<p>Component values can be specified as separate positional arguments or as
+keyword arguments. In this formalism the exact type of allowed input depends
+on the details of the representation. In general, the following input forms
+are supported:</p>
+<ul class="simple">
+<li><p>Single value:</p>
+<ul>
+<li><p>Component class object</p></li>
+<li><p>Plain numeric value with <code class="docutils literal notranslate"><span class="pre">unit</span></code> keyword specifying the unit</p></li>
+</ul>
+</li>
+<li><p>List or component class array, or NumPy array of values</p></li>
+</ul>
+<p>Each representation component has a specified class (the “component class”)
+which is used to convert generic input data into a predefined object
+class with a certain unit. These component classes are expected to be
+subclasses of the <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Quantity</span></code></a> class.</p>
+<p><strong>COORD</strong></p>
+<p>This input form uses a single object to supply coordinate data. The coordinate
+can specify one or more coordinate positions as follows:</p>
+<ul class="simple">
+<li><p>List of <code class="docutils literal notranslate"><span class="pre">(COMP1,</span> <span class="pre">..,</span> <span class="pre">COMP&lt;M&gt;)</span></code> tuples, where each component is a scalar (not
+array) and there are <code class="docutils literal notranslate"><span class="pre">M</span></code> components in the representation. Typically
+there are three components, but some
+(e.g., <a class="reference internal" href="../api/astropy.coordinates.UnitSphericalRepresentation.html#astropy.coordinates.UnitSphericalRepresentation" title="astropy.coordinates.UnitSphericalRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UnitSphericalRepresentation</span></code></a>)
+can have fewer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">N</span> <span class="pre">x</span> <span class="pre">M</span></code> NumPy or <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> array of values, where <code class="docutils literal notranslate"><span class="pre">N</span></code> is the number
+of coordinates and <code class="docutils literal notranslate"><span class="pre">M</span></code> is the number of components.</p></li>
+</ul>
+<p><strong>REPRESENTATION</strong></p>
+<p>The representation can be supplied either as a
+<a class="reference internal" href="../api/astropy.coordinates.BaseRepresentation.html#astropy.coordinates.BaseRepresentation" title="astropy.coordinates.representation.BaseRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseRepresentation</span></code></a> class (e.g.,
+<a class="reference internal" href="../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartesianRepresentation</span></code></a>) or as a string name
+that is simply the class name in lowercase without the
+<code class="docutils literal notranslate"><span class="pre">'representation'</span></code> suffix (e.g., <code class="docutils literal notranslate"><span class="pre">'cartesian'</span></code>).</p>
+<p>The rest of the inputs for creating a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object in the general case are
+the same as for spherical.</p>
+</div>
+</div>
+<div class="section" id="details">
+<h3>Details<a class="headerlink" href="#details" title="Permalink to this headline">¶</a></h3>
+<p>The available set of representations is dynamic and may change depending on what
+representation classes have been defined. The built-in representations are:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 72%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Class</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">spherical</span></code></p></td>
+<td><p><a class="reference internal" href="../api/astropy.coordinates.SphericalRepresentation.html#astropy.coordinates.SphericalRepresentation" title="astropy.coordinates.SphericalRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SphericalRepresentation</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">unitspherical</span></code></p></td>
+<td><p><a class="reference internal" href="../api/astropy.coordinates.UnitSphericalRepresentation.html#astropy.coordinates.UnitSphericalRepresentation" title="astropy.coordinates.UnitSphericalRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UnitSphericalRepresentation</span></code></a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">physicsspherical</span></code></p></td>
+<td><p><a class="reference internal" href="../api/astropy.coordinates.PhysicsSphericalRepresentation.html#astropy.coordinates.PhysicsSphericalRepresentation" title="astropy.coordinates.PhysicsSphericalRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PhysicsSphericalRepresentation</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cartesian</span></code></p></td>
+<td><p><a class="reference internal" href="../api/astropy.coordinates.CartesianRepresentation.html#astropy.coordinates.CartesianRepresentation" title="astropy.coordinates.CartesianRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartesianRepresentation</span></code></a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cylindrical</span></code></p></td>
+<td><p><a class="reference internal" href="../api/astropy.coordinates.CylindricalRepresentation.html#astropy.coordinates.CylindricalRepresentation" title="astropy.coordinates.CylindricalRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CylindricalRepresentation</span></code></a></p></td>
+</tr>
+</tbody>
+</table>
+<p>Each frame knows about all of the available representations, but different
+frames may use different names for the same components. A common example
+is that the <a class="reference internal" href="../api/astropy.coordinates.Galactic.html#astropy.coordinates.Galactic" title="astropy.coordinates.Galactic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Galactic</span></code></a> frame uses <code class="docutils literal notranslate"><span class="pre">l</span></code> and <code class="docutils literal notranslate"><span class="pre">b</span></code>
+instead of <code class="docutils literal notranslate"><span class="pre">ra</span></code> and <code class="docutils literal notranslate"><span class="pre">dec</span></code> for the <code class="docutils literal notranslate"><span class="pre">lon</span></code> and <code class="docutils literal notranslate"><span class="pre">lat</span></code> components of
+the <a class="reference internal" href="../api/astropy.coordinates.SphericalRepresentation.html#astropy.coordinates.SphericalRepresentation" title="astropy.coordinates.SphericalRepresentation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SphericalRepresentation</span></code></a>.</p>
+<p>For a particular frame, in order to see the full list of representations
+and how it names all of the components, first make an instance of that frame
+without any data, and then print the <code class="docutils literal notranslate"><span class="pre">representation_info</span></code> property:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ICRS</span><span class="p">()</span><span class="o">.</span><span class="n">representation_info</span>  
+<span class="go">{astropy.coordinates.representation.CartesianRepresentation:</span>
+<span class="go">  {&#39;names&#39;: (&#39;x&#39;, &#39;y&#39;, &#39;z&#39;),</span>
+<span class="go">   &#39;units&#39;: (None, None, None)},</span>
+<span class="go"> astropy.coordinates.representation.SphericalRepresentation:</span>
+<span class="go">  {&#39;names&#39;: (&#39;ra&#39;, &#39;dec&#39;, &#39;distance&#39;),</span>
+<span class="go">   &#39;units&#39;: (Unit(&quot;deg&quot;), Unit(&quot;deg&quot;), None)},</span>
+<span class="go"> astropy.coordinates.representation.UnitSphericalRepresentation:</span>
+<span class="go">  {&#39;names&#39;: (&#39;ra&#39;, &#39;dec&#39;),</span>
+<span class="go">   &#39;units&#39;: (Unit(&quot;deg&quot;), Unit(&quot;deg&quot;))},</span>
+<span class="go"> astropy.coordinates.representation.PhysicsSphericalRepresentation:</span>
+<span class="go">  {&#39;names&#39;: (&#39;phi&#39;, &#39;theta&#39;, &#39;r&#39;),</span>
+<span class="go">   &#39;units&#39;: (Unit(&quot;deg&quot;), Unit(&quot;deg&quot;), None)},</span>
+<span class="go"> astropy.coordinates.representation.CylindricalRepresentation:</span>
+<span class="go">  {&#39;names&#39;: (&#39;rho&#39;, &#39;phi&#39;, &#39;z&#39;),</span>
+<span class="go">   &#39;units&#39;: (None, Unit(&quot;deg&quot;), None)}</span>
+<span class="go">}</span>
+</pre></div>
+</div>
+<p>This is a bit messy but it shows that for each representation there is a
+<code class="docutils literal notranslate"><span class="pre">dict</span></code> with two keys:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">names</span></code>: defines how each component is named in that frame.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">units</span></code>: defines the units of each component when output, where <code class="docutils literal notranslate"><span class="pre">None</span></code>
+means to not force a particular unit.</p></li>
+</ul>
+<p>For a particular coordinate instance you can use the <code class="docutils literal notranslate"><span class="pre">representation_type</span></code>
+attribute in conjunction with the <code class="docutils literal notranslate"><span class="pre">representation_component_names</span></code> attribute
+to figure out what keywords are accepted by a particular class object. The
+former will be the representation class the system is expressed in (e.g.,
+spherical for equatorial frames), and the latter will be a dictionary mapping
+names for that frame to the component name on the representation class:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span> <span class="o">=</span> <span class="n">ICRS</span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">representation_type</span>
+<span class="go">&lt;class &#39;astropy.coordinates.representation.SphericalRepresentation&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">icrs</span><span class="o">.</span><span class="n">representation_component_names</span>
+<span class="go">{&#39;ra&#39;: &#39;lon&#39;, &#39;dec&#39;: &#39;lat&#39;, &#39;distance&#39;: &#39;distance&#39;}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="changing-representation">
+<h3>Changing Representation<a class="headerlink" href="#changing-representation" title="Permalink to this headline">¶</a></h3>
+<p>The representation of the coordinate object can be changed, as shown
+below. This actually does <em>nothing</em> to the object internal data which
+stores the coordinate values, but it changes the external view of that
+data in two ways:</p>
+<ul class="simple">
+<li><p>The object prints itself in accord with the new representation.</p></li>
+<li><p>The available attributes change to match those of the new representation
+(e.g., from <code class="docutils literal notranslate"><span class="pre">ra,</span> <span class="pre">dec,</span> <span class="pre">distance</span></code> to <code class="docutils literal notranslate"><span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">z</span></code>).</p></li>
+</ul>
+<p>Setting the <code class="docutils literal notranslate"><span class="pre">representation_type</span></code> thus changes a <em>property</em> of the
+object (how it appears) without changing the intrinsic object itself
+which represents a point in 3D space.</p>
+<div class="section" id="id4">
+<h4>Examples<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
+<p>To change the representation of a coordinate object by setting the
+<code class="docutils literal notranslate"><span class="pre">representation_type</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;kpc&#39;</span><span class="p">,</span> <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span>  
+<span class="go">&lt;SkyCoord (ICRS): (x, y, z) in kpc</span>
+<span class="go">    (1., 2., 3.)&gt;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">representation_type</span> <span class="o">=</span> <span class="s1">&#39;cylindrical&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span>  
+<span class="go">&lt;SkyCoord (ICRS): (rho, phi, z) in (kpc, deg, kpc)</span>
+<span class="go">    (2.23606798, 63.43494882, 3.)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">phi</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>  
+<span class="go">&lt;Angle 63.43494882 deg&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">x</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">AttributeError</span>: <span class="n">&#39;SkyCoord&#39; object has no attribute &#39;x&#39;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">representation_type</span> <span class="o">=</span> <span class="s1">&#39;spherical&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span>  
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec, distance) in (deg, deg, kpc)</span>
+<span class="go">    (63.43494882, 53.3007748, 3.74165739)&gt;</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">representation_type</span> <span class="o">=</span> <span class="s1">&#39;unitspherical&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span>  
+<span class="go">&lt;SkyCoord (ICRS): (ra, dec) in deg</span>
+<span class="go">    (63.43494882, 53.3007748)&gt;</span>
+</pre></div>
+</div>
+<p>You can also use any representation class to set the representation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">CartesianRepresentation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">representation_type</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span>
+</pre></div>
+</div>
+<p>Note that if all you want is a particular representation without changing the
+state of the <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object, you should instead use the
+<code class="docutils literal notranslate"><span class="pre">astropy.coordinates.SkyCoord.represent_as()</span></code> method:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">representation_type</span> <span class="o">=</span> <span class="s1">&#39;spherical&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cart</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">represent_as</span><span class="p">(</span><span class="n">CartesianRepresentation</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cart</span>  
+<span class="go">&lt;CartesianRepresentation (x, y, z) in kpc</span>
+<span class="go">    (1., 2., 3.)&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">representation_type</span>
+<span class="go">&lt;class &#39;astropy.coordinates.representation.SphericalRepresentation&#39;&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="example-1-plotting-random-data-in-aitoff-projection">
+<h4>Example 1: Plotting random data in Aitoff projection<a class="headerlink" href="#example-1-plotting-random-data-in-aitoff-projection" title="Permalink to this headline">¶</a></h4>
+<p>This is an example of how to make a plot in the Aitoff projection using data
+in a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object. Here, a randomly generated data set will be used.</p>
+<p>First we need to import the required packages. We use
+<a class="reference external" href="https://matplotlib.org/">matplotlib</a> here for
+plotting and <a class="reference external" href="https://numpy.org/">numpy</a>  to get the value of pi and to
+generate our random data.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</pre></div>
+</div>
+<p>We now generate random data for visualization. For RA this is done in the range
+of 0 and 360 degrees (<code class="docutils literal notranslate"><span class="pre">ra_random</span></code>), for DEC between -90 and +90 degrees
+(<code class="docutils literal notranslate"><span class="pre">dec_random</span></code>). Finally, we multiply these values by degrees to get a
+<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Quantity</span></code></a> with units of degrees.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ra_random</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span><span class="o">*</span><span class="mf">360.0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dec_random</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span><span class="o">*</span><span class="mf">180.0</span><span class="o">-</span><span class="mf">90.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">degree</span>
+</pre></div>
+</div>
+<p>As the next step, those coordinates are transformed into an
+<a class="reference internal" href="index.html#module-astropy.coordinates" title="astropy.coordinates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code></a> <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="n">ra_random</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="n">dec_random</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;icrs&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Because matplotlib needs the coordinates in radians and between <span class="math notranslate nohighlight">\(-\pi\)</span>
+and <span class="math notranslate nohighlight">\(\pi\)</span>, not 0 and <span class="math notranslate nohighlight">\(2\pi\)</span>, we have to convert them.
+For this purpose the <a class="reference internal" href="../api/astropy.coordinates.Angle.html#astropy.coordinates.Angle" title="astropy.coordinates.Angle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates.Angle</span></code></a> object provides a special
+method, which we use here to wrap at 180:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ra_rad</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">ra</span><span class="o">.</span><span class="n">wrap_at</span><span class="p">(</span><span class="mi">180</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span><span class="o">.</span><span class="n">radian</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dec_rad</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">radian</span>
+</pre></div>
+</div>
+<p>As a last step, we set up the plotting environment with matplotlib using the
+Aitoff projection with a specific title, a grid, filled circles as markers with
+a marker size of 2, and an alpha value of 0.3. We use a figure with an x-y ratio
+that is well suited for such a projection and we move the title upwards from
+its usual position to avoid overlap with the axis labels.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mf">4.2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;aitoff&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Aitoff projection of our random data&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ra_rad</span><span class="p">,</span> <span class="n">dec_rad</span><span class="p">,</span> <span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">top</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span><span class="n">bottom</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../coordinates/skycoord-1.png">png</a>, <a class="reference external" href="../coordinates/skycoord-1.svg">svg</a>, <a class="reference external" href="../coordinates/skycoord-1.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/skycoord-1.png" class="plot-directive" src="../_images/skycoord-1.png" />
+</div>
+</div>
+<div class="section" id="example-2-plotting-star-positions-in-bulge-and-disk">
+<h4>Example 2: Plotting star positions in bulge and disk<a class="headerlink" href="#example-2-plotting-star-positions-in-bulge-and-disk" title="Permalink to this headline">¶</a></h4>
+<p>This is a more realistic example of how to make a plot in the Aitoff projection
+using data in a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object. Here, a randomly generated data set
+(multivariate normal distribution) for both stars in the bulge and in the disk
+of a galaxy will be used. Both types will be plotted with different number
+counts.</p>
+<p>As in the last example, we first import the required packages.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</pre></div>
+</div>
+<p>We now generate random data for visualization using
+<code class="docutils literal notranslate"><span class="pre">numpy.random.Generator.multivariate_normal</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">disk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">cov</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mf">0.5</span><span class="p">]),</span> <span class="n">size</span><span class="o">=</span><span class="mi">5000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bulge</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">cov</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]),</span> <span class="n">size</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">galaxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">disk</span><span class="p">,</span> <span class="n">bulge</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>As the next step, those coordinates are transformed into an
+<a class="reference internal" href="index.html#module-astropy.coordinates" title="astropy.coordinates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code></a> <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c_gal</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">galaxy</span><span class="p">,</span> <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;galactic&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c_gal_icrs</span> <span class="o">=</span> <span class="n">c_gal</span><span class="o">.</span><span class="n">icrs</span>
+</pre></div>
+</div>
+<p>Again, as in the last example, we need to convert the coordinates in radians
+and make sure they are between <span class="math notranslate nohighlight">\(-\pi\)</span> and <span class="math notranslate nohighlight">\(\pi\)</span>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ra_rad</span> <span class="o">=</span> <span class="n">c_gal_icrs</span><span class="o">.</span><span class="n">ra</span><span class="o">.</span><span class="n">wrap_at</span><span class="p">(</span><span class="mi">180</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span><span class="o">.</span><span class="n">radian</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dec_rad</span> <span class="o">=</span> <span class="n">c_gal_icrs</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">radian</span>
+</pre></div>
+</div>
+<p>We use the same plotting setup as in the last example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mf">4.2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s2">&quot;aitoff&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Aitoff projection of our random data&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ra_rad</span><span class="p">,</span> <span class="n">dec_rad</span><span class="p">,</span> <span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">top</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span><span class="n">bottom</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../coordinates/skycoord-2.png">png</a>, <a class="reference external" href="../coordinates/skycoord-2.svg">svg</a>, <a class="reference external" href="../coordinates/skycoord-2.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/skycoord-2.png" class="plot-directive" src="../_images/skycoord-2.png" />
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="comparing-skycoord-objects">
+<span id="coordinates-skycoord-comparing"></span><h2>Comparing SkyCoord Objects<a class="headerlink" href="#comparing-skycoord-objects" title="Permalink to this headline">¶</a></h2>
+<p>There are two primary ways to compare <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> objects to each other. First is
+checking if the coordinates are within a specified distance of each other. This
+is what most users should do in their science or processing analysis work
+because it allows for a tolerance due to floating point representation issues.
+The second is checking for exact equivalence of two objects down to the bit,
+which is most useful for developers writing tests.</p>
+<p>The example below illustrates the floating point issue using the exact
+equality comparison, where we do a roundtrip transformation
+FK4 =&gt; ICRS =&gt; FK4 and then compare:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;fk4&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span><span class="o">.</span><span class="n">icrs</span><span class="o">.</span><span class="n">fk4</span> <span class="o">==</span> <span class="n">sc1</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<div class="section" id="matching-within-tolerance">
+<h3>Matching Within Tolerance<a class="headerlink" href="#matching-within-tolerance" title="Permalink to this headline">¶</a></h3>
+<p>To test if coordinates are within a certain angular distance of one other, use the
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.separation" title="astropy.coordinates.SkyCoord.separation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">separation</span></code></a> method:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span><span class="o">.</span><span class="n">icrs</span><span class="o">.</span><span class="n">fk4</span><span class="o">.</span><span class="n">separation</span><span class="p">(</span><span class="n">sc1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">arcsec</span><span class="p">)</span>  
+<span class="go">&lt;Angle 7.98873629e-13 arcsec&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span><span class="o">.</span><span class="n">icrs</span><span class="o">.</span><span class="n">fk4</span><span class="o">.</span><span class="n">separation</span><span class="p">(</span><span class="n">sc1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-9</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">arcsec</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="exact-equality">
+<h3>Exact Equality<a class="headerlink" href="#exact-equality" title="Permalink to this headline">¶</a></h3>
+<p>Astropy also provides an exact equality operator for coordinates.
+For example, when comparing, e.g., two <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> objects:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">left_skycoord</span> <span class="o">==</span> <span class="n">right_skycoord</span>  
+</pre></div>
+</div>
+<p>the right object must be strictly consistent with the left object for
+comparison:</p>
+<ul class="simple">
+<li><p>Identical class</p></li>
+<li><p>Equivalent frames (<a class="reference internal" href="../api/astropy.coordinates.BaseCoordinateFrame.html#astropy.coordinates.BaseCoordinateFrame.is_equivalent_frame" title="astropy.coordinates.BaseCoordinateFrame.is_equivalent_frame"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_equivalent_frame</span></code></a>)</p></li>
+<li><p>Identical representation_types</p></li>
+<li><p>Identical representation differentials keys</p></li>
+<li><p>Identical frame attributes</p></li>
+<li><p>Identical “extra” frame attributes (e.g., <code class="docutils literal notranslate"><span class="pre">obstime</span></code> for an ICRS coord)</p></li>
+</ul>
+<p>In the first example we show simple comparisons using array-valued coordinates:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc2</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span> <span class="o">==</span> <span class="n">sc2</span>  <span class="c1"># Array-valued comparison</span>
+<span class="go">array([ True, False])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc2</span> <span class="o">==</span> <span class="n">sc2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Broadcasting comparison with a scalar</span>
+<span class="go">array([False,  True])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">sc2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Scalar to scalar comparison</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span> <span class="o">!=</span> <span class="n">sc2</span>  <span class="c1"># Not equal</span>
+<span class="go">array([False,  True])</span>
+</pre></div>
+</div>
+<p>In addition to numerically comparing the representation component data (which
+may include velocities), the equality comparison includes strict tests that all
+of the frame attributes like <code class="docutils literal notranslate"><span class="pre">equinox</span></code> or <code class="docutils literal notranslate"><span class="pre">obstime</span></code> are exactly equal.  Any
+mismatch in attributes will result in an exception being raised.  For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc2</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="s1">&#39;2020-01-01&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span> <span class="o">==</span> <span class="n">sc2</span>  
+<span class="gp">...</span>
+<span class="go">ValueError: cannot compare: extra frame attribute &#39;obstime&#39; is not equivalent</span>
+<span class="go"> (perhaps compare the frames directly to avoid this exception)</span>
+</pre></div>
+</div>
+<p>In this example the <code class="docutils literal notranslate"><span class="pre">obstime</span></code> attribute is a so-called “extra” frame attribute
+that does not apply directly to the ICRS coordinate frame. So we could compare
+with the following, this time using the <code class="docutils literal notranslate"><span class="pre">!=</span></code> operator for variety:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sc1</span><span class="o">.</span><span class="n">frame</span> <span class="o">!=</span> <span class="n">sc2</span><span class="o">.</span><span class="n">frame</span>
+<span class="go">array([False, True])</span>
+</pre></div>
+</div>
+<p>One slightly special case is comparing two frames that both have no data, where
+the return value is the same as <code class="docutils literal notranslate"><span class="pre">frame1.is_equivalent_frame(frame2)</span></code>. For
+example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">FK4</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">FK4</span><span class="p">()</span> <span class="o">==</span> <span class="n">FK4</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="s1">&#39;2020-01-01&#39;</span><span class="p">)</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="converting-a-skycoord-to-a-table">
+<span id="skycoord-table-conversion"></span><h2>Converting a SkyCoord to a Table<a class="headerlink" href="#converting-a-skycoord-to-a-table" title="Permalink to this headline">¶</a></h2>
+<p>A <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object can be converted to a <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">QTable</span></code></a> using its
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.to_table" title="astropy.coordinates.SkyCoord.to_table"><code class="xref py py-meth docutils literal notranslate"><span class="pre">to_table()</span></code></a> method. The attributes of the
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> are converted to columns of the table or added to its metadata
+depending on whether or not they have the same length as the <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a>. This
+means that attributes such as <code class="docutils literal notranslate"><span class="pre">obstime</span></code> can become columns or metadata:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="p">[</span><span class="mi">15</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span> <span class="n">dec</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">70</span><span class="p">,</span> <span class="o">-</span><span class="mi">50</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+<span class="gp">... </span>              <span class="n">obstime</span><span class="o">=</span><span class="n">Time</span><span class="p">([</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">2010</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;jyear&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">to_table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span>
+<span class="go">&lt;QTable length=2&gt;</span>
+<span class="go">   ra     dec   obstime</span>
+<span class="go">  deg     deg</span>
+<span class="go">float64 float64   Time</span>
+<span class="go">------- ------- -------</span>
+<span class="go">   15.0   -70.0  2000.0</span>
+<span class="go">   30.0   -50.0  2010.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">meta</span>
+<span class="go">{&#39;representation_type&#39;: &#39;spherical&#39;, &#39;frame&#39;: &#39;icrs&#39;}</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sc</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">l</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span> <span class="n">b</span><span class="o">=</span><span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;galactic&#39;</span><span class="p">,</span>
+<span class="gp">... </span>              <span class="n">obstime</span><span class="o">=</span><span class="n">Time</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;jyear&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">to_table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span>
+<span class="go">&lt;QTable length=2&gt;</span>
+<span class="go">   l       b</span>
+<span class="go">  deg     deg</span>
+<span class="go">float64 float64</span>
+<span class="go">------- -------</span>
+<span class="go">    0.0    20.0</span>
+<span class="go">   20.0     0.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">meta</span>
+<span class="go">{&#39;obstime&#39;: &lt;Time object: scale=&#39;tt&#39; format=&#39;jyear&#39; value=2000.0&gt;,</span>
+<span class="go"> &#39;representation_type&#39;: &#39;spherical&#39;, &#39;frame&#39;: &#39;galactic&#39;}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="convenience-methods">
+<h2>Convenience Methods<a class="headerlink" href="#convenience-methods" title="Permalink to this headline">¶</a></h2>
+<p>A number of convenience methods are available, and you are encouraged to read
+the available docstrings below:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.match_to_catalog_sky" title="astropy.coordinates.SkyCoord.match_to_catalog_sky"><code class="xref py py-obj docutils literal notranslate"><span class="pre">match_to_catalog_sky</span></code></a>,</p></li>
+<li><p><a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.match_to_catalog_3d" title="astropy.coordinates.SkyCoord.match_to_catalog_3d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">match_to_catalog_3d</span></code></a>,</p></li>
+<li><p><a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.position_angle" title="astropy.coordinates.SkyCoord.position_angle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">position_angle</span></code></a>,</p></li>
+<li><p><a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.separation" title="astropy.coordinates.SkyCoord.separation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">separation</span></code></a>,</p></li>
+<li><p><a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.separation_3d" title="astropy.coordinates.SkyCoord.separation_3d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">separation_3d</span></code></a></p></li>
+<li><p><a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.apply_space_motion" title="astropy.coordinates.SkyCoord.apply_space_motion"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_space_motion</span></code></a></p></li>
+</ul>
+<p>Additional information and examples can be found in the section on
+<a class="reference internal" href="matchsep.html#astropy-coordinates-separations-matching"><span class="std std-ref">Separations, Offsets, Catalog Matching, and Related Functionality</span></a> and
+<a class="reference internal" href="apply_space_motion.html#astropy-coordinates-apply-space-motion"><span class="std std-ref">Accounting for Space Motion</span></a>.</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Using the SkyCoord High-Level Class</a><ul>
+<li><a class="reference internal" href="#creating-skycoord-objects">Creating SkyCoord Objects</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#initialization-syntax">Initialization Syntax</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#array-operations">Array Operations</a><ul>
+<li><a class="reference internal" href="#id1">Examples</a></li>
+<li><a class="reference internal" href="#modifying-coordinate-objects-in-place">Modifying Coordinate Objects In-place</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#attributes">Attributes</a><ul>
+<li><a class="reference internal" href="#digging-deeper">Digging Deeper</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#transformations">Transformations</a><ul>
+<li><a class="reference internal" href="#id2">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#representations">Representations</a><ul>
+<li><a class="reference internal" href="#initialization">Initialization</a><ul>
+<li><a class="reference internal" href="#id3">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#details">Details</a></li>
+<li><a class="reference internal" href="#changing-representation">Changing Representation</a><ul>
+<li><a class="reference internal" href="#id4">Examples</a></li>
+<li><a class="reference internal" href="#example-1-plotting-random-data-in-aitoff-projection">Example 1: Plotting random data in Aitoff projection</a></li>
+<li><a class="reference internal" href="#example-2-plotting-star-positions-in-bulge-and-disk">Example 2: Plotting star positions in bulge and disk</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#comparing-skycoord-objects">Comparing SkyCoord Objects</a><ul>
+<li><a class="reference internal" href="#matching-within-tolerance">Matching Within Tolerance</a></li>
+<li><a class="reference internal" href="#exact-equality">Exact Equality</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#converting-a-skycoord-to-a-table">Converting a SkyCoord to a Table</a></li>
+<li><a class="reference internal" href="#convenience-methods">Convenience Methods</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/coordinates/skycoord.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

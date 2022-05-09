@@ -1,0 +1,201 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Working with Earth Satellites Using Astropy Coordinates &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Formatting Coordinate Strings" href="formatting.html" />
+    <link rel="prev" title="Solar System Ephemerides" href="solarsystem.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="formatting.html" title="Formatting Coordinate Strings">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="solarsystem.html" title="Solar System Ephemerides">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Astronomical Coordinate Systems (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code>)</a> &#187;</li>
+      
+      <li>Working with Earth Satellites Using Astropy Coordinates</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="working-with-earth-satellites-using-astropy-coordinates">
+<span id="astropy-coordinates-satellites"></span><h1>Working with Earth Satellites Using Astropy Coordinates<a class="headerlink" href="#working-with-earth-satellites-using-astropy-coordinates" title="Permalink to this headline">¶</a></h1>
+<p>Satellite data is normally provided in the Two-Line Element (TLE) format
+(see <a class="reference external" href="https://www.celestrak.com/NORAD/documentation/tle-fmt.php">here</a>
+for a definition). These datasets are designed to be used in combination
+with a theory for orbital propagation model to predict the positions
+of satellites.</p>
+<p>The history of such models is discussed in detail in
+<a class="reference external" href="https://celestrak.com/publications/AIAA/2006-6753/AIAA-2006-6753-Rev2.pdf">Vallado et al (2006)</a>
+who also provide a reference implementation of the SGP4 orbital propagation
+code, designed to be compatible with the TLE sets provided by the United
+States Department of Defense, which are available from a source like
+<a class="reference external" href="http://celestrak.com/">Celestrak</a>.</p>
+<p>The output coordinate frame of the SGP4 model is the True Equator, Mean Equinox
+frame (TEME), which is one of the frames built-in to <a class="reference internal" href="index.html#module-astropy.coordinates" title="astropy.coordinates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code></a>.
+TEME is an Earth-centered inertial frame (i.e., it does not rotate with respect
+to the stars). Several definitions exist; <code class="docutils literal notranslate"><span class="pre">astropy</span></code> uses the implementation described
+in <a class="reference external" href="https://celestrak.com/publications/AIAA/2006-6753/AIAA-2006-6753-Rev2.pdf">Vallado et al (2006)</a>.</p>
+<div class="section" id="finding-teme-coordinates-from-tle-data">
+<h2>Finding TEME Coordinates from TLE Data<a class="headerlink" href="#finding-teme-coordinates-from-tle-data" title="Permalink to this headline">¶</a></h2>
+<p>There is currently no support in <a class="reference internal" href="index.html#module-astropy.coordinates" title="astropy.coordinates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code></a> for computing satellite orbits
+from TLE orbital element sets. Full support for handling TLE files is available in
+the <a class="reference external" href="https://rhodesmill.org/skyfield/">Skyfield</a> library, but some advice for dealing
+with satellite data in <code class="docutils literal notranslate"><span class="pre">astropy</span></code> is below.</p>
+<p>You will need some external library to compute the position and velocity of the satellite from the
+TLE orbital elements. The <a class="reference external" href="https://pypi.org/project/sgp4/">SGP4</a> library can do this. An example
+of using this library to find the  <a class="reference internal" href="../api/astropy.coordinates.TEME.html#astropy.coordinates.TEME" title="astropy.coordinates.TEME"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TEME</span></code></a> coordinates of a satellite is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">sgp4.api</span> <span class="kn">import</span> <span class="n">Satrec</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">sgp4.api</span> <span class="kn">import</span> <span class="n">SGP4_ERRORS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;1 25544U 98067A   19343.69339541  .00001764  00000-0  38792-4 0  9991&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="s1">&#39;2 25544  51.6439 211.2001 0007417  17.6667  85.6398 15.50103472202482&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">satellite</span> <span class="o">=</span> <span class="n">Satrec</span><span class="o">.</span><span class="n">twoline2rv</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">satellite</span></code> object has a method, <code class="docutils literal notranslate"><span class="pre">satellite.sgp4</span></code>, that will try to compute the TEME position
+and velocity at a given time:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="mf">2458827.362605</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;jd&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">error_code</span><span class="p">,</span> <span class="n">teme_p</span><span class="p">,</span> <span class="n">teme_v</span> <span class="o">=</span> <span class="n">satellite</span><span class="o">.</span><span class="n">sgp4</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">jd1</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">jd2</span><span class="p">)</span>  <span class="c1"># in km and km/s</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">if</span> <span class="n">error_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">SGP4_ERRORS</span><span class="p">[</span><span class="n">error_code</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Now that we have the position and velocity in kilometers and kilometers per second, we can create a
+position in the <a class="reference internal" href="../api/astropy.coordinates.TEME.html#astropy.coordinates.TEME" title="astropy.coordinates.TEME"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TEME</span></code></a> reference frame:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">TEME</span><span class="p">,</span> <span class="n">CartesianDifferential</span><span class="p">,</span> <span class="n">CartesianRepresentation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">teme_p</span> <span class="o">=</span> <span class="n">CartesianRepresentation</span><span class="p">(</span><span class="n">teme_p</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">teme_v</span> <span class="o">=</span> <span class="n">CartesianDifferential</span><span class="p">(</span><span class="n">teme_v</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">teme</span> <span class="o">=</span> <span class="n">TEME</span><span class="p">(</span><span class="n">teme_p</span><span class="o">.</span><span class="n">with_differentials</span><span class="p">(</span><span class="n">teme_v</span><span class="p">),</span> <span class="n">obstime</span><span class="o">=</span><span class="n">t</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note how we are careful to set the observed time of the <a class="reference internal" href="../api/astropy.coordinates.TEME.html#astropy.coordinates.TEME" title="astropy.coordinates.TEME"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TEME</span></code></a> frame to
+the time at which we calculated satellite position.</p>
+</div>
+<div class="section" id="transforming-teme-to-other-coordinate-systems">
+<h2>Transforming TEME to Other Coordinate Systems<a class="headerlink" href="#transforming-teme-to-other-coordinate-systems" title="Permalink to this headline">¶</a></h2>
+<p>Once you have satellite positions in <a class="reference internal" href="../api/astropy.coordinates.TEME.html#astropy.coordinates.TEME" title="astropy.coordinates.TEME"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TEME</span></code></a> coordinates they can be transformed
+into any <a class="reference internal" href="index.html#module-astropy.coordinates" title="astropy.coordinates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code></a> frame.</p>
+<p>For example, to find the overhead latitude, longitude, and height of the satellite:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">ITRS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">itrs</span> <span class="o">=</span> <span class="n">teme</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">ITRS</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">t</span><span class="p">))</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">location</span> <span class="o">=</span> <span class="n">itrs</span><span class="o">.</span><span class="n">earth_location</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">location</span><span class="o">.</span><span class="n">geodetic</span>  
+<span class="go">GeodeticLocation(lon=&lt;Longitude 160.34199789 deg&gt;, lat=&lt;Latitude -24.6609379 deg&gt;, height=&lt;Quantity 420.17927591 km&gt;)</span>
+</pre></div>
+</div>
+<p>Or, if you want to find the altitude and azimuth of the satellite from a particular location:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span><span class="p">,</span> <span class="n">AltAz</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">siding_spring</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="o">.</span><span class="n">of_site</span><span class="p">(</span><span class="s1">&#39;aao&#39;</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">aa</span> <span class="o">=</span> <span class="n">teme</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">AltAz</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">siding_spring</span><span class="p">))</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">aa</span><span class="o">.</span><span class="n">alt</span>  
+<span class="go">&lt;Latitude 10.95229446 deg&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">aa</span><span class="o">.</span><span class="n">az</span>  
+<span class="go">&lt;Longitude 59.30081255 deg&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Working with Earth Satellites Using Astropy Coordinates</a><ul>
+<li><a class="reference internal" href="#finding-teme-coordinates-from-tle-data">Finding TEME Coordinates from TLE Data</a></li>
+<li><a class="reference internal" href="#transforming-teme-to-other-coordinate-systems">Transforming TEME to Other Coordinate Systems</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/coordinates/satellites.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

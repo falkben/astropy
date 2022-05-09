@@ -1,0 +1,855 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.coordinates.spectral_coordinate &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.coordinates.spectral_coordinate</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">textwrap</span> <span class="kn">import</span> <span class="n">indent</span>
+
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy.constants</span> <span class="kn">import</span> <span class="n">c</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="p">(</span><span class="n">ICRS</span><span class="p">,</span>
+                                 <span class="n">CartesianDifferential</span><span class="p">,</span>
+                                 <span class="n">CartesianRepresentation</span><span class="p">,</span> <span class="n">SkyCoord</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.spectral_quantity</span> <span class="kn">import</span> <span class="n">SpectralQuantity</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.baseframe</span> <span class="kn">import</span> <span class="p">(</span><span class="n">BaseCoordinateFrame</span><span class="p">,</span>
+                                           <span class="n">frame_transform_graph</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.exceptions</span> <span class="kn">import</span> <span class="n">AstropyUserWarning</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SpectralCoord&#39;</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">NoVelocityWarning</span><span class="p">(</span><span class="n">AstropyUserWarning</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">NoDistanceWarning</span><span class="p">(</span><span class="n">AstropyUserWarning</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+
+<span class="n">KMS</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span>
+<span class="n">ZERO_VELOCITIES</span> <span class="o">=</span> <span class="n">CartesianDifferential</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">KMS</span><span class="p">)</span>
+
+<span class="c1"># Default distance to use for target when none is provided</span>
+<span class="n">DEFAULT_DISTANCE</span> <span class="o">=</span> <span class="mf">1e6</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">kpc</span>
+
+<span class="c1"># We don&#39;t want to run doctests in the docstrings we inherit from Quantity</span>
+<span class="n">__doctest_skip__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SpectralCoord.*&#39;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_apply_relativistic_doppler_shift</span><span class="p">(</span><span class="n">scoord</span><span class="p">,</span> <span class="n">velocity</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a `SpectralQuantity` and a velocity, return a new `SpectralQuantity`</span>
+<span class="sd">    that is Doppler shifted by this amount.</span>
+
+<span class="sd">    Note that the Doppler shift applied is the full relativistic one, so</span>
+<span class="sd">    `SpectralQuantity` currently expressed in velocity and not using the</span>
+<span class="sd">    relativistic convention will temporarily be converted to use the</span>
+<span class="sd">    relativistic convention while the shift is applied.</span>
+
+<span class="sd">    Positive velocities are assumed to redshift the spectral quantity,</span>
+<span class="sd">    while negative velocities blueshift the spectral quantity.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># NOTE: we deliberately don&#39;t keep sub-classes of SpectralQuantity intact</span>
+    <span class="c1"># since we can&#39;t guarantee that their metadata would be correct/consistent.</span>
+    <span class="n">squantity</span> <span class="o">=</span> <span class="n">scoord</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">SpectralQuantity</span><span class="p">)</span>
+
+    <span class="n">beta</span> <span class="o">=</span> <span class="n">velocity</span> <span class="o">/</span> <span class="n">c</span>
+    <span class="n">doppler_factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mi">1</span> <span class="o">+</span> <span class="n">beta</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">beta</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">squantity</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">):</span>  <span class="c1"># wavelength</span>
+        <span class="k">return</span> <span class="n">squantity</span> <span class="o">*</span> <span class="n">doppler_factor</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">squantity</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">)</span> <span class="ow">or</span>
+          <span class="n">squantity</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">eV</span><span class="p">)</span> <span class="ow">or</span>
+          <span class="n">squantity</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">squantity</span> <span class="o">/</span> <span class="n">doppler_factor</span>
+    <span class="k">elif</span> <span class="n">squantity</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">KMS</span><span class="p">):</span>  <span class="c1"># velocity</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">squantity</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">)</span> <span class="o">/</span> <span class="n">doppler_factor</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">squantity</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected units in velocity shift: </span><span class="si">{</span><span class="n">squantity</span><span class="o">.</span><span class="n">unit</span><span class="si">}</span><span class="s2">. &quot;</span>
+                           <span class="s2">&quot;This should not happen, so please report this in the &quot;</span>
+                           <span class="s2">&quot;astropy issue tracker!&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">update_differentials_to_match</span><span class="p">(</span><span class="n">original</span><span class="p">,</span> <span class="n">velocity_reference</span><span class="p">,</span> <span class="n">preserve_observer_frame</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given an original coordinate object, update the differentials so that</span>
+<span class="sd">    the final coordinate is at the same location as the original coordinate</span>
+<span class="sd">    but co-moving with the velocity reference object.</span>
+
+<span class="sd">    If preserve_original_frame is set to True, the resulting object will be in</span>
+<span class="sd">    the frame of the original coordinate, otherwise it will be in the frame of</span>
+<span class="sd">    the velocity reference.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">velocity_reference</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">differentials</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Reference frame has no velocities&quot;</span><span class="p">)</span>
+
+    <span class="c1"># If the reference has an obstime already defined, we should ignore</span>
+    <span class="c1"># it and stick with the original observer obstime.</span>
+    <span class="k">if</span> <span class="s1">&#39;obstime&#39;</span> <span class="ow">in</span> <span class="n">velocity_reference</span><span class="o">.</span><span class="n">frame_attributes</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">original</span><span class="p">,</span> <span class="s1">&#39;obstime&#39;</span><span class="p">):</span>
+        <span class="n">velocity_reference</span> <span class="o">=</span> <span class="n">velocity_reference</span><span class="o">.</span><span class="n">replicate</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">original</span><span class="o">.</span><span class="n">obstime</span><span class="p">)</span>
+
+    <span class="c1"># We transform both coordinates to ICRS for simplicity and because we know</span>
+    <span class="c1"># it&#39;s a simple frame that is not time-dependent (it could be that both</span>
+    <span class="c1"># the original and velocity_reference frame are time-dependent)</span>
+
+    <span class="n">original_icrs</span> <span class="o">=</span> <span class="n">original</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">ICRS</span><span class="p">())</span>
+    <span class="n">velocity_reference_icrs</span> <span class="o">=</span> <span class="n">velocity_reference</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">ICRS</span><span class="p">())</span>
+
+    <span class="n">differentials</span> <span class="o">=</span> <span class="n">velocity_reference_icrs</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">represent_as</span><span class="p">(</span><span class="n">CartesianRepresentation</span><span class="p">,</span>
+                                                              <span class="n">CartesianDifferential</span><span class="p">)</span><span class="o">.</span><span class="n">differentials</span>
+
+    <span class="n">data_with_differentials</span> <span class="o">=</span> <span class="p">(</span><span class="n">original_icrs</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">represent_as</span><span class="p">(</span><span class="n">CartesianRepresentation</span><span class="p">)</span>
+                               <span class="o">.</span><span class="n">with_differentials</span><span class="p">(</span><span class="n">differentials</span><span class="p">))</span>
+
+    <span class="n">final_icrs</span> <span class="o">=</span> <span class="n">original_icrs</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">data_with_differentials</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">preserve_observer_frame</span><span class="p">:</span>
+        <span class="n">final</span> <span class="o">=</span> <span class="n">final_icrs</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">original</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">final</span> <span class="o">=</span> <span class="n">final_icrs</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">velocity_reference</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">final</span><span class="o">.</span><span class="n">replicate</span><span class="p">(</span><span class="n">representation_type</span><span class="o">=</span><span class="n">CartesianRepresentation</span><span class="p">,</span>
+                           <span class="n">differential_type</span><span class="o">=</span><span class="n">CartesianDifferential</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">attach_zero_velocities</span><span class="p">(</span><span class="n">coord</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set the differentials to be stationary on a coordinate object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">new_data</span> <span class="o">=</span> <span class="n">coord</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">with_differentials</span><span class="p">(</span><span class="n">ZERO_VELOCITIES</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">coord</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_get_velocities</span><span class="p">(</span><span class="n">coord</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s1">&#39;s&#39;</span> <span class="ow">in</span> <span class="n">coord</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">differentials</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">coord</span><span class="o">.</span><span class="n">velocity</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ZERO_VELOCITIES</span>
+
+
+<div class="viewcode-block" id="SpectralCoord"><a class="viewcode-back" href="../../../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord">[docs]</a><span class="k">class</span> <span class="nc">SpectralCoord</span><span class="p">(</span><span class="n">SpectralQuantity</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A spectral coordinate with its corresponding unit.</span>
+
+<span class="sd">    .. note:: The |SpectralCoord| class is new in Astropy v4.1 and should be</span>
+<span class="sd">              considered experimental at this time. Note that we do not fully</span>
+<span class="sd">              support cases where the observer and target are moving</span>
+<span class="sd">              relativistically relative to each other, so care should be taken</span>
+<span class="sd">              in those cases. It is possible that there will be API changes in</span>
+<span class="sd">              future versions of Astropy based on user feedback. If you have</span>
+<span class="sd">              specific ideas for how it might be improved, please  let us know</span>
+<span class="sd">              on the `astropy-dev mailing list`_ or at</span>
+<span class="sd">              http://feedback.astropy.org.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    value : ndarray or `~astropy.units.Quantity` or `SpectralCoord`</span>
+<span class="sd">        Spectral values, which should be either wavelength, frequency,</span>
+<span class="sd">        energy, wavenumber, or velocity values.</span>
+<span class="sd">    unit : unit-like</span>
+<span class="sd">        Unit for the given spectral values.</span>
+<span class="sd">    observer : `~astropy.coordinates.BaseCoordinateFrame` or `~astropy.coordinates.SkyCoord`, optional</span>
+<span class="sd">        The coordinate (position and velocity) of observer. If no velocities</span>
+<span class="sd">        are present on this object, the observer is assumed to be stationary</span>
+<span class="sd">        relative to the frame origin.</span>
+<span class="sd">    target : `~astropy.coordinates.BaseCoordinateFrame` or `~astropy.coordinates.SkyCoord`, optional</span>
+<span class="sd">        The coordinate (position and velocity) of target. If no velocities</span>
+<span class="sd">        are present on this object, the target is assumed to be stationary</span>
+<span class="sd">        relative to the frame origin.</span>
+<span class="sd">    radial_velocity : `~astropy.units.Quantity` [&#39;speed&#39;], optional</span>
+<span class="sd">        The radial velocity of the target with respect to the observer. This</span>
+<span class="sd">        can only be specified if ``redshift`` is not specified.</span>
+<span class="sd">    redshift : float, optional</span>
+<span class="sd">        The relativistic redshift of the target with respect to the observer.</span>
+<span class="sd">        This can only be specified if ``radial_velocity`` cannot be specified.</span>
+<span class="sd">    doppler_rest : `~astropy.units.Quantity`, optional</span>
+<span class="sd">        The rest value to use when expressing the spectral value as a velocity.</span>
+<span class="sd">    doppler_convention : str, optional</span>
+<span class="sd">        The Doppler convention to use when expressing the spectral value as a velocity.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">radial_velocity</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">observer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">radial_velocity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">redshift</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="n">obj</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">unit</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># There are two main modes of operation in this class. Either the</span>
+        <span class="c1"># observer and target are both defined, in which case the radial</span>
+        <span class="c1"># velocity and redshift are automatically computed from these, or</span>
+        <span class="c1"># only one of the observer and target are specified, along with a</span>
+        <span class="c1"># manually specified radial velocity or redshift. So if a target and</span>
+        <span class="c1"># observer are both specified, we can&#39;t also accept a radial velocity</span>
+        <span class="c1"># or redshift.</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">observer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">radial_velocity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">redshift</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot specify radial velocity or redshift if both &quot;</span>
+                                 <span class="s2">&quot;target and observer are specified&quot;</span><span class="p">)</span>
+
+        <span class="c1"># We only deal with redshifts here and in the redshift property.</span>
+        <span class="c1"># Otherwise internally we always deal with velocities.</span>
+        <span class="k">if</span> <span class="n">redshift</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">radial_velocity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot set both a radial velocity and redshift&quot;</span><span class="p">)</span>
+            <span class="n">redshift</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">redshift</span><span class="p">)</span>
+            <span class="c1"># For now, we can&#39;t specify redshift=u.one in quantity_input above</span>
+            <span class="c1"># and have it work with plain floats, but if that is fixed, for</span>
+            <span class="c1"># example as in https://github.com/astropy/astropy/pull/10232, we</span>
+            <span class="c1"># can remove the check here and add redshift=u.one to the decorator</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">redshift</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">one</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">u</span><span class="o">.</span><span class="n">UnitsError</span><span class="p">(</span><span class="s1">&#39;redshift should be dimensionless&#39;</span><span class="p">)</span>
+            <span class="n">radial_velocity</span> <span class="o">=</span> <span class="n">redshift</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">doppler_redshift</span><span class="p">())</span>
+
+        <span class="c1"># If we&#39;re initializing from an existing SpectralCoord, keep any</span>
+        <span class="c1"># parameters that aren&#39;t being overridden</span>
+        <span class="k">if</span> <span class="n">observer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">observer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;observer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;target&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># As mentioned above, we should only specify the radial velocity</span>
+        <span class="c1"># manually if either or both the observer and target are not</span>
+        <span class="c1"># specified.</span>
+        <span class="k">if</span> <span class="n">observer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">radial_velocity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">radial_velocity</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;radial_velocity&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">obj</span><span class="o">.</span><span class="n">_radial_velocity</span> <span class="o">=</span> <span class="n">radial_velocity</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">_observer</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_validate_coordinate</span><span class="p">(</span><span class="n">observer</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;observer&#39;</span><span class="p">)</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_validate_coordinate</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;target&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">obj</span>
+
+    <span class="k">def</span> <span class="nf">__array_finalize__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__array_finalize__</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_radial_velocity</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;_radial_velocity&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_observer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;_observer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;_target&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_validate_coordinate</span><span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks the type of the frame and whether a velocity differential and a</span>
+<span class="sd">        distance has been defined on the frame object.</span>
+
+<span class="sd">        If no distance is defined, the target is assumed to be &quot;really far</span>
+<span class="sd">        away&quot;, and the observer is assumed to be &quot;in the solar system&quot;.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        coord : `~astropy.coordinates.BaseCoordinateFrame`</span>
+<span class="sd">            The new frame to be used for target or observer.</span>
+<span class="sd">        label : str, optional</span>
+<span class="sd">            The name of the object being validated (e.g. &#39;target&#39; or &#39;observer&#39;),</span>
+<span class="sd">            which is then used in error messages.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">coord</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">coord</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="n">SkyCoord</span><span class="p">):</span>
+                <span class="n">coord</span> <span class="o">=</span> <span class="n">coord</span><span class="o">.</span><span class="n">frame</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> must be a SkyCoord or coordinate frame instance&quot;</span><span class="p">)</span>
+
+        <span class="c1"># If the distance is not well-defined, ensure that it works properly</span>
+        <span class="c1"># for generating differentials</span>
+        <span class="c1"># TODO: change this to not set the distance and yield a warning once</span>
+        <span class="c1"># there&#39;s a good way to address this in astropy.coordinates</span>
+        <span class="c1"># https://github.com/astropy/astropy/issues/10247</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="nb">all</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">):</span>
+            <span class="n">distance</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="s1">&#39;distance&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">distance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">distance</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_type</span> <span class="o">==</span> <span class="s1">&#39;dimensionless&#39;</span><span class="p">:</span>
+            <span class="n">coord</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">DEFAULT_DISTANCE</span><span class="p">)</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Distance on coordinate object is dimensionless, an &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;arbitrary distance value of </span><span class="si">{</span><span class="n">DEFAULT_DISTANCE</span><span class="si">}</span><span class="s2"> will be set instead.&quot;</span><span class="p">,</span>
+                <span class="n">NoDistanceWarning</span><span class="p">)</span>
+
+        <span class="c1"># If the observer frame does not contain information about the</span>
+        <span class="c1"># velocity of the system, assume that the velocity is zero in the</span>
+        <span class="c1"># system.</span>
+        <span class="k">if</span> <span class="s1">&#39;s&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">coord</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">differentials</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No velocity defined on frame, assuming </span><span class="si">{</span><span class="n">ZERO_VELOCITIES</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
+                <span class="n">NoVelocityWarning</span><span class="p">)</span>
+
+            <span class="n">coord</span> <span class="o">=</span> <span class="n">attach_zero_velocities</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">coord</span>
+
+<div class="viewcode-block" id="SpectralCoord.replicate"><a class="viewcode-back" href="../../../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord.replicate">[docs]</a>    <span class="k">def</span> <span class="nf">replicate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">observer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">radial_velocity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">redshift</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">doppler_convention</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">doppler_rest</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a replica of the `SpectralCoord`, optionally changing the</span>
+<span class="sd">        values or attributes.</span>
+
+<span class="sd">        Note that no conversion is carried out by this method - this keeps</span>
+<span class="sd">        all the values and attributes the same, except for the ones explicitly</span>
+<span class="sd">        passed to this method which are changed.</span>
+
+<span class="sd">        If ``copy`` is set to `True` then a full copy of the internal arrays</span>
+<span class="sd">        will be made.  By default the replica will use a reference to the</span>
+<span class="sd">        original arrays when possible to save memory.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        value : ndarray or `~astropy.units.Quantity` or `SpectralCoord`, optional</span>
+<span class="sd">            Spectral values, which should be either wavelength, frequency,</span>
+<span class="sd">            energy, wavenumber, or velocity values.</span>
+<span class="sd">        unit : unit-like</span>
+<span class="sd">            Unit for the given spectral values.</span>
+<span class="sd">        observer : `~astropy.coordinates.BaseCoordinateFrame` or `~astropy.coordinates.SkyCoord`, optional</span>
+<span class="sd">            The coordinate (position and velocity) of observer.</span>
+<span class="sd">        target : `~astropy.coordinates.BaseCoordinateFrame` or `~astropy.coordinates.SkyCoord`, optional</span>
+<span class="sd">            The coordinate (position and velocity) of target.</span>
+<span class="sd">        radial_velocity : `~astropy.units.Quantity` [&#39;speed&#39;], optional</span>
+<span class="sd">            The radial velocity of the target with respect to the observer.</span>
+<span class="sd">        redshift : float, optional</span>
+<span class="sd">            The relativistic redshift of the target with respect to the observer.</span>
+<span class="sd">        doppler_rest : `~astropy.units.Quantity`, optional</span>
+<span class="sd">            The rest value to use when expressing the spectral value as a velocity.</span>
+<span class="sd">        doppler_convention : str, optional</span>
+<span class="sd">            The Doppler convention to use when expressing the spectral value as a velocity.</span>
+<span class="sd">        copy : bool, optional</span>
+<span class="sd">            If `True`, and ``value`` is not specified, the values are copied to</span>
+<span class="sd">            the new `SkyCoord` - otherwise a reference to the same values is used.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        sc : `SpectralCoord` object</span>
+<span class="sd">            Replica of this object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cannot specify value as a Quantity and also specify unit&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">value</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">unit</span>
+
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span>
+        <span class="n">observer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_coordinate</span><span class="p">(</span><span class="n">observer</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">observer</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_coordinate</span><span class="p">(</span><span class="n">target</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span>
+        <span class="n">doppler_convention</span> <span class="o">=</span> <span class="n">doppler_convention</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">doppler_convention</span>
+        <span class="n">doppler_rest</span> <span class="o">=</span> <span class="n">doppler_rest</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">doppler_rest</span>
+
+        <span class="c1"># If value is being taken from self and copy is Tru</span>
+        <span class="k">if</span> <span class="n">copy</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># Only include radial_velocity if it is not auto-computed from the</span>
+        <span class="c1"># observer and target.</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="n">radial_velocity</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">redshift</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">radial_velocity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">radial_velocity</span>
+
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">NoVelocityWarning</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">unit</span><span class="p">,</span>
+                                  <span class="n">observer</span><span class="o">=</span><span class="n">observer</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+                                  <span class="n">radial_velocity</span><span class="o">=</span><span class="n">radial_velocity</span><span class="p">,</span> <span class="n">redshift</span><span class="o">=</span><span class="n">redshift</span><span class="p">,</span>
+                                  <span class="n">doppler_convention</span><span class="o">=</span><span class="n">doppler_convention</span><span class="p">,</span> <span class="n">doppler_rest</span><span class="o">=</span><span class="n">doppler_rest</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">quantity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert the ``SpectralCoord`` to a `~astropy.units.Quantity`.</span>
+<span class="sd">        Equivalent to ``self.view(u.Quantity)``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        `~astropy.units.Quantity`</span>
+<span class="sd">            This object viewed as a `~astropy.units.Quantity`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">observer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The coordinates of the observer.</span>
+
+<span class="sd">        If set, and a target is set as well, this will override any explicit</span>
+<span class="sd">        radial velocity passed in.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        `~astropy.coordinates.BaseCoordinateFrame`</span>
+<span class="sd">            The astropy coordinate frame representing the observation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_observer</span>
+
+    <span class="nd">@observer</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">observer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;observer has already been set&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_observer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_coordinate</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;observer&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Switch to auto-computing radial velocity</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_radial_velocity</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">target</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The coordinates of the target being observed.</span>
+
+<span class="sd">        If set, and an observer is set as well, this will override any explicit</span>
+<span class="sd">        radial velocity passed in.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        `~astropy.coordinates.BaseCoordinateFrame`</span>
+<span class="sd">            The astropy coordinate frame representing the target.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span>
+
+    <span class="nd">@target</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">target</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;target has already been set&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_coordinate</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;target&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Switch to auto-computing radial velocity</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_observer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_radial_velocity</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">radial_velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Radial velocity of target relative to the observer.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        `~astropy.units.Quantity` [&#39;speed&#39;]</span>
+<span class="sd">            Radial velocity of target.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This is different from the ``.radial_velocity`` property of a</span>
+<span class="sd">        coordinate frame in that this calculates the radial velocity with</span>
+<span class="sd">        respect to the *observer*, not the origin of the frame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_observer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_radial_velocity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">KMS</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_radial_velocity</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_radial_velocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_observer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">,</span>
+                                                   <span class="n">as_scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">redshift</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Redshift of target relative to observer. Calculated from the radial</span>
+<span class="sd">        velocity.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        `astropy.units.Quantity`</span>
+<span class="sd">            Redshift of target.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">radial_velocity</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">dimensionless_unscaled</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">doppler_redshift</span><span class="p">())</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_calculate_radial_velocity</span><span class="p">(</span><span class="n">observer</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">as_scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the line-of-sight velocity from the observer to the target.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        observer : `~astropy.coordinates.BaseCoordinateFrame`</span>
+<span class="sd">            The frame of the observer.</span>
+<span class="sd">        target : `~astropy.coordinates.BaseCoordinateFrame`</span>
+<span class="sd">            The frame of the target.</span>
+<span class="sd">        as_scalar : bool</span>
+<span class="sd">            If `True`, the magnitude of the velocity vector will be returned,</span>
+<span class="sd">            otherwise the full vector will be returned.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        `~astropy.units.Quantity` [&#39;speed&#39;]</span>
+<span class="sd">            The radial velocity of the target with respect to the observer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Convert observer and target to ICRS to avoid finite differencing</span>
+        <span class="c1"># calculations that lack numerical precision.</span>
+        <span class="n">observer_icrs</span> <span class="o">=</span> <span class="n">observer</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">ICRS</span><span class="p">())</span>
+        <span class="n">target_icrs</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">ICRS</span><span class="p">())</span>
+
+        <span class="n">pos_hat</span> <span class="o">=</span> <span class="n">SpectralCoord</span><span class="o">.</span><span class="n">_normalized_position_vector</span><span class="p">(</span><span class="n">observer_icrs</span><span class="p">,</span> <span class="n">target_icrs</span><span class="p">)</span>
+
+        <span class="n">d_vel</span> <span class="o">=</span> <span class="n">target_icrs</span><span class="o">.</span><span class="n">velocity</span> <span class="o">-</span> <span class="n">observer_icrs</span><span class="o">.</span><span class="n">velocity</span>
+
+        <span class="n">vel_mag</span> <span class="o">=</span> <span class="n">pos_hat</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">d_vel</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">as_scalar</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">vel_mag</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">vel_mag</span> <span class="o">*</span> <span class="n">pos_hat</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_normalized_position_vector</span><span class="p">(</span><span class="n">observer</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the normalized position vector between two frames.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        observer : `~astropy.coordinates.BaseCoordinateFrame` or `~astropy.coordinates.SkyCoord`</span>
+<span class="sd">            The observation frame or coordinate.</span>
+<span class="sd">        target : `~astropy.coordinates.BaseCoordinateFrame` or `~astropy.coordinates.SkyCoord`</span>
+<span class="sd">            The target frame or coordinate.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pos_hat : `BaseRepresentation`</span>
+<span class="sd">            Position representation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">d_pos</span> <span class="o">=</span> <span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">without_differentials</span><span class="p">()</span> <span class="o">-</span>
+                 <span class="n">observer</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">without_differentials</span><span class="p">())</span>
+
+        <span class="n">dp_norm</span> <span class="o">=</span> <span class="n">d_pos</span><span class="o">.</span><span class="n">norm</span><span class="p">()</span>
+
+        <span class="c1"># Reset any that are 0 to 1 to avoid nans from 0/0</span>
+        <span class="n">dp_norm</span><span class="p">[</span><span class="n">dp_norm</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="n">dp_norm</span><span class="o">.</span><span class="n">unit</span>
+
+        <span class="n">pos_hat</span> <span class="o">=</span> <span class="n">d_pos</span> <span class="o">/</span> <span class="n">dp_norm</span>
+
+        <span class="k">return</span> <span class="n">pos_hat</span>
+
+<div class="viewcode-block" id="SpectralCoord.with_observer_stationary_relative_to"><a class="viewcode-back" href="../../../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord.with_observer_stationary_relative_to">[docs]</a>    <span class="nd">@u</span><span class="o">.</span><span class="n">quantity_input</span><span class="p">(</span><span class="n">velocity</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">with_observer_stationary_relative_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">velocity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">preserve_observer_frame</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A new  `SpectralCoord` with the velocity of the observer altered,</span>
+<span class="sd">        but not the position.</span>
+
+<span class="sd">        If a coordinate frame is specified, the observer velocities will be</span>
+<span class="sd">        modified to be stationary in the specified frame. If a coordinate</span>
+<span class="sd">        instance is specified, optionally with non-zero velocities, the</span>
+<span class="sd">        observer velocities will be updated so that the observer is co-moving</span>
+<span class="sd">        with the specified coordinates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        frame : str, `~astropy.coordinates.BaseCoordinateFrame` or `~astropy.coordinates.SkyCoord`</span>
+<span class="sd">            The observation frame in which the observer will be stationary. This</span>
+<span class="sd">            can be the name of a frame (e.g. &#39;icrs&#39;), a frame class, frame instance</span>
+<span class="sd">            with no data, or instance with data. This can optionally include</span>
+<span class="sd">            velocities.</span>
+<span class="sd">        velocity : `~astropy.units.Quantity` or `~astropy.coordinates.CartesianDifferential`, optional</span>
+<span class="sd">            If ``frame`` does not contain velocities, these can be specified as</span>
+<span class="sd">            a 3-element `~astropy.units.Quantity`. In the case where this is</span>
+<span class="sd">            also not specified, the velocities default to zero.</span>
+<span class="sd">        preserve_observer_frame : bool</span>
+<span class="sd">            If `True`, the final observer frame class will be the same as the</span>
+<span class="sd">            original one, and if `False` it will be the frame of the velocity</span>
+<span class="sd">            reference class.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        new_coord : `SpectralCoord`</span>
+<span class="sd">            The new coordinate object representing the spectral data</span>
+<span class="sd">            transformed based on the observer&#39;s new velocity frame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;This method can only be used if both observer &quot;</span>
+                             <span class="s2">&quot;and target are defined on the SpectralCoord.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Start off by extracting frame if a SkyCoord was passed in</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">SkyCoord</span><span class="p">):</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">frame</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">BaseCoordinateFrame</span><span class="p">):</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">frame</span><span class="o">.</span><span class="n">has_data</span><span class="p">:</span>
+                <span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">CartesianRepresentation</span><span class="p">(</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">frame</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">differentials</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">velocity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;frame already has differentials, cannot also specify velocity&#39;</span><span class="p">)</span>
+                <span class="c1"># otherwise frame is ready to go</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">velocity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">differentials</span> <span class="o">=</span> <span class="n">ZERO_VELOCITIES</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">differentials</span> <span class="o">=</span> <span class="n">CartesianDifferential</span><span class="p">(</span><span class="n">velocity</span><span class="p">)</span>
+                <span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">with_differentials</span><span class="p">(</span><span class="n">differentials</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="p">(</span><span class="nb">type</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+                <span class="n">frame_cls</span> <span class="o">=</span> <span class="n">frame</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">frame_cls</span> <span class="o">=</span> <span class="n">frame_transform_graph</span><span class="o">.</span><span class="n">lookup_name</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">velocity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">velocity</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span>
+            <span class="k">elif</span> <span class="n">velocity</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;velocity should be a Quantity vector with 3 elements&#39;</span><span class="p">)</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="n">frame_cls</span><span class="p">(</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span>
+                              <span class="o">*</span><span class="n">velocity</span><span class="p">,</span>
+                              <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">,</span>
+                              <span class="n">differential_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">)</span>
+
+        <span class="n">observer</span> <span class="o">=</span> <span class="n">update_differentials_to_match</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observer</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span>
+                                                 <span class="n">preserve_observer_frame</span><span class="o">=</span><span class="n">preserve_observer_frame</span><span class="p">)</span>
+
+        <span class="c1"># Calculate the initial and final los velocity</span>
+        <span class="n">init_obs_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_radial_velocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="n">as_scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">fin_obs_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_radial_velocity</span><span class="p">(</span><span class="n">observer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">,</span> <span class="n">as_scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Apply transformation to data</span>
+        <span class="n">new_data</span> <span class="o">=</span> <span class="n">_apply_relativistic_doppler_shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fin_obs_vel</span> <span class="o">-</span> <span class="n">init_obs_vel</span><span class="p">)</span>
+
+        <span class="n">new_coord</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicate</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">new_data</span><span class="p">,</span> <span class="n">observer</span><span class="o">=</span><span class="n">observer</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">new_coord</span></div>
+
+<div class="viewcode-block" id="SpectralCoord.with_radial_velocity_shift"><a class="viewcode-back" href="../../../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord.with_radial_velocity_shift">[docs]</a>    <span class="k">def</span> <span class="nf">with_radial_velocity_shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_shift</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">observer_shift</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply a velocity shift to this spectral coordinate.</span>
+
+<span class="sd">        The shift can be provided as a redshift (float value) or radial</span>
+<span class="sd">        velocity (`~astropy.units.Quantity` with physical type of &#39;speed&#39;).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        target_shift : float or `~astropy.units.Quantity` [&#39;speed&#39;]</span>
+<span class="sd">            Shift value to apply to current target.</span>
+<span class="sd">        observer_shift : float or `~astropy.units.Quantity` [&#39;speed&#39;]</span>
+<span class="sd">            Shift value to apply to current observer.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        `SpectralCoord`</span>
+<span class="sd">            New spectral coordinate with the target/observer velocity changed</span>
+<span class="sd">            to incorporate the shift. This is always a new object even if</span>
+<span class="sd">            ``target_shift`` and ``observer_shift`` are both `None`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">observer_shift</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">observer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Both an observer and target must be defined &quot;</span>
+                             <span class="s2">&quot;before applying a velocity shift.&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="n">target_shift</span><span class="p">,</span> <span class="n">observer_shift</span><span class="p">]</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">arg</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">is_equivalent</span><span class="p">((</span><span class="n">u</span><span class="o">.</span><span class="n">one</span><span class="p">,</span> <span class="n">KMS</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="n">u</span><span class="o">.</span><span class="n">UnitsError</span><span class="p">(</span><span class="s2">&quot;Argument must have unit physical type &quot;</span>
+                                   <span class="s2">&quot;&#39;speed&#39; for radial velocty or &quot;</span>
+                                   <span class="s2">&quot;&#39;dimensionless&#39; for redshift.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># The target or observer value is defined but is not a quantity object,</span>
+        <span class="c1">#  assume it&#39;s a redshift float value and convert to velocity</span>
+
+        <span class="k">if</span> <span class="n">target_shift</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_observer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicate</span><span class="p">()</span>
+            <span class="n">target_shift</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">KMS</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">target_shift</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">target_shift</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">target_shift</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_type</span> <span class="o">==</span> <span class="s1">&#39;dimensionless&#39;</span><span class="p">:</span>
+                <span class="n">target_shift</span> <span class="o">=</span> <span class="n">target_shift</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">doppler_redshift</span><span class="p">())</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_observer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicate</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">_apply_relativistic_doppler_shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_shift</span><span class="p">),</span>
+                                      <span class="n">radial_velocity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">radial_velocity</span> <span class="o">+</span> <span class="n">target_shift</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">observer_shift</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">observer_shift</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">KMS</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">observer_shift</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Quantity</span><span class="p">(</span><span class="n">observer_shift</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">observer_shift</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">physical_type</span> <span class="o">==</span> <span class="s1">&#39;dimensionless&#39;</span><span class="p">:</span>
+                <span class="n">observer_shift</span> <span class="o">=</span> <span class="n">observer_shift</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">km</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">doppler_redshift</span><span class="p">())</span>
+
+        <span class="n">target_icrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">ICRS</span><span class="p">())</span>
+        <span class="n">observer_icrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_observer</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">ICRS</span><span class="p">())</span>
+
+        <span class="n">pos_hat</span> <span class="o">=</span> <span class="n">SpectralCoord</span><span class="o">.</span><span class="n">_normalized_position_vector</span><span class="p">(</span><span class="n">observer_icrs</span><span class="p">,</span> <span class="n">target_icrs</span><span class="p">)</span>
+
+        <span class="n">target_velocity</span> <span class="o">=</span> <span class="n">_get_velocities</span><span class="p">(</span><span class="n">target_icrs</span><span class="p">)</span> <span class="o">+</span> <span class="n">target_shift</span> <span class="o">*</span> <span class="n">pos_hat</span>
+        <span class="n">observer_velocity</span> <span class="o">=</span> <span class="n">_get_velocities</span><span class="p">(</span><span class="n">observer_icrs</span><span class="p">)</span> <span class="o">+</span> <span class="n">observer_shift</span> <span class="o">*</span> <span class="n">pos_hat</span>
+
+        <span class="n">target_velocity</span> <span class="o">=</span> <span class="n">CartesianDifferential</span><span class="p">(</span><span class="n">target_velocity</span><span class="o">.</span><span class="n">xyz</span><span class="p">)</span>
+        <span class="n">observer_velocity</span> <span class="o">=</span> <span class="n">CartesianDifferential</span><span class="p">(</span><span class="n">observer_velocity</span><span class="o">.</span><span class="n">xyz</span><span class="p">)</span>
+
+        <span class="n">new_target</span> <span class="o">=</span> <span class="p">(</span><span class="n">target_icrs</span>
+                      <span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">target_icrs</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">with_differentials</span><span class="p">(</span><span class="n">target_velocity</span><span class="p">))</span>
+                      <span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">))</span>
+
+        <span class="n">new_observer</span> <span class="o">=</span> <span class="p">(</span><span class="n">observer_icrs</span>
+                        <span class="o">.</span><span class="n">realize_frame</span><span class="p">(</span><span class="n">observer_icrs</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">with_differentials</span><span class="p">(</span><span class="n">observer_velocity</span><span class="p">))</span>
+                        <span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_observer</span><span class="p">))</span>
+
+        <span class="n">init_obs_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_radial_velocity</span><span class="p">(</span><span class="n">observer_icrs</span><span class="p">,</span> <span class="n">target_icrs</span><span class="p">,</span> <span class="n">as_scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">fin_obs_vel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_radial_velocity</span><span class="p">(</span><span class="n">new_observer</span><span class="p">,</span> <span class="n">new_target</span><span class="p">,</span> <span class="n">as_scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">new_data</span> <span class="o">=</span> <span class="n">_apply_relativistic_doppler_shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fin_obs_vel</span> <span class="o">-</span> <span class="n">init_obs_vel</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicate</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">new_data</span><span class="p">,</span>
+                              <span class="n">observer</span><span class="o">=</span><span class="n">new_observer</span><span class="p">,</span>
+                              <span class="n">target</span><span class="o">=</span><span class="n">new_target</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SpectralCoord.to_rest"><a class="viewcode-back" href="../../../api/astropy.coordinates.SpectralCoord.html#astropy.coordinates.SpectralCoord.to_rest">[docs]</a>    <span class="k">def</span> <span class="nf">to_rest</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transforms the spectral axis to the rest frame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">with_observer_stationary_relative_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_apply_relativistic_doppler_shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">radial_velocity</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">replicate</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">result</span><span class="p">,</span> <span class="n">radial_velocity</span><span class="o">=</span><span class="mf">0.</span> <span class="o">*</span> <span class="n">KMS</span><span class="p">,</span> <span class="n">redshift</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">prefixstr</span> <span class="o">=</span> <span class="s1">&#39;&lt;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">radial_velocity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">radial_velocity</span>
+            <span class="n">redshift</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">redshift</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">radial_velocity</span> <span class="o">=</span> <span class="n">redshift</span> <span class="o">=</span> <span class="s1">&#39;Undefined&#39;</span>
+
+        <span class="n">repr_items</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">prefixstr</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">observer_repr</span> <span class="o">=</span> <span class="n">indent</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observer</span><span class="p">),</span> <span class="mi">14</span> <span class="o">*</span> <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+            <span class="n">repr_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;    observer: </span><span class="si">{</span><span class="n">observer_repr</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">target_repr</span> <span class="o">=</span> <span class="n">indent</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">),</span> <span class="mi">12</span> <span class="o">*</span> <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+            <span class="n">repr_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;    target: </span><span class="si">{</span><span class="n">target_repr</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_observer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_radial_velocity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">repr_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    observer to target (computed from above):&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">repr_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    observer to target:&#39;</span><span class="p">)</span>
+            <span class="n">repr_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;      radial_velocity=</span><span class="si">{</span><span class="n">radial_velocity</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">repr_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;      redshift=</span><span class="si">{</span><span class="n">redshift</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">doppler_rest</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">doppler_convention</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">repr_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;    doppler_rest=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">doppler_rest</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">repr_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;    doppler_convention=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">doppler_convention</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">arrstr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array2string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span> <span class="n">separator</span><span class="o">=</span><span class="s1">&#39;, &#39;</span><span class="p">,</span>
+                                 <span class="n">prefix</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">repr_items</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">repr_items</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">arrstr</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">_unitstr</span><span class="si">:</span><span class="s1">s</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">repr_items</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;   (&#39;</span> <span class="o">+</span> <span class="n">repr_items</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+            <span class="n">repr_items</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="s1">&#39;)&#39;</span>
+            <span class="n">repr_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;  </span><span class="si">{</span><span class="n">arrstr</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">_unitstr</span><span class="si">:</span><span class="s1">s</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">repr_items</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;&gt;&#39;</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

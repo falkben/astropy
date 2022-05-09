@@ -1,0 +1,1649 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.modeling.bounding_box &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.modeling.bounding_box</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module is to contain an improved bounding box</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">astropy.units</span> <span class="kn">import</span> <span class="n">Quantity</span>
+<span class="kn">from</span> <span class="nn">astropy.utils</span> <span class="kn">import</span> <span class="n">isiterable</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ModelBoundingBox&#39;</span><span class="p">,</span> <span class="s1">&#39;CompoundBoundingBox&#39;</span><span class="p">]</span>
+
+
+<span class="n">_BaseInterval</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;_BaseInterval&#39;</span><span class="p">,</span> <span class="s2">&quot;lower upper&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_Interval</span><span class="p">(</span><span class="n">_BaseInterval</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A single input&#39;s bounding box interval.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    lower : float</span>
+<span class="sd">        The lower bound of the interval</span>
+
+<span class="sd">    upper : float</span>
+<span class="sd">        The upper bound of the interval</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    validate :</span>
+<span class="sd">        Contructs a valid interval</span>
+
+<span class="sd">    outside :</span>
+<span class="sd">        Determine which parts of an input array are outside the interval.</span>
+
+<span class="sd">    domain :</span>
+<span class="sd">        Contructs a discretization of the points inside the interval.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Interval(lower=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lower</span><span class="si">}</span><span class="s2">, upper=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">upper</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_validate_shape</span><span class="p">(</span><span class="n">interval</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Validate the shape of an interval representation&quot;&quot;&quot;</span>
+        <span class="n">MESSAGE</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;An interval must be some sort of sequence of length 2&quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">interval</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># np.shape does not work with lists of Quantities</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">interval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">interval</span> <span class="o">=</span> <span class="n">interval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">([</span><span class="n">b</span><span class="o">.</span><span class="n">to_value</span><span class="p">()</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">interval</span><span class="p">])</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">MESSAGE</span><span class="p">)</span>
+
+        <span class="n">valid_shape</span> <span class="o">=</span> <span class="n">shape</span> <span class="ow">in</span> <span class="p">((</span><span class="mi">2</span><span class="p">,),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_shape</span><span class="p">:</span>
+            <span class="n">valid_shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span>
+                           <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">interval</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">isiterable</span><span class="p">(</span><span class="n">interval</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">valid_shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">MESSAGE</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_validate_bounds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Validate the bounds are reasonable and construct an interval from them.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">lower</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">upper</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid interval: upper bound </span><span class="si">{</span><span class="n">upper</span><span class="si">}</span><span class="s2"> &quot;</span>
+                          <span class="sa">f</span><span class="s2">&quot;is strictly less than lower bound </span><span class="si">{</span><span class="n">lower</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">lower</span><span class="p">,</span> <span class="n">upper</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">interval</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct and validate an interval</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        interval : iterable</span>
+<span class="sd">            A representation of the interval.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A validated interval.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_validate_shape</span><span class="p">(</span><span class="n">interval</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">interval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">interval</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">interval</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">interval</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">interval</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_validate_bounds</span><span class="p">(</span><span class="n">interval</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">interval</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">outside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_input</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        _input : np.ndarray</span>
+<span class="sd">            The evaluation input in the form of an array.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Boolean array indicating which parts of _input are outside the interval:</span>
+<span class="sd">            True  -&gt; position outside interval</span>
+<span class="sd">            False -&gt; position inside  interval</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">_input</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">lower</span><span class="p">,</span> <span class="n">_input</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">upper</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">domain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resolution</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lower</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">upper</span> <span class="o">+</span> <span class="n">resolution</span><span class="p">,</span> <span class="n">resolution</span><span class="p">)</span>
+
+
+<span class="c1"># The interval where all ignored inputs can be found.</span>
+<span class="n">_ignored_interval</span> <span class="o">=</span> <span class="n">_Interval</span><span class="o">.</span><span class="n">validate</span><span class="p">((</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">get_index</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the input index corresponding to the given key.</span>
+<span class="sd">        Can pass in either:</span>
+<span class="sd">            the string name of the input or</span>
+<span class="sd">            the input index itself.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">inputs</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">inputs</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; is not one of the inputs: </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">inputs</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">):</span>
+        <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">key</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">inputs</span><span class="p">):</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Integer key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> must be non-negative and &lt; </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Key value: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> must be string or integer.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">index</span>
+
+
+<span class="k">def</span> <span class="nf">get_name</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get the input name corresponding to the input index&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">_BoundingDomain</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for ModelBoundingBox and CompoundBoundingBox.</span>
+<span class="sd">        This is where all the `~astropy.modeling.core.Model` evaluation</span>
+<span class="sd">        code for evaluating with a bounding box is because it is common</span>
+<span class="sd">        to both types of bounding box.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : `~astropy.modeling.Model`</span>
+<span class="sd">        The Model this bounding domain is for.</span>
+
+<span class="sd">    prepare_inputs :</span>
+<span class="sd">        Generates the necessary input information so that model can</span>
+<span class="sd">        be evaluated only for input points entirely inside bounding_box.</span>
+<span class="sd">        This needs to be implemented by a subclass. Note that most of</span>
+<span class="sd">        the implementation is in ModelBoundingBox.</span>
+
+<span class="sd">    prepare_outputs :</span>
+<span class="sd">        Fills the output values in for any input points outside the</span>
+<span class="sd">        bounding_box.</span>
+
+<span class="sd">    evaluate :</span>
+<span class="sd">        Performs a complete model evaluation while enforcing the bounds</span>
+<span class="sd">        on the inputs and returns a complete output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">ignored</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;C&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_ignored</span><span class="p">(</span><span class="n">ignored</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_order</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">order</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ignored</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span>
+
+    <span class="k">def</span> <span class="nf">_get_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get if bounding_box is C/python ordered or Fortran/mathematically</span>
+<span class="sd">        ordered</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order</span>
+
+        <span class="k">if</span> <span class="n">order</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;order must be either &#39;C&#39; (C/python order) or &quot;</span>
+                             <span class="sa">f</span><span class="s2">&quot;&#39;F&#39; (Fortran/mathematical order), got: </span><span class="si">{</span><span class="n">order</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">order</span>
+
+    <span class="k">def</span> <span class="nf">_get_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the input index corresponding to the given key.</span>
+<span class="sd">            Can pass in either:</span>
+<span class="sd">                the string name of the input or</span>
+<span class="sd">                the input index itself.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">get_index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the input name corresponding to the input index&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">get_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ignored_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_name</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_validate_ignored</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ignored</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">ignored</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">ignored</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;This bounding box is fixed by the model and does not have &quot;</span>
+            <span class="s2">&quot;adjustable parameters.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">fix_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">fixed_inputs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fix the bounding_box for a `fix_inputs` compound model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The new model for which this will be a bounding_box</span>
+<span class="sd">        fixed_inputs : dict</span>
+<span class="sd">            Dictionary of inputs which have been fixed by this bounding box.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This should be implemented by a child class.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">prepare_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get prepare the inputs with respect to the bounding box.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shape : tuple</span>
+<span class="sd">            The shape that all inputs have be reshaped/broadcasted into</span>
+<span class="sd">        inputs : list</span>
+<span class="sd">            List of all the model inputs</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        valid_inputs : list</span>
+<span class="sd">            The inputs reduced to just those inputs which are all inside</span>
+<span class="sd">            their respective bounding box intervals</span>
+<span class="sd">        valid_index : array_like</span>
+<span class="sd">            array of all indices inside the bounding box</span>
+<span class="sd">        all_out: bool</span>
+<span class="sd">            if all of the inputs are outside the bounding_box</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This has not been implemented for BoundingDomain.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_base_output</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a baseline output, assuming that the entire input is outside</span>
+<span class="sd">        the bounding box</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shape : tuple</span>
+<span class="sd">            The shape that all inputs have be reshaped/broadcasted into</span>
+<span class="sd">        fill_value : float</span>
+<span class="sd">            The value which will be assigned to inputs which are outside</span>
+<span class="sd">            the bounding box</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        An array of the correct shape containing all fill_value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">+</span> <span class="n">fill_value</span>
+
+    <span class="k">def</span> <span class="nf">_all_out_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create output if all inputs are outside the domain</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shape : tuple</span>
+<span class="sd">            The shape that all inputs have be reshaped/broadcasted into</span>
+<span class="sd">        fill_value : float</span>
+<span class="sd">            The value which will be assigned to inputs which are outside</span>
+<span class="sd">            the bounding box</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        A full set of outputs for case that all inputs are outside domain.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_output</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">n_outputs</span><span class="p">)],</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_modify_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">valid_output</span><span class="p">,</span> <span class="n">valid_index</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For a single output fill in all the parts corresponding to inputs</span>
+<span class="sd">        outside the bounding box.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        valid_output : numpy array</span>
+<span class="sd">            The output from the model corresponding to inputs inside the</span>
+<span class="sd">            bounding box</span>
+<span class="sd">        valid_index : numpy array</span>
+<span class="sd">            array of all indices of inputs inside the bounding box</span>
+<span class="sd">        input_shape : tuple</span>
+<span class="sd">            The shape that all inputs have be reshaped/broadcasted into</span>
+<span class="sd">        fill_value : float</span>
+<span class="sd">            The value which will be assigned to inputs which are outside</span>
+<span class="sd">            the bounding box</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        An output array with all the indices corresponding to inputs</span>
+<span class="sd">        outside the bounding box filled in by fill_value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_output</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">output</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">valid_output</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output</span><span class="p">[</span><span class="n">valid_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">valid_output</span>
+
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">valid_output</span><span class="p">):</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">item</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">output</span>
+
+    <span class="k">def</span> <span class="nf">_prepare_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">valid_outputs</span><span class="p">,</span> <span class="n">valid_index</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fill in all the outputs of the model corresponding to inputs</span>
+<span class="sd">        outside the bounding_box.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        valid_outputs : list of numpy array</span>
+<span class="sd">            The list of outputs from the model corresponding to inputs</span>
+<span class="sd">            inside the bounding box</span>
+<span class="sd">        valid_index : numpy array</span>
+<span class="sd">            array of all indices of inputs inside the bounding box</span>
+<span class="sd">        input_shape : tuple</span>
+<span class="sd">            The shape that all inputs have be reshaped/broadcasted into</span>
+<span class="sd">        fill_value : float</span>
+<span class="sd">            The value which will be assigned to inputs which are outside</span>
+<span class="sd">            the bounding box</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        List of filled in output arrays.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">valid_output</span> <span class="ow">in</span> <span class="n">valid_outputs</span><span class="p">:</span>
+            <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_modify_output</span><span class="p">(</span><span class="n">valid_output</span><span class="p">,</span> <span class="n">valid_index</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">outputs</span>
+
+    <span class="k">def</span> <span class="nf">prepare_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">valid_outputs</span><span class="p">,</span> <span class="n">valid_index</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fill in all the outputs of the model corresponding to inputs</span>
+<span class="sd">        outside the bounding_box, adjusting any single output model so that</span>
+<span class="sd">        its output becomes a list of containing that output.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        valid_outputs : list</span>
+<span class="sd">            The list of outputs from the model corresponding to inputs</span>
+<span class="sd">            inside the bounding box</span>
+<span class="sd">        valid_index : array_like</span>
+<span class="sd">            array of all indices of inputs inside the bounding box</span>
+<span class="sd">        input_shape : tuple</span>
+<span class="sd">            The shape that all inputs have be reshaped/broadcasted into</span>
+<span class="sd">        fill_value : float</span>
+<span class="sd">            The value which will be assigned to inputs which are outside</span>
+<span class="sd">            the bounding box</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">n_outputs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">valid_outputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">valid_outputs</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_outputs</span><span class="p">(</span><span class="n">valid_outputs</span><span class="p">,</span> <span class="n">valid_index</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_valid_outputs_unit</span><span class="p">(</span><span class="n">valid_outputs</span><span class="p">,</span> <span class="n">with_units</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the unit for outputs if one is required.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        valid_outputs : list of numpy array</span>
+<span class="sd">            The list of outputs from the model corresponding to inputs</span>
+<span class="sd">            inside the bounding box</span>
+<span class="sd">        with_units : bool</span>
+<span class="sd">            whether or not a unit is required</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">with_units</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">valid_outputs</span><span class="p">,</span> <span class="s1">&#39;unit&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_evaluate_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evaluate</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">valid_inputs</span><span class="p">,</span> <span class="n">valid_index</span><span class="p">,</span>
+                        <span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">,</span> <span class="n">with_units</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evaluate the model using the given evaluate routine</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        evaluate : Callable</span>
+<span class="sd">            callable which takes in the valid inputs to evaluate model</span>
+<span class="sd">        valid_inputs : list of numpy arrays</span>
+<span class="sd">            The inputs reduced to just those inputs which are all inside</span>
+<span class="sd">            their respective bounding box intervals</span>
+<span class="sd">        valid_index : numpy array</span>
+<span class="sd">            array of all indices inside the bounding box</span>
+<span class="sd">        input_shape : tuple</span>
+<span class="sd">            The shape that all inputs have be reshaped/broadcasted into</span>
+<span class="sd">        fill_value : float</span>
+<span class="sd">            The value which will be assigned to inputs which are outside</span>
+<span class="sd">            the bounding box</span>
+<span class="sd">        with_units : bool</span>
+<span class="sd">            whether or not a unit is required</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        outputs :</span>
+<span class="sd">            list containing filled in output values</span>
+<span class="sd">        valid_outputs_unit :</span>
+<span class="sd">            the unit that will be attached to the outputs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">valid_outputs</span> <span class="o">=</span> <span class="n">evaluate</span><span class="p">(</span><span class="n">valid_inputs</span><span class="p">)</span>
+        <span class="n">valid_outputs_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_valid_outputs_unit</span><span class="p">(</span><span class="n">valid_outputs</span><span class="p">,</span> <span class="n">with_units</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_outputs</span><span class="p">(</span><span class="n">valid_outputs</span><span class="p">,</span> <span class="n">valid_index</span><span class="p">,</span>
+                                    <span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">),</span> <span class="n">valid_outputs_unit</span>
+
+    <span class="k">def</span> <span class="nf">_evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evaluate</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span>
+                  <span class="n">fill_value</span><span class="p">,</span> <span class="n">with_units</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform model evaluation steps:</span>
+<span class="sd">            prepare_inputs -&gt; evaluate -&gt; prepare_outputs</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        evaluate : Callable</span>
+<span class="sd">            callable which takes in the valid inputs to evaluate model</span>
+<span class="sd">        valid_inputs : list of numpy arrays</span>
+<span class="sd">            The inputs reduced to just those inputs which are all inside</span>
+<span class="sd">            their respective bounding box intervals</span>
+<span class="sd">        valid_index : numpy array</span>
+<span class="sd">            array of all indices inside the bounding box</span>
+<span class="sd">        input_shape : tuple</span>
+<span class="sd">            The shape that all inputs have be reshaped/broadcasted into</span>
+<span class="sd">        fill_value : float</span>
+<span class="sd">            The value which will be assigned to inputs which are outside</span>
+<span class="sd">            the bounding box</span>
+<span class="sd">        with_units : bool</span>
+<span class="sd">            whether or not a unit is required</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        outputs :</span>
+<span class="sd">            list containing filled in output values</span>
+<span class="sd">        valid_outputs_unit :</span>
+<span class="sd">            the unit that will be attached to the outputs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">valid_inputs</span><span class="p">,</span> <span class="n">valid_index</span><span class="p">,</span> <span class="n">all_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_inputs</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">all_out</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_out_output</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate_model</span><span class="p">(</span><span class="n">evaluate</span><span class="p">,</span> <span class="n">valid_inputs</span><span class="p">,</span> <span class="n">valid_index</span><span class="p">,</span>
+                                        <span class="n">input_shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">,</span> <span class="n">with_units</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_set_outputs_unit</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">valid_outputs_unit</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the units on the outputs</span>
+<span class="sd">            prepare_inputs -&gt; evaluate -&gt; prepare_outputs -&gt; set output units</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        outputs :</span>
+<span class="sd">            list containing filled in output values</span>
+<span class="sd">        valid_outputs_unit :</span>
+<span class="sd">            the unit that will be attached to the outputs</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        List containing filled in output values and units</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">valid_outputs_unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Quantity</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">valid_outputs_unit</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">outputs</span>
+
+    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">evaluate</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform full model evaluation steps:</span>
+<span class="sd">            prepare_inputs -&gt; evaluate -&gt; prepare_outputs -&gt; set output units</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        evaluate : callable</span>
+<span class="sd">            callable which takes in the valid inputs to evaluate model</span>
+<span class="sd">        valid_inputs : list</span>
+<span class="sd">            The inputs reduced to just those inputs which are all inside</span>
+<span class="sd">            their respective bounding box intervals</span>
+<span class="sd">        valid_index : array_like</span>
+<span class="sd">            array of all indices inside the bounding box</span>
+<span class="sd">        fill_value : float</span>
+<span class="sd">            The value which will be assigned to inputs which are outside</span>
+<span class="sd">            the bounding box</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">input_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">input_shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+        <span class="c1"># NOTE: CompoundModel does not currently support units during</span>
+        <span class="c1">#   evaluation for bounding_box so this feature is turned off</span>
+        <span class="c1">#   for CompoundModel(s).</span>
+        <span class="n">outputs</span><span class="p">,</span> <span class="n">valid_outputs_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate</span><span class="p">(</span><span class="n">evaluate</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span>
+                                                     <span class="n">fill_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">bbox_with_units</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_outputs_unit</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">valid_outputs_unit</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="ModelBoundingBox"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.ModelBoundingBox.html#astropy.modeling.bounding_box.ModelBoundingBox">[docs]</a><span class="k">class</span> <span class="nc">ModelBoundingBox</span><span class="p">(</span><span class="n">_BoundingDomain</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A model&#39;s bounding box</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    intervals : dict</span>
+<span class="sd">        A dictionary containing all the intervals for each model input</span>
+<span class="sd">            keys   -&gt; input index</span>
+<span class="sd">            values -&gt; interval for that index</span>
+
+<span class="sd">    model : `~astropy.modeling.Model`</span>
+<span class="sd">        The Model this bounding_box is for.</span>
+
+<span class="sd">    ignored : list</span>
+<span class="sd">        A list containing all the inputs (index) which will not be</span>
+<span class="sd">        checked for whether or not their elements are in/out of an interval.</span>
+
+<span class="sd">    order : optional, str</span>
+<span class="sd">        The ordering that is assumed for the tuple representation of this</span>
+<span class="sd">        bounding_box. Options: &#39;C&#39;: C/Python order, e.g. z, y, x.</span>
+<span class="sd">        (default), &#39;F&#39;: Fortran/mathematical notation order, e.g. x, y, z.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">intervals</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">_Interval</span><span class="p">],</span> <span class="n">model</span><span class="p">,</span>
+                 <span class="n">ignored</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;C&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ignored</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_intervals</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">intervals</span> <span class="o">!=</span> <span class="p">()</span> <span class="ow">and</span> <span class="n">intervals</span> <span class="o">!=</span> <span class="p">{}:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span><span class="n">intervals</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModelBoundingBox.copy"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.ModelBoundingBox.html#astropy.modeling.bounding_box.ModelBoundingBox.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ignored</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">intervals</span> <span class="o">=</span> <span class="p">{</span><span class="n">index</span><span class="p">:</span> <span class="n">interval</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                     <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">interval</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_intervals</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+        <span class="k">if</span> <span class="n">ignored</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ignored</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">ModelBoundingBox</span><span class="p">(</span><span class="n">intervals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span>
+                                <span class="n">ignored</span><span class="o">=</span><span class="n">ignored</span><span class="p">,</span>
+                                <span class="n">order</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_order</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">_Interval</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Return bounding_box labeled using input positions&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_intervals</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">named_intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_Interval</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Return bounding_box labeled using input names&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_name</span><span class="p">(</span><span class="n">index</span><span class="p">):</span> <span class="n">bbox</span> <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">bbox</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_intervals</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;ModelBoundingBox(&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;    intervals={&#39;</span>
+        <span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">interval</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">named_intervals</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;        </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">interval</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    }&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    ignored=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ignored_inputs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;    model=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1">(inputs=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">inputs</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    order=&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_order</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_intervals</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_intervals</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">IndexError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="ModelBoundingBox.has_interval"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.ModelBoundingBox.html#astropy.modeling.bounding_box.ModelBoundingBox.has_interval">[docs]</a>    <span class="k">def</span> <span class="nf">has_interval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_intervals</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get bounding_box entries by either input name or input index&quot;&quot;&quot;</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_ignored_interval</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_intervals</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">key</span><span class="p">)]</span>
+
+<div class="viewcode-block" id="ModelBoundingBox.bounding_box"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.ModelBoundingBox.html#astropy.modeling.bounding_box.ModelBoundingBox.bounding_box">[docs]</a>    <span class="k">def</span> <span class="nf">bounding_box</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the old tuple of tuples representation of the bounding_box</span>
+<span class="sd">            order=&#39;C&#39; corresponds to the old bounding_box ordering</span>
+<span class="sd">            order=&#39;F&#39; corresponds to the gwcs bounding_box ordering.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_intervals</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_intervals</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_order</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">inputs</span>
+            <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s1">&#39;C&#39;</span><span class="p">:</span>
+                <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="n">bbox</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">input_name</span><span class="p">])</span> <span class="k">for</span> <span class="n">input_name</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bbox</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">bbox</span> <span class="o">=</span> <span class="n">bbox</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">return</span> <span class="n">bbox</span></div>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Note equality can be either with old representation or new one.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounding_box</span><span class="p">()</span> <span class="o">==</span> <span class="n">value</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">ModelBoundingBox</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">intervals</span> <span class="o">==</span> <span class="n">value</span><span class="o">.</span><span class="n">intervals</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ignored</span> <span class="o">==</span> <span class="n">value</span><span class="o">.</span><span class="n">ignored</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Validate and store interval under key (input index or input name).&quot;&quot;&quot;</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_intervals</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">_Interval</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Delete stored interval&quot;&quot;&quot;</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot delete ignored input: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">!&quot;</span><span class="p">)</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_intervals</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bounding_box</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Validate passing dictionary of intervals and setting them.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">bounding_box</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_available_input_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">model_input_index</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_index</span><span class="p">(</span><span class="n">_input</span><span class="p">)</span> <span class="k">for</span> <span class="n">_input</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">inputs</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">_input</span> <span class="k">for</span> <span class="n">_input</span> <span class="ow">in</span> <span class="n">model_input_index</span> <span class="k">if</span> <span class="n">_input</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_validate_sequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bounding_box</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Validate passing tuple of tuples representation (or related) and setting them.&quot;&quot;&quot;</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_order</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s1">&#39;C&#39;</span><span class="p">:</span>
+            <span class="c1"># If bounding_box is C/python ordered, it needs to be reversed</span>
+            <span class="c1"># to be in Fortran/mathematical/input order.</span>
+            <span class="n">bounding_box</span> <span class="o">=</span> <span class="n">bounding_box</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">):</span>
+            <span class="bp">self</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_available_input_index</span><span class="p">[</span><span class="n">index</span><span class="p">]]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_n_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">n_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">n_inputs</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ignored</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_inputs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">n_inputs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_validate_iterable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bounding_box</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Validate and set any iterable representation&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_inputs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">)</span><span class="si">}</span><span class="s2"> intervals, &quot;</span>
+                             <span class="sa">f</span><span class="s2">&quot;but must have exactly </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_inputs</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_dict</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_sequence</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bounding_box</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Validate and set any representation&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_inputs</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="bp">self</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_available_input_index</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">bounding_box</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_iterable</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModelBoundingBox.validate"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.ModelBoundingBox.html#astropy.modeling.bounding_box.ModelBoundingBox.validate">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">bounding_box</span><span class="p">,</span>
+                 <span class="n">ignored</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">_preserve_ignore</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a valid bounding box for a model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The model for which this will be a bounding_box</span>
+<span class="sd">        bounding_box : dict, tuple</span>
+<span class="sd">            A possible representation of the bounding box</span>
+<span class="sd">        order : optional, str</span>
+<span class="sd">            The order that a tuple representation will be assumed to be</span>
+<span class="sd">                Default: &#39;C&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">,</span> <span class="n">ModelBoundingBox</span><span class="p">):</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="n">bounding_box</span><span class="o">.</span><span class="n">order</span>
+            <span class="k">if</span> <span class="n">_preserve_ignore</span><span class="p">:</span>
+                <span class="n">ignored</span> <span class="o">=</span> <span class="n">bounding_box</span><span class="o">.</span><span class="n">ignored</span>
+            <span class="n">bounding_box</span> <span class="o">=</span> <span class="n">bounding_box</span><span class="o">.</span><span class="n">named_intervals</span>
+
+        <span class="n">new</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">({},</span> <span class="n">model</span><span class="p">,</span> <span class="n">ignored</span><span class="o">=</span><span class="n">ignored</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">new</span></div>
+
+<div class="viewcode-block" id="ModelBoundingBox.fix_inputs"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.ModelBoundingBox.html#astropy.modeling.bounding_box.ModelBoundingBox.fix_inputs">[docs]</a>    <span class="k">def</span> <span class="nf">fix_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">fixed_inputs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">_keep_ignored</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fix the bounding_box for a `fix_inputs` compound model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The new model for which this will be a bounding_box</span>
+<span class="sd">        fixed_inputs : dict</span>
+<span class="sd">            Dictionary of inputs which have been fixed by this bounding box.</span>
+<span class="sd">        keep_ignored : bool</span>
+<span class="sd">            Keep the ignored inputs of the bounding box (internal argument only)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">new</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">_input</span> <span class="ow">in</span> <span class="n">fixed_inputs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">del</span> <span class="n">new</span><span class="p">[</span><span class="n">_input</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">_keep_ignored</span><span class="p">:</span>
+            <span class="n">ignored</span> <span class="o">=</span> <span class="n">new</span><span class="o">.</span><span class="n">ignored</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ignored</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">ModelBoundingBox</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">new</span><span class="o">.</span><span class="n">named_intervals</span><span class="p">,</span>
+                                         <span class="n">ignored</span><span class="o">=</span><span class="n">ignored</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">new</span><span class="o">.</span><span class="n">_order</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dimension</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModelBoundingBox.domain"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.ModelBoundingBox.html#astropy.modeling.bounding_box.ModelBoundingBox.domain">[docs]</a>    <span class="k">def</span> <span class="nf">domain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resolution</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">inputs</span>
+        <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_order</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s1">&#39;C&#39;</span><span class="p">:</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="p">[</span><span class="n">input_name</span><span class="p">]</span><span class="o">.</span><span class="n">domain</span><span class="p">(</span><span class="n">resolution</span><span class="p">)</span> <span class="k">for</span> <span class="n">input_name</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">_outside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="n">input_shape</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get all the input positions which are outside the bounding_box,</span>
+<span class="sd">        so that the corresponding outputs can be filled with the fill</span>
+<span class="sd">        value (default NaN).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shape : tuple</span>
+<span class="sd">            The shape that all inputs have be reshaped/broadcasted into</span>
+<span class="sd">        inputs : list</span>
+<span class="sd">            List of all the model inputs</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        outside_index : bool-numpy array</span>
+<span class="sd">            True  -&gt; position outside bounding_box</span>
+<span class="sd">            False -&gt; position inside  bounding_box</span>
+<span class="sd">        all_out : bool</span>
+<span class="sd">            if all of the inputs are outside the bounding_box</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">all_out</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">outside_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">_input</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+            <span class="n">_input</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asanyarray</span><span class="p">(</span><span class="n">_input</span><span class="p">)</span>
+
+            <span class="n">outside</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">outside</span><span class="p">(</span><span class="n">_input</span><span class="p">),</span> <span class="n">input_shape</span><span class="p">)</span>
+            <span class="n">outside_index</span><span class="p">[</span><span class="n">outside</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">if</span> <span class="n">outside_index</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="n">all_out</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">break</span>
+
+        <span class="k">return</span> <span class="n">outside_index</span><span class="p">,</span> <span class="n">all_out</span>
+
+    <span class="k">def</span> <span class="nf">_valid_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the indices of all the inputs inside the bounding_box.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shape : tuple</span>
+<span class="sd">            The shape that all inputs have be reshaped/broadcasted into</span>
+<span class="sd">        inputs : list</span>
+<span class="sd">            List of all the model inputs</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        valid_index : numpy array</span>
+<span class="sd">            array of all indices inside the bounding box</span>
+<span class="sd">        all_out : bool</span>
+<span class="sd">            if all of the inputs are outside the bounding_box</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">outside_index</span><span class="p">,</span> <span class="n">all_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outside</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+
+        <span class="n">valid_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">outside_index</span><span class="p">))</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_index</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">all_out</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="n">valid_index</span><span class="p">,</span> <span class="n">all_out</span>
+
+<div class="viewcode-block" id="ModelBoundingBox.prepare_inputs"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.ModelBoundingBox.html#astropy.modeling.bounding_box.ModelBoundingBox.prepare_inputs">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get prepare the inputs with respect to the bounding box.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shape : tuple</span>
+<span class="sd">            The shape that all inputs have be reshaped/broadcasted into</span>
+<span class="sd">        inputs : list</span>
+<span class="sd">            List of all the model inputs</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        valid_inputs : list</span>
+<span class="sd">            The inputs reduced to just those inputs which are all inside</span>
+<span class="sd">            their respective bounding box intervals</span>
+<span class="sd">        valid_index : array_like</span>
+<span class="sd">            array of all indices inside the bounding box</span>
+<span class="sd">        all_out: bool</span>
+<span class="sd">            if all of the inputs are outside the bounding_box</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">valid_index</span><span class="p">,</span> <span class="n">all_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_valid_index</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+
+        <span class="n">valid_inputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">all_out</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">_input</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">input_shape</span><span class="p">:</span>
+                    <span class="n">valid_input</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">_input</span><span class="p">),</span> <span class="n">input_shape</span><span class="p">)[</span><span class="n">valid_index</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">_input</span><span class="p">):</span>
+                        <span class="n">valid_input</span> <span class="o">=</span> <span class="n">valid_input</span><span class="o">.</span><span class="n">item</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">valid_inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">valid_input</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">valid_inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_input</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">valid_inputs</span><span class="p">),</span> <span class="n">valid_index</span><span class="p">,</span> <span class="n">all_out</span></div></div>
+
+
+<span class="n">_BaseSelectorArgument</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;_BaseSelectorArgument&#39;</span><span class="p">,</span> <span class="s2">&quot;index ignore&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_SelectorArgument</span><span class="p">(</span><span class="n">_BaseSelectorArgument</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Contains a single CompoundBoundingBox slicing input.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    index : int</span>
+<span class="sd">        The index of the input in the input list</span>
+
+<span class="sd">    ignore : bool</span>
+<span class="sd">        Whether or not this input will be ignored by the bounding box.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    validate :</span>
+<span class="sd">        Returns a valid SelectorArgument for a given model.</span>
+
+<span class="sd">    get_selector :</span>
+<span class="sd">        Returns the value of the input for use in finding the correct</span>
+<span class="sd">        bounding_box.</span>
+
+<span class="sd">    get_fixed_value :</span>
+<span class="sd">        Gets the slicing value from a fix_inputs set of values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">ignore</span><span class="p">):</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">ignore</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">,</span> <span class="n">ignored</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a valid selector argument for a CompoundBoundingBox.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The model for which this will be an argument for.</span>
+<span class="sd">        argument : int or str</span>
+<span class="sd">            A representation of which evaluation input to use</span>
+<span class="sd">        ignored : optional, bool</span>
+<span class="sd">            Whether or not to ignore this argument in the ModelBoundingBox.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Validated selector_argument</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">get_index</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">),</span> <span class="n">ignored</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_selector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the selector value corresponding to this argument</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        *inputs :</span>
+<span class="sd">            All the processed model evaluation inputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_selector</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">isiterable</span><span class="p">(</span><span class="n">_selector</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_selector</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">_selector</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">_selector</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_selector</span>
+
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the name of the input described by this selector argument</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model this selector argument is for.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">get_name</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">pretty_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a pretty-print representation of this object</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model this selector argument is for.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Argument(name=&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">&#39;, ignore=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore</span><span class="si">}</span><span class="s2">)&quot;</span>
+
+    <span class="k">def</span> <span class="nf">get_fixed_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the value fixed input corresponding to this argument</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model this selector argument is for.</span>
+
+<span class="sd">        values : dict</span>
+<span class="sd">            Dictionary of fixed inputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">values</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="n">model</span><span class="p">)</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">values</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="n">model</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pretty_repr</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2"> was not found in </span><span class="si">{</span><span class="n">values</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">is_argument</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine if passed argument is described by this selector argument</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model this selector argument is for.</span>
+
+<span class="sd">        argument : int or str</span>
+<span class="sd">            A representation of which evaluation input is being used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">==</span> <span class="n">get_index</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">named_tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a tuple representation of this argument using the input</span>
+<span class="sd">        name from the model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model this selector argument is for.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="n">model</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_SelectorArguments</span><span class="p">(</span><span class="nb">tuple</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Contains the CompoundBoundingBox slicing description</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_ :</span>
+<span class="sd">        The SelectorArgument values</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    validate :</span>
+<span class="sd">        Returns a valid SelectorArguments for its model.</span>
+
+<span class="sd">    get_selector :</span>
+<span class="sd">        Returns the selector a set of inputs corresponds to.</span>
+
+<span class="sd">    is_selector :</span>
+<span class="sd">        Determines if a selector is correctly formatted for this CompoundBoundingBox.</span>
+
+<span class="sd">    get_fixed_value :</span>
+<span class="sd">        Gets the selector from a fix_inputs set of values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_kept_ignore</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">input_</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">_SelectorArgument</span><span class="p">],</span> <span class="n">kept_ignore</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">input_</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">kept_ignore</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_kept_ignore</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_kept_ignore</span> <span class="o">=</span> <span class="n">kept_ignore</span>
+
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">pretty_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a pretty-print representation of this object</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model these selector arguments are for.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;SelectorArguments(&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">argument</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;    </span><span class="si">{</span><span class="n">argument</span><span class="o">.</span><span class="n">pretty_repr</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ignore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the list of ignored inputs&quot;&quot;&quot;</span>
+        <span class="n">ignore</span> <span class="o">=</span> <span class="p">[</span><span class="n">argument</span><span class="o">.</span><span class="n">index</span> <span class="k">for</span> <span class="n">argument</span> <span class="ow">in</span> <span class="bp">self</span> <span class="k">if</span> <span class="n">argument</span><span class="o">.</span><span class="n">ignore</span><span class="p">]</span>
+        <span class="n">ignore</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kept_ignore</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ignore</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">kept_ignore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The arguments to persist in ignoring&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kept_ignore</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">arguments</span><span class="p">,</span> <span class="n">kept_ignore</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a valid Selector description for a CompoundBoundingBox.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model these selector arguments are for.</span>
+
+<span class="sd">        arguments :</span>
+<span class="sd">            The individual argument informations</span>
+
+<span class="sd">        kept_ignore :</span>
+<span class="sd">            Arguments to persist as ignored</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">argument</span> <span class="ow">in</span> <span class="n">arguments</span><span class="p">:</span>
+            <span class="n">_input</span> <span class="o">=</span> <span class="n">_SelectorArgument</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">*</span><span class="n">argument</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">_input</span><span class="o">.</span><span class="n">index</span> <span class="ow">in</span> <span class="p">[</span><span class="n">this</span><span class="o">.</span><span class="n">index</span> <span class="k">for</span> <span class="n">this</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input: &#39;</span><span class="si">{</span><span class="n">get_name</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">_input</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="si">}</span><span class="s2">&#39; has been repeated.&quot;</span><span class="p">)</span>
+            <span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_input</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;There must be at least one selector argument.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arguments</span><span class="p">,</span> <span class="n">_SelectorArguments</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">kept_ignore</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">kept_ignore</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="n">kept_ignore</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">arguments</span><span class="o">.</span><span class="n">kept_ignore</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span> <span class="n">kept_ignore</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_selector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the selector corresponding to these inputs</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        *inputs :</span>
+<span class="sd">            All the processed model evaluation inputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">argument</span><span class="o">.</span><span class="n">get_selector</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span> <span class="k">for</span> <span class="n">argument</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">is_selector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_selector</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine if this is a reasonable selector</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        _selector : tuple</span>
+<span class="sd">            The selector to check</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_selector</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">_selector</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_fixed_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the value fixed input corresponding to this argument</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model these selector arguments are for.</span>
+
+<span class="sd">        values : dict</span>
+<span class="sd">            Dictionary of fixed inputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">argument</span><span class="o">.</span><span class="n">get_fixed_value</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span> <span class="k">for</span> <span class="n">argument</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">is_argument</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine if passed argument is one of the selector arguments</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model these selector arguments are for.</span>
+
+<span class="sd">        argument : int or str</span>
+<span class="sd">            A representation of which evaluation input is being used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">selector_arg</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">selector_arg</span><span class="o">.</span><span class="n">is_argument</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">selector_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the index of the argument passed in the selector tuples</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model these selector arguments are for.</span>
+
+<span class="sd">        argument : int or str</span>
+<span class="sd">            A representation of which argument is being used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">selector_arg</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">selector_arg</span><span class="o">.</span><span class="n">is_argument</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">index</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">argument</span><span class="si">}</span><span class="s2"> does not correspond to any selector argument.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">reduce</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reduce the selector arguments by the argument given</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model these selector arguments are for.</span>
+
+<span class="sd">        argument : int or str</span>
+<span class="sd">            A representation of which argument is being used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">arguments</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">kept_ignore</span> <span class="o">=</span> <span class="p">[</span><span class="n">arguments</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">selector_index</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">))</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+        <span class="n">kept_ignore</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_kept_ignore</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_SelectorArguments</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">arguments</span><span class="p">),</span> <span class="n">kept_ignore</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_ignore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add argument to the kept_ignore list</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model these selector arguments are for.</span>
+
+<span class="sd">        argument : int or str</span>
+<span class="sd">            A representation of which argument is being used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_argument</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">argument</span><span class="si">}</span><span class="s2">: is a selector argument and cannot be ignored.&quot;</span><span class="p">)</span>
+
+        <span class="n">kept_ignore</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_index</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">argument</span><span class="p">)]</span>
+
+        <span class="k">return</span> <span class="n">_SelectorArguments</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">kept_ignore</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">named_tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a tuple of selector argument tuples using input names</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The Model these selector arguments are for.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">selector_arg</span><span class="o">.</span><span class="n">named_tuple</span><span class="p">(</span><span class="n">model</span><span class="p">)</span> <span class="k">for</span> <span class="n">selector_arg</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="CompoundBoundingBox"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.CompoundBoundingBox.html#astropy.modeling.bounding_box.CompoundBoundingBox">[docs]</a><span class="k">class</span> <span class="nc">CompoundBoundingBox</span><span class="p">(</span><span class="n">_BoundingDomain</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A model&#39;s compound bounding box</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bounding_boxes : dict</span>
+<span class="sd">        A dictionary containing all the ModelBoundingBoxes that are possible</span>
+<span class="sd">            keys   -&gt; _selector (extracted from model inputs)</span>
+<span class="sd">            values -&gt; ModelBoundingBox</span>
+
+<span class="sd">    model : `~astropy.modeling.Model`</span>
+<span class="sd">        The Model this compound bounding_box is for.</span>
+
+<span class="sd">    selector_args : _SelectorArguments</span>
+<span class="sd">        A description of how to extract the selectors from model inputs.</span>
+
+<span class="sd">    create_selector : optional</span>
+<span class="sd">        A method which takes in the selector and the model to return a</span>
+<span class="sd">        valid bounding corresponding to that selector. This can be used</span>
+<span class="sd">        to construct new bounding_boxes for previously undefined selectors.</span>
+<span class="sd">        These new boxes are then stored for future lookups.</span>
+
+<span class="sd">    order : optional, str</span>
+<span class="sd">        The ordering that is assumed for the tuple representation of the</span>
+<span class="sd">        bounding_boxes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bounding_boxes</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">ModelBoundingBox</span><span class="p">],</span> <span class="n">model</span><span class="p">,</span>
+                 <span class="n">selector_args</span><span class="p">:</span> <span class="n">_SelectorArguments</span><span class="p">,</span> <span class="n">create_selector</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">ignored</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;C&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ignored</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_selector</span> <span class="o">=</span> <span class="n">create_selector</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_selector_args</span> <span class="o">=</span> <span class="n">_SelectorArguments</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">selector_args</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bounding_boxes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span><span class="n">bounding_boxes</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CompoundBoundingBox.copy"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.CompoundBoundingBox.html#astropy.modeling.bounding_box.CompoundBoundingBox.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bounding_boxes</span> <span class="o">=</span> <span class="p">{</span><span class="n">selector</span><span class="p">:</span> <span class="n">bbox</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">selector_args</span><span class="o">.</span><span class="n">ignore</span><span class="p">)</span>
+                          <span class="k">for</span> <span class="n">selector</span><span class="p">,</span> <span class="n">bbox</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bounding_boxes</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+        <span class="k">return</span> <span class="n">CompoundBoundingBox</span><span class="p">(</span><span class="n">bounding_boxes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span>
+                                   <span class="n">selector_args</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_selector_args</span><span class="p">,</span>
+                                   <span class="n">create_selector</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_selector</span><span class="p">),</span>
+                                   <span class="n">order</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_order</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;CompoundBoundingBox(&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;    bounding_boxes={&#39;</span><span class="p">]</span>
+        <span class="c1"># bounding_boxes</span>
+        <span class="k">for</span> <span class="n">_selector</span><span class="p">,</span> <span class="n">bbox</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bounding_boxes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">bbox_repr</span> <span class="o">=</span> <span class="n">bbox</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;        </span><span class="si">{</span><span class="n">_selector</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">bbox_repr</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">bbox_repr</span><span class="p">:</span>
+                <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;            </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;    }&#39;</span><span class="p">)</span>
+
+        <span class="c1"># selector_args</span>
+        <span class="n">selector_args_repr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selector_args</span><span class="o">.</span><span class="n">pretty_repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    selector_args = </span><span class="si">{</span><span class="n">selector_args_repr</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">selector_args_repr</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;        </span><span class="si">{</span><span class="n">part</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bounding_boxes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">ModelBoundingBox</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bounding_boxes</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">selector_args</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_SelectorArguments</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selector_args</span>
+
+    <span class="nd">@selector_args</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">selector_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_selector_args</span> <span class="o">=</span> <span class="n">_SelectorArguments</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Overriding selector_args may cause problems you should re-validate &quot;</span>
+                      <span class="s2">&quot;the compound bounding box before use!&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">named_selector_tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selector_args</span><span class="o">.</span><span class="n">named_tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">create_selector</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_selector</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_selector_key</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">isiterable</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">key</span><span class="p">,)</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">_selector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_selector_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">selector_args</span><span class="o">.</span><span class="n">is_selector</span><span class="p">(</span><span class="n">_selector</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_selector</span><span class="si">}</span><span class="s2"> is not a selector!&quot;</span><span class="p">)</span>
+
+        <span class="n">ignored</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selector_args</span><span class="o">.</span><span class="n">ignore</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignored</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bounding_boxes</span><span class="p">[</span><span class="n">_selector</span><span class="p">]</span> <span class="o">=</span> <span class="n">ModelBoundingBox</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span>
+                                                                    <span class="n">ignored</span><span class="p">,</span>
+                                                                    <span class="n">order</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_order</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bounding_boxes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">_selector</span><span class="p">,</span> <span class="n">bounding_box</span> <span class="ow">in</span> <span class="n">bounding_boxes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">_selector</span><span class="p">]</span> <span class="o">=</span> <span class="n">bounding_box</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">CompoundBoundingBox</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bounding_boxes</span> <span class="o">==</span> <span class="n">value</span><span class="o">.</span><span class="n">bounding_boxes</span> <span class="ow">and</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">selector_args</span> <span class="o">==</span> <span class="n">value</span><span class="o">.</span><span class="n">selector_args</span> <span class="ow">and</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">create_selector</span> <span class="o">==</span> <span class="n">value</span><span class="o">.</span><span class="n">create_selector</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="CompoundBoundingBox.validate"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.CompoundBoundingBox.html#astropy.modeling.bounding_box.CompoundBoundingBox.validate">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">bounding_box</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">selector_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">create_selector</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">ignored</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">_preserve_ignore</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwarg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a valid compound bounding box for a model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The model for which this will be a bounding_box</span>
+<span class="sd">        bounding_box : dict</span>
+<span class="sd">            Dictionary of possible bounding_box respresentations</span>
+<span class="sd">        selector_args : optional</span>
+<span class="sd">            Description of the selector arguments</span>
+<span class="sd">        create_selector : optional, callable</span>
+<span class="sd">            Method for generating new selectors</span>
+<span class="sd">        order : optional, str</span>
+<span class="sd">            The order that a tuple representation will be assumed to be</span>
+<span class="sd">                Default: &#39;C&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">,</span> <span class="n">CompoundBoundingBox</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">selector_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">selector_args</span> <span class="o">=</span> <span class="n">bounding_box</span><span class="o">.</span><span class="n">selector_args</span>
+            <span class="k">if</span> <span class="n">create_selector</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">create_selector</span> <span class="o">=</span> <span class="n">bounding_box</span><span class="o">.</span><span class="n">create_selector</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="n">bounding_box</span><span class="o">.</span><span class="n">order</span>
+            <span class="k">if</span> <span class="n">_preserve_ignore</span><span class="p">:</span>
+                <span class="n">ignored</span> <span class="o">=</span> <span class="n">bounding_box</span><span class="o">.</span><span class="n">ignored</span>
+            <span class="n">bounding_box</span> <span class="o">=</span> <span class="n">bounding_box</span><span class="o">.</span><span class="n">bounding_boxes</span>
+
+        <span class="k">if</span> <span class="n">selector_args</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Selector arguments must be provided &quot;</span>
+                             <span class="s2">&quot;(can be passed as part of bounding_box argument)&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">bounding_box</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">selector_args</span><span class="p">,</span>
+                   <span class="n">create_selector</span><span class="o">=</span><span class="n">create_selector</span><span class="p">,</span> <span class="n">ignored</span><span class="o">=</span><span class="n">ignored</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bounding_boxes</span>
+
+    <span class="k">def</span> <span class="nf">_create_bounding_box</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_selector</span><span class="p">):</span>
+        <span class="bp">self</span><span class="p">[</span><span class="n">_selector</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_selector</span><span class="p">(</span><span class="n">_selector</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">_selector</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="n">_selector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_selector_key</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_selector</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bounding_boxes</span><span class="p">[</span><span class="n">_selector</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_selector</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_bounding_box</span><span class="p">(</span><span class="n">_selector</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No bounding box is defined for selector: </span><span class="si">{</span><span class="n">_selector</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_select_bounding_box</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ModelBoundingBox</span><span class="p">:</span>
+        <span class="n">_selector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selector_args</span><span class="o">.</span><span class="n">get_selector</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">_selector</span><span class="p">]</span>
+
+<div class="viewcode-block" id="CompoundBoundingBox.prepare_inputs"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.CompoundBoundingBox.html#astropy.modeling.bounding_box.CompoundBoundingBox.prepare_inputs">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get prepare the inputs with respect to the bounding box.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_shape : tuple</span>
+<span class="sd">            The shape that all inputs have be reshaped/broadcasted into</span>
+<span class="sd">        inputs : list</span>
+<span class="sd">            List of all the model inputs</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        valid_inputs : list</span>
+<span class="sd">            The inputs reduced to just those inputs which are all inside</span>
+<span class="sd">            their respective bounding box intervals</span>
+<span class="sd">        valid_index : array_like</span>
+<span class="sd">            array of all indices inside the bounding box</span>
+<span class="sd">        all_out: bool</span>
+<span class="sd">            if all of the inputs are outside the bounding_box</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bounding_box</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_bounding_box</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">bounding_box</span><span class="o">.</span><span class="n">prepare_inputs</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_matching_bounding_boxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">argument</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">ModelBoundingBox</span><span class="p">]:</span>
+        <span class="n">selector_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">selector_args</span><span class="o">.</span><span class="n">selector_index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">argument</span><span class="p">)</span>
+        <span class="n">matching</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">selector_key</span><span class="p">,</span> <span class="n">bbox</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bounding_boxes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">selector_key</span><span class="p">[</span><span class="n">selector_index</span><span class="p">]</span> <span class="o">==</span> <span class="n">value</span><span class="p">:</span>
+                <span class="n">new_selector_key</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">selector_key</span><span class="p">)</span>
+                <span class="n">new_selector_key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">selector_index</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">bbox</span><span class="o">.</span><span class="n">has_interval</span><span class="p">(</span><span class="n">argument</span><span class="p">):</span>
+                    <span class="n">new_bbox</span> <span class="o">=</span> <span class="n">bbox</span><span class="o">.</span><span class="n">fix_inputs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="p">{</span><span class="n">argument</span><span class="p">:</span> <span class="n">value</span><span class="p">},</span>
+                                               <span class="n">_keep_ignored</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">new_bbox</span> <span class="o">=</span> <span class="n">bbox</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+                <span class="n">matching</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">new_selector_key</span><span class="p">)]</span> <span class="o">=</span> <span class="n">new_bbox</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matching</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Attempting to fix input </span><span class="si">{</span><span class="n">argument</span><span class="si">}</span><span class="s2">, but there are no &quot;</span>
+                             <span class="sa">f</span><span class="s2">&quot;bounding boxes for argument value </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">matching</span>
+
+    <span class="k">def</span> <span class="nf">_fix_input_selector_arg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">argument</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">matching_bounding_boxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_matching_bounding_boxes</span><span class="p">(</span><span class="n">argument</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">selector_args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">matching_bounding_boxes</span><span class="p">[()]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">CompoundBoundingBox</span><span class="p">(</span><span class="n">matching_bounding_boxes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span>
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">selector_args</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">argument</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_fix_input_bbox_arg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">argument</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">bounding_boxes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">selector_key</span><span class="p">,</span> <span class="n">bbox</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bounding_boxes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">bounding_boxes</span><span class="p">[</span><span class="n">selector_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">bbox</span><span class="o">.</span><span class="n">fix_inputs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="p">{</span><span class="n">argument</span><span class="p">:</span> <span class="n">value</span><span class="p">},</span>
+                                                           <span class="n">_keep_ignored</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">CompoundBoundingBox</span><span class="p">(</span><span class="n">bounding_boxes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">selector_args</span><span class="o">.</span><span class="n">add_ignore</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">argument</span><span class="p">))</span>
+
+<div class="viewcode-block" id="CompoundBoundingBox.fix_inputs"><a class="viewcode-back" href="../../../api/astropy.modeling.bounding_box.CompoundBoundingBox.html#astropy.modeling.bounding_box.CompoundBoundingBox.fix_inputs">[docs]</a>    <span class="k">def</span> <span class="nf">fix_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">fixed_inputs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fix the bounding_box for a `fix_inputs` compound model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : `~astropy.modeling.Model`</span>
+<span class="sd">            The new model for which this will be a bounding_box</span>
+<span class="sd">        fixed_inputs : dict</span>
+<span class="sd">            Dictionary of inputs which have been fixed by this bounding box.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">fixed_input_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">fixed_inputs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">argument</span> <span class="o">=</span> <span class="n">fixed_input_keys</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">fixed_inputs</span><span class="p">[</span><span class="n">argument</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selector_args</span><span class="o">.</span><span class="n">is_argument</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">argument</span><span class="p">):</span>
+            <span class="n">bbox</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fix_input_selector_arg</span><span class="p">(</span><span class="n">argument</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bbox</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fix_input_bbox_arg</span><span class="p">(</span><span class="n">argument</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fixed_input_keys</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">new_fixed_inputs</span> <span class="o">=</span> <span class="n">fixed_inputs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">del</span> <span class="n">new_fixed_inputs</span><span class="p">[</span><span class="n">argument</span><span class="p">]</span>
+
+            <span class="n">bbox</span> <span class="o">=</span> <span class="n">bbox</span><span class="o">.</span><span class="n">fix_inputs</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">new_fixed_inputs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bbox</span><span class="p">,</span> <span class="n">CompoundBoundingBox</span><span class="p">):</span>
+            <span class="n">selector_args</span> <span class="o">=</span> <span class="n">bbox</span><span class="o">.</span><span class="n">named_selector_tuple</span>
+            <span class="n">bbox_dict</span> <span class="o">=</span> <span class="n">bbox</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bbox</span><span class="p">,</span> <span class="n">ModelBoundingBox</span><span class="p">):</span>
+            <span class="n">selector_args</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">bbox_dict</span> <span class="o">=</span> <span class="n">bbox</span><span class="o">.</span><span class="n">named_intervals</span>
+
+        <span class="k">return</span> <span class="n">bbox</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">bbox_dict</span><span class="p">,</span>
+                                       <span class="n">order</span><span class="o">=</span><span class="n">bbox</span><span class="o">.</span><span class="n">order</span><span class="p">,</span> <span class="n">selector_args</span><span class="o">=</span><span class="n">selector_args</span><span class="p">)</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,476 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.utils.shapes &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.utils.shapes</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+<span class="sd">&quot;&quot;&quot;The ShapedLikeNDArray mixin class and shape-related functions.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">zip_longest</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;NDArrayShapeMethods&#39;</span><span class="p">,</span> <span class="s1">&#39;ShapedLikeNDArray&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;check_broadcast&#39;</span><span class="p">,</span> <span class="s1">&#39;IncompatibleShapeError&#39;</span><span class="p">,</span> <span class="s1">&#39;unbroadcast&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="NDArrayShapeMethods"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.NDArrayShapeMethods.html#astropy.utils.shapes.NDArrayShapeMethods">[docs]</a><span class="k">class</span> <span class="nc">NDArrayShapeMethods</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Mixin class to provide shape-changing methods.</span>
+
+<span class="sd">    The class proper is assumed to have some underlying data, which are arrays</span>
+<span class="sd">    or array-like structures. It must define a ``shape`` property, which gives</span>
+<span class="sd">    the shape of those data, as well as an ``_apply`` method that creates a new</span>
+<span class="sd">    instance in which a `~numpy.ndarray` method has been applied to those.</span>
+
+<span class="sd">    Furthermore, for consistency with `~numpy.ndarray`, it is recommended to</span>
+<span class="sd">    define a setter for the ``shape`` property, which, like the</span>
+<span class="sd">    `~numpy.ndarray.shape` property allows in-place reshaping the internal data</span>
+<span class="sd">    (and, unlike the ``reshape`` method raises an exception if this is not</span>
+<span class="sd">    possible).</span>
+
+<span class="sd">    This class only provides the shape-changing methods and is meant in</span>
+<span class="sd">    particular for `~numpy.ndarray` subclasses that need to keep track of</span>
+<span class="sd">    other arrays.  For other classes, `~astropy.utils.shapes.ShapedLikeNDArray`</span>
+<span class="sd">    is recommended.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Note to developers: if new methods are added here, be sure to check that</span>
+    <span class="c1"># they work properly with the classes that use this, such as Time and</span>
+    <span class="c1"># BaseRepresentation, i.e., look at their ``_apply`` methods and add</span>
+    <span class="c1"># relevant tests.  This is particularly important for methods that imply</span>
+    <span class="c1"># copies rather than views of data (see the special-case treatment of</span>
+    <span class="c1"># &#39;flatten&#39; in Time).</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;__getitem__&#39;</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NDArrayShapeMethods.copy"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.NDArrayShapeMethods.html#astropy.utils.shapes.NDArrayShapeMethods.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an instance containing copies of the internal data.</span>
+
+<span class="sd">        Parameters are as for :meth:`~numpy.ndarray.copy`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;copy&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NDArrayShapeMethods.reshape"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.NDArrayShapeMethods.html#astropy.utils.shapes.NDArrayShapeMethods.reshape">[docs]</a>    <span class="k">def</span> <span class="nf">reshape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns an instance containing the same data with a new shape.</span>
+
+<span class="sd">        Parameters are as for :meth:`~numpy.ndarray.reshape`.  Note that it is</span>
+<span class="sd">        not always possible to change the shape of an array without copying the</span>
+<span class="sd">        data (see :func:`~numpy.reshape` documentation). If you want an error</span>
+<span class="sd">        to be raise if the data is copied, you should assign the new shape to</span>
+<span class="sd">        the shape attribute (note: this may not be implemented for all classes</span>
+<span class="sd">        using ``NDArrayShapeMethods``).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;reshape&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NDArrayShapeMethods.ravel"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.NDArrayShapeMethods.html#astropy.utils.shapes.NDArrayShapeMethods.ravel">[docs]</a>    <span class="k">def</span> <span class="nf">ravel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an instance with the array collapsed into one dimension.</span>
+
+<span class="sd">        Parameters are as for :meth:`~numpy.ndarray.ravel`. Note that it is</span>
+<span class="sd">        not always possible to unravel an array without copying the data.</span>
+<span class="sd">        If you want an error to be raise if the data is copied, you should</span>
+<span class="sd">        should assign shape ``(-1,)`` to the shape attribute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;ravel&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NDArrayShapeMethods.flatten"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.NDArrayShapeMethods.html#astropy.utils.shapes.NDArrayShapeMethods.flatten">[docs]</a>    <span class="k">def</span> <span class="nf">flatten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a copy with the array collapsed into one dimension.</span>
+
+<span class="sd">        Parameters are as for :meth:`~numpy.ndarray.flatten`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;flatten&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NDArrayShapeMethods.transpose"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.NDArrayShapeMethods.html#astropy.utils.shapes.NDArrayShapeMethods.transpose">[docs]</a>    <span class="k">def</span> <span class="nf">transpose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an instance with the data transposed.</span>
+
+<span class="sd">        Parameters are as for :meth:`~numpy.ndarray.transpose`.  All internal</span>
+<span class="sd">        data are views of the data of the original.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;transpose&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">T</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an instance with the data transposed.</span>
+
+<span class="sd">        Parameters are as for :attr:`~numpy.ndarray.T`.  All internal</span>
+<span class="sd">        data are views of the data of the original.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+
+<div class="viewcode-block" id="NDArrayShapeMethods.swapaxes"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.NDArrayShapeMethods.html#astropy.utils.shapes.NDArrayShapeMethods.swapaxes">[docs]</a>    <span class="k">def</span> <span class="nf">swapaxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an instance with the given axes interchanged.</span>
+
+<span class="sd">        Parameters are as for :meth:`~numpy.ndarray.swapaxes`:</span>
+<span class="sd">        ``axis1, axis2``.  All internal data are views of the data of the</span>
+<span class="sd">        original.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;swapaxes&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NDArrayShapeMethods.diagonal"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.NDArrayShapeMethods.html#astropy.utils.shapes.NDArrayShapeMethods.diagonal">[docs]</a>    <span class="k">def</span> <span class="nf">diagonal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an instance with the specified diagonals.</span>
+
+<span class="sd">        Parameters are as for :meth:`~numpy.ndarray.diagonal`.  All internal</span>
+<span class="sd">        data are views of the data of the original.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;diagonal&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NDArrayShapeMethods.squeeze"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.NDArrayShapeMethods.html#astropy.utils.shapes.NDArrayShapeMethods.squeeze">[docs]</a>    <span class="k">def</span> <span class="nf">squeeze</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an instance with single-dimensional shape entries removed</span>
+
+<span class="sd">        Parameters are as for :meth:`~numpy.ndarray.squeeze`.  All internal</span>
+<span class="sd">        data are views of the data of the original.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;squeeze&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NDArrayShapeMethods.take"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.NDArrayShapeMethods.html#astropy.utils.shapes.NDArrayShapeMethods.take">[docs]</a>    <span class="k">def</span> <span class="nf">take</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;raise&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a new instance formed from the elements at the given indices.</span>
+
+<span class="sd">        Parameters are as for :meth:`~numpy.ndarray.take`, except that,</span>
+<span class="sd">        obviously, no output array can be given.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;cannot pass &#39;out&#39; argument to &#39;take.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;take&#39;</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ShapedLikeNDArray"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.ShapedLikeNDArray.html#astropy.utils.shapes.ShapedLikeNDArray">[docs]</a><span class="k">class</span> <span class="nc">ShapedLikeNDArray</span><span class="p">(</span><span class="n">NDArrayShapeMethods</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Mixin class to provide shape-changing methods.</span>
+
+<span class="sd">    The class proper is assumed to have some underlying data, which are arrays</span>
+<span class="sd">    or array-like structures. It must define a ``shape`` property, which gives</span>
+<span class="sd">    the shape of those data, as well as an ``_apply`` method that creates a new</span>
+<span class="sd">    instance in which a `~numpy.ndarray` method has been applied to those.</span>
+
+<span class="sd">    Furthermore, for consistency with `~numpy.ndarray`, it is recommended to</span>
+<span class="sd">    define a setter for the ``shape`` property, which, like the</span>
+<span class="sd">    `~numpy.ndarray.shape` property allows in-place reshaping the internal data</span>
+<span class="sd">    (and, unlike the ``reshape`` method raises an exception if this is not</span>
+<span class="sd">    possible).</span>
+
+<span class="sd">    This class also defines default implementations for ``ndim`` and ``size``</span>
+<span class="sd">    properties, calculating those from the ``shape``.  These can be overridden</span>
+<span class="sd">    by subclasses if there are faster ways to obtain those numbers.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Note to developers: if new methods are added here, be sure to check that</span>
+    <span class="c1"># they work properly with the classes that use this, such as Time and</span>
+    <span class="c1"># BaseRepresentation, i.e., look at their ``_apply`` methods and add</span>
+    <span class="c1"># relevant tests.  This is particularly important for methods that imply</span>
+    <span class="c1"># copies rather than views of data (see the special-case treatment of</span>
+    <span class="c1"># &#39;flatten&#39; in Time).</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The shape of the underlying data.&quot;&quot;&quot;</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_apply</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a new instance, with ``method`` applied to underlying data.</span>
+
+<span class="sd">        The method is any of the shape-changing methods for `~numpy.ndarray`</span>
+<span class="sd">        (``reshape``, ``swapaxes``, etc.), as well as those picking particular</span>
+<span class="sd">        elements (``__getitem__``, ``take``, etc.). It will be applied to the</span>
+<span class="sd">        underlying arrays (e.g., ``jd1`` and ``jd2`` in `~astropy.time.Time`),</span>
+<span class="sd">        with the results used to create a new instance.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        method : str</span>
+<span class="sd">            Method to be applied to the instance&#39;s internal data arrays.</span>
+<span class="sd">        args : tuple</span>
+<span class="sd">            Any positional arguments for ``method``.</span>
+<span class="sd">        kwargs : dict</span>
+<span class="sd">            Any keyword arguments for ``method``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ndim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The number of dimensions of the instance and underlying arrays.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The size of the object, as calculated from its shape.&quot;&quot;&quot;</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">sh</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">*=</span> <span class="n">sh</span>
+        <span class="k">return</span> <span class="n">size</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">isscalar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isscalar</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Scalar </span><span class="si">{!r}</span><span class="s2"> object has no len()&quot;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Any instance should evaluate to True, except when it is empty.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="s1">&#39;__getitem__&#39;</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isscalar</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;scalar </span><span class="si">{!r}</span><span class="s1"> object is not subscriptable.&#39;</span>
+                                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isscalar</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;scalar </span><span class="si">{!r}</span><span class="s1"> object is not iterable.&#39;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+
+        <span class="c1"># We cannot just write a generator here, since then the above error</span>
+        <span class="c1"># would only be raised once we try to use the iterator, rather than</span>
+        <span class="c1"># upon its definition using iter(self).</span>
+        <span class="k">def</span> <span class="nf">self_iter</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+                <span class="k">yield</span> <span class="bp">self</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">self_iter</span><span class="p">()</span>
+
+    <span class="c1"># Functions that change shape or essentially do indexing.</span>
+    <span class="n">_APPLICABLE_FUNCTIONS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">rollaxis</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_3d</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">fliplr</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">flipud</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">rot90</span><span class="p">,</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="c1"># Functions that themselves defer to a method. Those are all</span>
+    <span class="c1"># defined in np.core.fromnumeric, but exclude alen as well as</span>
+    <span class="c1"># sort and partition, which make copies before calling the method.</span>
+    <span class="n">_METHOD_FUNCTIONS</span> <span class="o">=</span> <span class="p">{</span><span class="nb">getattr</span><span class="p">(</span><span class="n">np</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+                         <span class="p">{</span><span class="s1">&#39;amax&#39;</span><span class="p">:</span> <span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="s1">&#39;amin&#39;</span><span class="p">:</span> <span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="s1">&#39;around&#39;</span><span class="p">:</span> <span class="s1">&#39;round&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;round_&#39;</span><span class="p">:</span> <span class="s1">&#39;round&#39;</span><span class="p">,</span> <span class="s1">&#39;alltrue&#39;</span><span class="p">:</span> <span class="s1">&#39;all&#39;</span><span class="p">,</span>
+                          <span class="s1">&#39;sometrue&#39;</span><span class="p">:</span> <span class="s1">&#39;any&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">fromnumeric</span><span class="o">.</span><span class="n">__all__</span>
+                         <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;alen&#39;</span><span class="p">,</span> <span class="s1">&#39;sort&#39;</span><span class="p">,</span> <span class="s1">&#39;partition&#39;</span><span class="p">]}</span>
+    <span class="c1"># Add np.copy, which we may as well let defer to our method.</span>
+    <span class="n">_METHOD_FUNCTIONS</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;copy&#39;</span>
+
+    <span class="c1"># Could be made to work with a bit of effort:</span>
+    <span class="c1"># np.where, np.compress, np.extract,</span>
+    <span class="c1"># np.diag_indices_from, np.triu_indices_from, np.tril_indices_from</span>
+    <span class="c1"># np.tile, np.repeat (need .repeat method)</span>
+    <span class="c1"># TODO: create a proper implementation.</span>
+    <span class="c1"># Furthermore, some arithmetic functions such as np.mean, np.median,</span>
+    <span class="c1"># could work for Time, and many more for TimeDelta, so those should</span>
+    <span class="c1"># override __array_function__.</span>
+    <span class="k">def</span> <span class="nf">__array_function__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="n">types</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Wrap numpy functions that make sense.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_APPLICABLE_FUNCTIONS</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">function</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">:</span>
+                <span class="c1"># Ensure that any ndarray subclasses used are</span>
+                <span class="c1"># properly propagated.</span>
+                <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;subok&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">function</span> <span class="ow">in</span> <span class="p">{</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">,</span>
+                               <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">,</span>
+                               <span class="n">np</span><span class="o">.</span><span class="n">atleast_3d</span><span class="p">}</span>
+                  <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">function</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># For functions that defer to methods, use the corresponding</span>
+        <span class="c1"># method/attribute if we have it.  Otherwise, fall through.</span>
+        <span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_METHOD_FUNCTIONS</span><span class="p">:</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_METHOD_FUNCTIONS</span><span class="p">[</span><span class="n">function</span><span class="p">],</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># For np.shape, etc., just return the attribute.</span>
+                    <span class="k">return</span> <span class="n">method</span>
+
+        <span class="c1"># Fall-back, just pass the arguments on since perhaps the function</span>
+        <span class="c1"># works already (see above).</span>
+        <span class="k">return</span> <span class="n">function</span><span class="o">.</span><span class="n">__wrapped__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="IncompatibleShapeError"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.IncompatibleShapeError.html#astropy.utils.shapes.IncompatibleShapeError">[docs]</a><span class="k">class</span> <span class="nc">IncompatibleShapeError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape_a</span><span class="p">,</span> <span class="n">shape_a_idx</span><span class="p">,</span> <span class="n">shape_b</span><span class="p">,</span> <span class="n">shape_b_idx</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">shape_a</span><span class="p">,</span> <span class="n">shape_a_idx</span><span class="p">,</span> <span class="n">shape_b</span><span class="p">,</span> <span class="n">shape_b_idx</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="check_broadcast"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.check_broadcast.html#astropy.utils.shapes.check_broadcast">[docs]</a><span class="k">def</span> <span class="nf">check_broadcast</span><span class="p">(</span><span class="o">*</span><span class="n">shapes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determines whether two or more Numpy arrays can be broadcast with each</span>
+<span class="sd">    other based on their shape tuple alone.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    *shapes : tuple</span>
+<span class="sd">        All shapes to include in the comparison.  If only one shape is given it</span>
+<span class="sd">        is passed through unmodified.  If no shapes are given returns an empty</span>
+<span class="sd">        `tuple`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    broadcast : `tuple`</span>
+<span class="sd">        If all shapes are mutually broadcastable, returns a tuple of the full</span>
+<span class="sd">        broadcast shape.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">reversed_shapes</span> <span class="o">=</span> <span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">)</span>
+
+    <span class="n">full_shape</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">dims</span> <span class="ow">in</span> <span class="n">zip_longest</span><span class="p">(</span><span class="o">*</span><span class="n">reversed_shapes</span><span class="p">,</span> <span class="n">fillvalue</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">max_dim</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">max_dim_idx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dims</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">max_dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># The first dimension of size greater than 1</span>
+                <span class="n">max_dim</span> <span class="o">=</span> <span class="n">dim</span>
+                <span class="n">max_dim_idx</span> <span class="o">=</span> <span class="n">idx</span>
+            <span class="k">elif</span> <span class="n">dim</span> <span class="o">!=</span> <span class="n">max_dim</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">IncompatibleShapeError</span><span class="p">(</span>
+                    <span class="n">shapes</span><span class="p">[</span><span class="n">max_dim_idx</span><span class="p">],</span> <span class="n">max_dim_idx</span><span class="p">,</span> <span class="n">shapes</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">idx</span><span class="p">)</span>
+
+        <span class="n">full_shape</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_dim</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">full_shape</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="unbroadcast"><a class="viewcode-back" href="../../../api/astropy.utils.shapes.unbroadcast.html#astropy.utils.shapes.unbroadcast">[docs]</a><span class="k">def</span> <span class="nf">unbroadcast</span><span class="p">(</span><span class="n">array</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given an array, return a new array that is the smallest subset of the</span>
+<span class="sd">    original array that can be re-broadcasted back to the original array.</span>
+
+<span class="sd">    See https://stackoverflow.com/questions/40845769/un-broadcasting-numpy-arrays</span>
+<span class="sd">    for more details.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">array</span>
+
+    <span class="n">array</span> <span class="o">=</span> <span class="n">array</span><span class="p">[</span><span class="nb">tuple</span><span class="p">((</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">stride</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
+                        <span class="k">for</span> <span class="n">stride</span> <span class="ow">in</span> <span class="n">array</span><span class="o">.</span><span class="n">strides</span><span class="p">)]</span>
+
+    <span class="c1"># Remove leading ones, which are not needed in numpy broadcasting.</span>
+    <span class="n">first_not_unity</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">i</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="k">if</span> <span class="n">s</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">),</span>
+                           <span class="n">array</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">first_not_unity</span><span class="p">:])</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

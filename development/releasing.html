@@ -1,0 +1,710 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Release procedure for the astropy core package &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Workflow for Maintainers" href="workflow/maintainer_workflow.html" />
+    <link rel="prev" title="C or Cython Extensions" href="ccython.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="workflow/maintainer_workflow.html" title="Workflow for Maintainers">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="ccython.html" title="C or Cython Extensions">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      
+      <li>Release procedure for the astropy core package</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="release-procedure-for-the-astropy-core-package">
+<h1>Release procedure for the astropy core package<a class="headerlink" href="#release-procedure-for-the-astropy-core-package" title="Permalink to this headline">¶</a></h1>
+<p>This page describes the release process for the core astropy package. For the average
+coordinated or affiliated package, you can instead check
+<a class="reference internal" href="astropy-package-template.html#simple-release-docs"><span class="std std-ref">these</span></a> instructions which will be a lot simpler.</p>
+<p>The lifetime of a major release cycle of the core package is as follows:</p>
+<ul class="simple">
+<li><p>Feature freeze, which consists of creating a release branch</p></li>
+<li><p>Release candidates followed by a final release for the first version of the release cycle</p></li>
+<li><p>Bugfix releases - for LTS releases, bugfix releases continue to be made for
+two years, while for non-LTS releases they stop as soon as a new major release
+is done.</p></li>
+</ul>
+<p>The instructions on this page follow the lifetime of a major release chronologically,
+and applies to both LTS and non-LTS releases (whenever any step doesn’t apply to one
+of these, this is indicated explicitly).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You may need to replace <code class="docutils literal notranslate"><span class="pre">upstream</span></code> on this page with <code class="docutils literal notranslate"><span class="pre">astropy</span></code> or
+whatever remote name you use for the <a class="reference external" href="https://github.com/astropy/astropy">astropy core repository</a>.</p>
+</div>
+<div class="section" id="start-of-a-new-release-cycle-feature-freeze-and-branching">
+<span id="release-procedure-new-major"></span><h2>Start of a new release cycle - feature freeze and branching<a class="headerlink" href="#start-of-a-new-release-cycle-feature-freeze-and-branching" title="Permalink to this headline">¶</a></h2>
+<p>As outlined in
+<a class="reference external" href="https://github.com/astropy/astropy-APEs/blob/main/APE2.rst">APE2</a>, astropy
+core package major releases occur at regular intervals. The first step in a major release
+cycle is to perform a <em>feature freeze</em> which means that we create a new release
+branch based on the (at the time) latest developer version, and we then subsequently
+no longer add any features to this release branch - only bug fixes, documentation
+updates, and so on. New features can then continue to be added in parallel to the <code class="docutils literal notranslate"><span class="pre">main</span></code> branch.</p>
+<p>The procedure for the feature freeze is as follows:</p>
+<ol class="arabic">
+<li><p>On the GitHub issue tracker, add a new milestone for the next major version
+and for the next bugfix version, and also create a <code class="docutils literal notranslate"><span class="pre">backport-v&lt;version&gt;.x</span></code>
+label which can be used to label pull requests that should be backported
+to the new release branch. You can then start to move any issues and pull
+requests that you know will not be included in the release to the next milestones.</p></li>
+<li><p>Well in advance of the feature freeze date, advertise to developers when the
+feature freeze will happen and encourage developers to re-milestone pull
+requests to the next version (not the one you are releasing now) if they
+will not be ready in time.</p></li>
+<li><p>Once you are ready to make the release branch, update your local <code class="docutils literal notranslate"><span class="pre">main</span></code> branch to the latest version from GitHub:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git fetch upstream --tags --prune
+$ git checkout -B main upstream/main
+</pre></div>
+</div>
+</li>
+<li><p>Create a new branch from <code class="docutils literal notranslate"><span class="pre">main</span></code> at the point you want the feature freeze to
+occur:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git branch v&lt;version&gt;.x
+</pre></div>
+</div>
+<p>Note that you do not yet need to switch to this branch yet - the following steps
+should still be done on <code class="docutils literal notranslate"><span class="pre">main</span></code>.</p>
+</li>
+<li><p>Update the “What’s new?” section of the documentation to include a section for the
+next major version (for example if you are in the process of releasing 5.0, you
+would need to create a page for the 5.1 release). For instance you can start by copying the latest existing one:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cp docs/whatsnew/&lt;current_version&gt;.rst docs/whatsnew/&lt;next_version&gt;.rst
+</pre></div>
+</div>
+<p>You’ll then need to edit <code class="docutils literal notranslate"><span class="pre">docs/whatsnew/&lt;next_version&gt;.rst</span></code>, removing all
+the content but leaving the basic structure.  You may also need to
+replace the “by the numbers” numbers with “xxx” as a reminder to update them
+before the next release. Then add the new version to the top of
+<code class="docutils literal notranslate"><span class="pre">docs/whatsnew/index.rst</span></code>, update the reference in <code class="docutils literal notranslate"><span class="pre">docs/index.rst</span></code> to
+point to the that version.</p>
+</li>
+<li><p>Update the “What’s new?” section of the current version you are doing the release for,
+<code class="docutils literal notranslate"><span class="pre">docs/whatsnew/&lt;current_version&gt;.rst</span></code>, and remove all content, replacing it
+with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>:orphan:
+
+`What&#39;s New in Astropy &lt;current_version&gt;?
+&lt;https://docs.astropy.org/en/v&lt;current_version&gt;/whatsnew/&lt;current_version&gt;.html&gt;`__
+</pre></div>
+</div>
+<p>This is because we want to make sure that links in the previous “What’s new?” pages continue
+to work and reference the original link they referenced at the time of writing.</p>
+</li>
+<li><p>Commit these changes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git add docs/whatsnew/&lt;current_version&gt;.rst
+$ git add docs/whatsnew/&lt;next_version&gt;.rst
+$ git add docs/whatsnew/index.rst
+$ git add docs/index.rst
+$ git commit -m &quot;Added &lt;next_version&gt; what&#39;s new page and redirect &lt;current_version&gt; what&#39;s new page&quot;
+</pre></div>
+</div>
+</li>
+<li><p>Tag this commit using the next major version followed by <code class="docutils literal notranslate"><span class="pre">.dev</span></code>. For example,
+if you have just branched <code class="docutils literal notranslate"><span class="pre">v5.0.x</span></code>, create the <code class="docutils literal notranslate"><span class="pre">v5.1.dev</span></code> tag:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git tag -s &quot;v&lt;next_version&gt;.dev&quot; -m &quot;Back to development: v&lt;next_version&gt;&quot;
+</pre></div>
+</div>
+</li>
+<li><p>Push all of these changes up to GitHub:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git push upstream v&lt;version&gt;.x:v&lt;version&gt;.x
+$ git push upstream main:main
+$ git push upstream v&lt;next_version&gt;.dev:v&lt;next_version&gt;.dev
+</pre></div>
+</div>
+</li>
+<li><p>Inform the Astropy developer community that the branching has occurred.</p></li>
+</ol>
+</div>
+<div class="section" id="releasing-the-first-major-release-candidate">
+<span id="release-procedure-first-rc"></span><h2>Releasing the first major release candidate<a class="headerlink" href="#releasing-the-first-major-release-candidate" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="restricting-changes-to-the-release-branch">
+<span id="release-procedure-restrict-branch"></span><h3>Restricting changes to the release branch<a class="headerlink" href="#restricting-changes-to-the-release-branch" title="Permalink to this headline">¶</a></h3>
+<p>This step is optional and could also be done at a later stage in the release process,
+but you may want to temporarily restrict who can push/merge pull requests to the
+release branch so that someone does not inadvertantly push changes to the release
+branch while you are in the middle of following release steps. If you wish to do this,
+you can go to the core package repository settings, and under ‘Branches’ and ‘Branch
+protection rules’ you can then add a rule which restricts who can push to the branch.</p>
+</div>
+<div class="section" id="updating-the-what-s-new-and-contributors">
+<span id="release-procedure-update-whatsnew"></span><h3>Updating the What’s new and contributors<a class="headerlink" href="#updating-the-what-s-new-and-contributors" title="Permalink to this headline">¶</a></h3>
+<p>Make sure to update the “What’s new”
+section with the stats on the number of issues, PRs, and contributors.
+Since the What’s New for the major release is now only present in the release
+branch, you should switch to it to, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git checkout v5.0.x
+</pre></div>
+</div>
+<p>To find the statistics and contributors, use the <a class="reference external" href="https://raw.githubusercontent.com/sunpy/sunpy/main/tools/generate_releaserst.xsh">generate_releaserst.xsh</a>
+script. This requires <a class="reference external" href="https://xon.sh/">xonsh</a> and <a class="reference external" href="http://docopt.org/">docopt</a> which you can install with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">xonsh</span> <span class="n">docopt</span>
+</pre></div>
+</div>
+<p>You should then run the script in the root of the astropy repository as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xonsh</span> <span class="n">generate_releaserst</span><span class="o">.</span><span class="n">xsh</span> <span class="mf">4.3</span> <span class="n">v5</span><span class="mf">.0</span><span class="o">.</span><span class="n">dev</span> \
+                              <span class="o">--</span><span class="n">project</span><span class="o">-</span><span class="n">name</span><span class="o">=</span><span class="n">astropy</span> \
+                              <span class="o">--</span><span class="n">pretty</span><span class="o">-</span><span class="n">project</span><span class="o">-</span><span class="n">name</span><span class="o">=</span><span class="n">astropy</span> \
+                              <span class="o">--</span><span class="n">pat</span><span class="o">=&lt;</span><span class="n">a</span> <span class="n">GitHub</span> <span class="n">personal</span> <span class="n">access</span> <span class="n">token</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>The first argument should be the last major version (before any bug fix
+releases, while the second argument should be the <code class="docutils literal notranslate"><span class="pre">.dev</span></code> tag that was just
+after the branching of the last major version. Finally, you will need a
+GitHub personal access token with default permissions (no scopes selected).</p>
+<p>The output will look similar to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">This</span> <span class="n">release</span> <span class="n">of</span> <span class="n">astropy</span> <span class="n">contains</span> <span class="mi">2573</span> <span class="n">commits</span> <span class="ow">in</span> <span class="mi">163</span> <span class="n">merged</span> <span class="n">pull</span> <span class="n">requests</span>
+<span class="n">closing</span> <span class="mi">104</span> <span class="n">issues</span> <span class="kn">from</span> <span class="mi">98</span> <span class="n">people</span><span class="p">,</span> <span class="mi">50</span> <span class="n">of</span> <span class="n">which</span> <span class="n">are</span> <span class="n">first</span><span class="o">-</span><span class="n">time</span> <span class="n">contributors</span>
+<span class="n">to</span> <span class="n">astropy</span><span class="o">.</span>
+
+<span class="o">*</span> <span class="mi">2573</span> <span class="n">commits</span> <span class="n">have</span> <span class="n">been</span> <span class="n">added</span> <span class="n">since</span> <span class="mf">4.3</span>
+<span class="o">*</span> <span class="mi">104</span> <span class="n">issues</span> <span class="n">have</span> <span class="n">been</span> <span class="n">closed</span> <span class="n">since</span> <span class="mf">4.3</span>
+<span class="o">*</span> <span class="mi">163</span> <span class="n">pull</span> <span class="n">requests</span> <span class="n">have</span> <span class="n">been</span> <span class="n">merged</span> <span class="n">since</span> <span class="mf">4.3</span>
+<span class="o">*</span> <span class="mi">98</span> <span class="n">people</span> <span class="n">have</span> <span class="n">contributed</span> <span class="n">since</span> <span class="mf">4.3</span>
+<span class="o">*</span> <span class="mi">50</span> <span class="n">of</span> <span class="n">which</span> <span class="n">are</span> <span class="n">new</span> <span class="n">contributors</span>
+
+<span class="n">The</span> <span class="n">people</span> <span class="n">who</span> <span class="n">have</span> <span class="n">contributed</span> <span class="n">to</span> <span class="n">the</span> <span class="n">code</span> <span class="k">for</span> <span class="n">this</span> <span class="n">release</span> <span class="n">are</span><span class="p">:</span>
+
+<span class="o">-</span> <span class="n">Name</span> <span class="mi">1</span> <span class="o">*</span>
+<span class="o">-</span> <span class="n">Name</span> <span class="mi">2</span> <span class="o">*</span>
+<span class="o">-</span> <span class="n">Name</span> <span class="mi">3</span>
+</pre></div>
+</div>
+<p>At this point, you will likely need to update the Astropy <code class="docutils literal notranslate"><span class="pre">.mailmap</span></code> file,
+which maps contributor emails to names, as there are often contributors who
+are not careful about using the same e-mail address for every commit, meaning
+that they appear multiple times in the contributor list above, sometimes with
+different spelling, and sometimes you may also just see their GitHub username
+with no full name.</p>
+<p>The easiest way to get a full list of contributors and email addresses is
+to do:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">shortlog</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span><span class="n">s</span> <span class="o">-</span><span class="n">e</span>
+</pre></div>
+</div>
+<p>Edit the <code class="docutils literal notranslate"><span class="pre">.mailmap</span></code> file to add entries for new email addresses for already
+known contributors (matched to the appropriate canonical name/email address).
+You can also try and investigate users with no name to see if you can determine
+their full name from other sources - if you do, add a new entry for them in
+the <code class="docutils literal notranslate"><span class="pre">.mailmap</span></code> file. Once you have done this, you can re-run the
+<code class="docutils literal notranslate"><span class="pre">generate_releaserst.xsh</span></code> script (you will likely need to iterate a few times).
+Once you are happy with the output, copy it into the ‘What’s new’ page for
+the current release and commit this. E.g.,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git add docs/whatsnew/5.0.rst
+$ git commit -m &quot;Added contributor statistics and names&quot;
+</pre></div>
+</div>
+<p>Push the release branch back to GitHub, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git push upstream v5.0.x
+</pre></div>
+</div>
+<p>Switch to a new branch that tracks the <code class="docutils literal notranslate"><span class="pre">main</span></code> branch and update the
+<code class="docutils literal notranslate"><span class="pre">docs/credits.rst</span></code> file to include any new contributors from the above step,
+and commit this and the <code class="docutils literal notranslate"><span class="pre">.mailmap</span></code> changes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git checkout -b v5.0-mailmap-credits upstream/main
+$ git add .mailmap
+$ git add docs/credits.rst
+$ git commit -m &quot;Updated list of contributors and .mailmap file&quot;
+</pre></div>
+</div>
+<p>Open a pull request to merge this into <code class="docutils literal notranslate"><span class="pre">main</span></code> and mark it as requiring backporting to
+the release branch.</p>
+</div>
+<div class="section" id="ensure-continuous-integration-and-intensive-tests-pass">
+<span id="release-procedure-check-ci"></span><h3>Ensure continuous integration and intensive tests pass<a class="headerlink" href="#ensure-continuous-integration-and-intensive-tests-pass" title="Permalink to this headline">¶</a></h3>
+<p>Make sure that the continuous integration services (e.g., GitHub Actions or CircleCI) are passing
+for the <a class="reference external" href="https://github.com/astropy/astropy">astropy core repository</a> branch you are going to release. Also check that
+the <a class="reference external" href="https://dev.azure.com/astropy-project/astropy/_build">Azure core package pipeline</a> which builds wheels on the <code class="docutils literal notranslate"><span class="pre">v*</span></code> branches is passing.
+Also make sure that the ReadTheDocs build is passing for the release branch.</p>
+<p>One of the continuous integration tasks that should be run periodically is the updates to the
+IERS tables in <code class="docutils literal notranslate"><span class="pre">astropy.utils.iers</span></code>, so check that the last run from this has been
+successfully run and that related pull requests have been merged (and backported if needed).
+You can also manually trigger it using its workflow dispatch option.</p>
+<p>You may also want to locally run the tests (with remote data on to ensure all
+of the tests actually run), using tox to do a thorough test in an isolated
+environment:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pip install tox --upgrade
+$ tox -e test-alldeps -- --remote-data=any --run-slow --run-hugemem
+</pre></div>
+</div>
+</div>
+<div class="section" id="additional-notes">
+<h3>Additional notes<a class="headerlink" href="#additional-notes" title="Permalink to this headline">¶</a></h3>
+<p>Do not render the changelog with towncrier at this point. This should only be done just before the final
+release. However, it is up to the discretion of the release manager whether to
+open ‘practice’ pull requests to do this as part of the beta/release candidate
+process (but they should not be merged in) - if so the process for rendering the changelog is described
+in <a class="reference internal" href="#release-procedure-render-changelog"><span class="std std-ref">Rendering the changelog</span></a>.</p>
+</div>
+<div class="section" id="tagging-the-first-release-candidate">
+<span id="release-procedure-tagging"></span><h3>Tagging the first release candidate<a class="headerlink" href="#tagging-the-first-release-candidate" title="Permalink to this headline">¶</a></h3>
+<p>Assuming all the CI passes, you should now be ready to do a first release
+candidate! Ensure you have a GPG key pair available for when git needs to sign
+the tag you create for the release (see e.g.,
+<a class="reference external" href="https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key">GitHub’s documentation</a>
+for how to generate a key pair).</p>
+<p>Make sure your local release branch is up-to-date with the upstream release
+branch, then tag the latest commit with the <code class="docutils literal notranslate"><span class="pre">-s</span></code> option, including an <code class="docutils literal notranslate"><span class="pre">rc1</span></code>
+suffix, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git tag -s v5.0rc1 -m &quot;Tagging v5.0rc1&quot;
+</pre></div>
+</div>
+<p>Push up the tag to the <a class="reference external" href="https://github.com/astropy/astropy">astropy core repository</a>, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git push upstream v5.0rc1
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It might be tempting to use the <code class="docutils literal notranslate"><span class="pre">--tags</span></code> argument to <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span></code>,
+but this should <em>not</em> be done, as it might push up some unintended tags.</p>
+</div>
+<p>At this point if all goes well, the wheels and sdist will be build
+in the <a class="reference external" href="https://dev.azure.com/astropy-project/astropy/_build">Azure core package pipeline</a> and uploaded to PyPI!</p>
+<p>In the event there are any issues with the wheel building for the tag
+(which shouldn’t really happen if it was passing for the release branch),
+you’ll have to fix whatever the problem is. Make sure you delete the
+tag:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">tag</span> <span class="o">-</span><span class="n">d</span> <span class="n">v</span><span class="o">&lt;</span><span class="n">version</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>Make any fixes by adding commits to the release branch (no need to remove
+previous commits) e.g. via pull requests to the release branch, backports,
+or direct commits on the release branch, as appropriate. Once you are
+ready to try and release again, create the tag, then force push the tag
+to GitHub to overwrite the previous one.</p>
+<p>Once the sdist and wheels are uploaded, the first release candidate is done!</p>
+<p>At this point create a new Wiki page under
+<a class="reference external" href="https://github.com/astropy/astropy/wiki">Astropy Project Wiki</a> with the
+title “vX.Y RC testing” (replace “X.Y” with the release number) using the
+<a class="reference external" href="https://github.com/astropy/astropy/wiki/v3.2-RC-testing">wiki of a previous RC</a>
+as a template. You can now email the user and developer community advertising
+the release candidate and including a link to the wiki page to report any
+successes and failures.</p>
+</div>
+</div>
+<div class="section" id="releasing-subsequent-release-candidates">
+<h2>Releasing subsequent release candidates<a class="headerlink" href="#releasing-subsequent-release-candidates" title="Permalink to this headline">¶</a></h2>
+<p>It is very likely that some issues will be reported with the first release
+candidate. Any issues should be fixed via pull requests to the <code class="docutils literal notranslate"><span class="pre">main</span></code> branch
+and marked for backporting to the release branch. The process for backporting
+fixes is described in <a class="reference internal" href="#release-procedure-bug-fix-backport"><span class="std std-ref">Backporting fixes from main</span></a>.</p>
+<p>Once you have backported any required fixes, repeat the following steps
+you did for the first release candidate:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#release-procedure-update-whatsnew"><span class="std std-ref">Updating the What’s new and contributors</span></a> (this should only involve updating the numbers of issues and so on, as well as potentially adding a few new contributors)</p></li>
+<li><p><a class="reference internal" href="#release-procedure-check-ci"><span class="std std-ref">Ensure continuous integration and intensive tests pass</span></a></p></li>
+</ul>
+<p>You can then proceed with tagging the second release candidate, as done in
+* <a class="reference internal" href="#release-procedure-tagging"><span class="std std-ref">Tagging the first release candidate</span></a> and replacing <code class="docutils literal notranslate"><span class="pre">rc1</span></code> with <code class="docutils literal notranslate"><span class="pre">rc2</span></code>.</p>
+<p>You can potentially repeat this section for a third or even fourth release candidate if needed. Once no major issues
+come up with a release candidate, you are ready to proceed to the next section.</p>
+</div>
+<div class="section" id="releasing-the-final-version-of-the-major-release">
+<h2>Releasing the final version of the major release<a class="headerlink" href="#releasing-the-final-version-of-the-major-release" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="rendering-the-changelog">
+<span id="release-procedure-render-changelog"></span><h3>Rendering the changelog<a class="headerlink" href="#rendering-the-changelog" title="Permalink to this headline">¶</a></h3>
+<p>We now need to render the changelog with towncrier (21.9.0 or later). Since it
+is a good idea to review the changelog and fix any line wrap and other issues,
+we do this on a separate branch and open a pull request into the release branch
+to allow for easy review. First, create and switch to a new branch based off the
+release branch, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git checkout -b v5.0-changelog
+</pre></div>
+</div>
+<p>Next, run towncrier and confirm that the fragments can be deleted:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">towncrier</span> <span class="n">build</span> <span class="o">--</span><span class="n">version</span> <span class="mf">5.0</span>
+</pre></div>
+</div>
+<p>Check the <code class="docutils literal notranslate"><span class="pre">CHANGES.rst</span></code> file and remove any empty sections from the new
+changelog section.</p>
+<p>Then add and commit those changes with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git add CHANGES.rst
+$ git commit -m &quot;Finalizing changelog for v&lt;version&gt;&quot;
+</pre></div>
+</div>
+<p>Push to GitHub and open a pull request for merging this into the release branch,
+e.g. v5.0.x.</p>
+<p>In cases where an LTS branch and a different release branch are being maintained,
+the changelog should be rendered on both branches separately, and only the
+rendering from the non-LTS release branch should be forward-ported to <code class="docutils literal notranslate"><span class="pre">main</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We render the changelog on the latest release branch and forward-port it
+rather than rendering on <code class="docutils literal notranslate"><span class="pre">main</span></code> and backporting, since the latter would
+render all news fragments into the changelog rather than only the ones
+intended for the e.g. v5.0.x release branch.</p>
+</div>
+</div>
+<div class="section" id="checking-the-changelog">
+<span id="release-procedure-checking-changelog"></span><h3>Checking the changelog<a class="headerlink" href="#checking-the-changelog" title="Permalink to this headline">¶</a></h3>
+<p>Scripts are provided at <a class="reference external" href="https://github.com/astropy/astropy-tools/tree/main/pr_consistency">https://github.com/astropy/astropy-tools/tree/main/pr_consistency</a>
+to check for consistency between milestones, labels, the presence of pull requests
+in release branches, and the changelog. Follow the instructions in that repository
+to make sure everything is correct for the present release.</p>
+</div>
+<div class="section" id="tagging-the-final-release">
+<h3>Tagging the final release<a class="headerlink" href="#tagging-the-final-release" title="Permalink to this headline">¶</a></h3>
+<p>Once the changelog pull request is merged, update your release branch to
+match the upstream version, then (on the release branch), tag the merge
+commit for the changelog changes with <code class="docutils literal notranslate"><span class="pre">v&lt;version&gt;</span></code> - as described in
+<a class="reference internal" href="#release-procedure-tagging"><span class="std std-ref">Tagging the first release candidate</span></a> but leaving out the <code class="docutils literal notranslate"><span class="pre">rc1</span></code> suffix, then
+push the tag to GitHub and wait for the wheels and sdist to be uploaded to
+PyPI.</p>
+<p>Congratulations!  You have completed the release! Now there are just a few
+clean-up tasks to finalize the process.</p>
+</div>
+<div class="section" id="post-release-procedures">
+<span id="post-release-procedure"></span><h3>Post-Release procedures<a class="headerlink" href="#post-release-procedures" title="Permalink to this headline">¶</a></h3>
+<ol class="arabic">
+<li><p>If this is a release of the current release (i.e., not an LTS supported along
+side a more recent version), update the “stable” branch to point to the new
+release:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git checkout stable
+$ git reset --hard v&lt;version&gt;
+$ git push upstream stable --force
+</pre></div>
+</div>
+</li>
+<li><p>If this is an LTS release (whether or not it is being supported alongside
+a more recent version), update the “LTS” branch to ponit to the new LTS
+release:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git checkout LTS
+$ git reset --hard v&lt;version&gt;
+$ git push upstream LTS --force
+</pre></div>
+</div>
+</li>
+<li><p>Update Readthedocs so that it builds docs for the version you just released.
+You’ll find this in the “Admin” tab, in the “Edit Versions” section –
+click on “Activate” for the tag of the release you have just done.
+Also verify that the <code class="docutils literal notranslate"><span class="pre">stable</span></code> Readthedocs version builds correctly for
+the new version (it should trigger automatically once you’ve done the
+previous step).</p></li>
+<li><p>When releasing a patch release, also set the previous RTD version in the
+release history to “Hidden”.  For example when releasing v5.0.2, set
+v5.0.1 to “Hidden”.  This prevents the previous releases from
+cluttering the list of versions that users see in the version dropdown
+(the previous versions are still accessible by their URL though).</p></li>
+<li><p>If you have updated the list of contributors during the release, update the
+equivalent list on the Astropy web site at
+<a class="reference external" href="https://github.com/astropy/astropy.github.com">https://github.com/astropy/astropy.github.com</a>.</p></li>
+<li><p>Cherry-pick the commit rendering the changelog and deleting the fragments and
+open a PR to the astropy <em>main</em> branch. Also make sure you cherry-pick the
+commit updating the <code class="docutils literal notranslate"><span class="pre">.mailmap</span></code> and <code class="docutils literal notranslate"><span class="pre">docs/credits.rst</span></code> files to the <em>main</em>
+branch in a separate PR.</p></li>
+<li><p>Turn off any branch protection you might have enabled in
+<a class="reference internal" href="#release-procedure-restrict-branch"><span class="std std-ref">Restricting changes to the release branch</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">conda-forge</span></code> has a bot that automatically opens
+a PR from a new PyPI (stable) release, which you need to follow up on and
+merge. Meanwhile, for a LTS release, you still have to manually open a PR
+at <a class="reference external" href="https://github.com/conda-forge/astropy-feedstock/">astropy-feedstock</a>.
+This is similar to the process for wheels.
+When the <code class="docutils literal notranslate"><span class="pre">conda-forge</span></code> package is ready, email the Anaconda maintainers
+about the release(s) so they can update the versions in the default channels.
+Typically, you should wait to make sure <code class="docutils literal notranslate"><span class="pre">conda-forge</span></code> and possibly
+<code class="docutils literal notranslate"><span class="pre">conda</span></code> works before sending out the public announcement
+(so that users who want to try out the new version can do so with <code class="docutils literal notranslate"><span class="pre">conda</span></code>).</p></li>
+<li><p>Upload the release to Zenodo by creating a GitHub Release off the GitHub tag.
+Click on the tag in <a class="reference external" href="https://github.com/astropy/astropy/tags">https://github.com/astropy/astropy/tags</a> and then click on
+“Create release from tag” on the upper right. The release title is the same as the
+tag. In the description, you can copy and paste a description from the previous
+release, as it should be a one-liner that points to <code class="docutils literal notranslate"><span class="pre">CHANGES.rst</span></code>. When you
+are ready, click “Publish release” (the green button on bottom left).
+A webhook to Zenodo will be activated and the release will appear under
+<a class="reference external" href="https://doi.org/10.5281/zenodo.4670728">https://doi.org/10.5281/zenodo.4670728</a> . If you encounter problems during this
+step, please contact the Astropy Coordination Committee.</p></li>
+<li><p>Once the release(s) are available on the default <code class="docutils literal notranslate"><span class="pre">conda</span></code> channels,
+prepare the public announcement. Use the previous announcement as a template,
+but link to the release tag instead of <code class="docutils literal notranslate"><span class="pre">stable</span></code>. For a new major release,
+you should coordinate with the rest of the Astropy release team and the
+community engagement coordinators. Meanwhile, for a bugfix release, you can
+proceed to send out an email to the <code class="docutils literal notranslate"><span class="pre">astropy-dev</span></code> and Astropy mailing
+lists.</p></li>
+</ol>
+</div>
+</div>
+<div class="section" id="maintaining-bug-fix-releases">
+<span id="release-procedure-bug-fix"></span><h2>Maintaining Bug Fix Releases<a class="headerlink" href="#maintaining-bug-fix-releases" title="Permalink to this headline">¶</a></h2>
+<p>Astropy releases, as recommended for most Python projects, follows a
+&lt;major&gt;.&lt;minor&gt;.&lt;micro&gt; version scheme, where the “micro” version is also
+known as a “bug fix” release.  Bug fix releases should not change any user-
+visible interfaces.  They should only fix bugs on the previous major/minor
+release and may also refactor internal APIs or include omissions from previous
+releases–that is, features that were documented to exist but were accidentally
+left out of the previous release. They may also include changes to docstrings
+that enhance clarity but do not describe new features (e.g., more examples,
+typo fixes, etc).</p>
+<p>Bug fix releases are typically managed by maintaining one or more bug fix
+branches separate from the main branch (the release procedure below discusses
+creating these branches).  Typically, whenever an issue is fixed on the Astropy
+main branch a decision must be made whether this is a fix that should be
+included in the Astropy bug fix release.  Usually the answer to this question
+is “yes”, though there are some issues that may not apply to the bug fix
+branch.  For example, it is not necessary to backport a fix to a new feature
+that did not exist when the bug fix branch was first created.  New features
+are never merged into the bug fix branch–only bug fixes; hence the name.</p>
+<p>In rare cases a bug fix may be made directly into the bug fix branch without
+going into the main branch first.  This may occur if a fix is made to a
+feature that has been removed or rewritten in the development version and no
+longer has the issue being fixed.  However, depending on how critical the bug
+is it may be worth including in a bug fix release, as some users can be slow to
+upgrade to new major/micro versions due to API changes.</p>
+<p>Issues are assigned to an Astropy release by way of the Milestone feature in
+the GitHub issue tracker.  At any given time there are at least two versions
+under development: The next major/minor version, and the next bug fix release.
+For example, at the time of writing there are two release milestones open:
+v5.1 and v5.0.1.  In this case, v5.0.1 is the next bug fix release and all
+issues that should include fixes in that release should be assigned that
+milestone.  Any issues that implement new features would go into the v5.1
+milestone–this is any work that goes in the main branch that should not
+be backported.  For a more detailed set of guidelines on using milestones, see
+<a class="reference internal" href="workflow/maintainer_workflow.html#milestones-and-labels"><span class="std std-ref">Using Milestones and Labels</span></a>.</p>
+<p>Before going ahead with the release, you should check that all merged pull
+requests milestoned for the upcoming release have been correctly backported.
+You can find more information on backporting fixes to release branches
+in <a class="reference internal" href="#release-procedure-bug-fix-backport"><span class="std std-ref">Backporting fixes from main</span></a>.</p>
+<p>Once you have backported any required fixes, go through the following steps
+in a similar way to the initial major release:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#release-procedure-check-ci"><span class="std std-ref">Ensure continuous integration and intensive tests pass</span></a></p></li>
+<li><p><a class="reference internal" href="#release-procedure-render-changelog"><span class="std std-ref">Rendering the changelog</span></a></p></li>
+<li><p><a class="reference internal" href="#release-procedure-checking-changelog"><span class="std std-ref">Checking the changelog</span></a></p></li>
+</ul>
+<p>You can then proceed with tagging the bugfix release. Make sure your local
+release branch is up-to-date with the upstream release branch, then tag the
+latest commit with the <code class="docutils literal notranslate"><span class="pre">-s</span></code> option, e.g:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git tag -s v5.0.1 -m &quot;Tagging v5.0.1&quot;
+</pre></div>
+</div>
+<p>Push up the tag to the <a class="reference external" href="https://github.com/astropy/astropy">astropy core repository</a>, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git push upstream v5.0.1
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It might be tempting to use the <code class="docutils literal notranslate"><span class="pre">--tags</span></code> argument to <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span></code>,
+but this should <em>not</em> be done, as it might push up some unintended tags.</p>
+</div>
+<p>At this point if all goes well, the wheels and sdist will be build
+in the <a class="reference external" href="https://dev.azure.com/astropy-project/astropy/_build">Azure core package pipeline</a> and uploaded to PyPI!</p>
+<p>In the event there are any issues with the wheel building for the tag
+(which shouldn’t really happen if it was passing for the release branch),
+you’ll have to fix whatever the problem is. Make sure you delete the
+tag locally, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">tag</span> <span class="o">-</span><span class="n">d</span> <span class="n">v5</span><span class="mf">.0.1</span>
+</pre></div>
+</div>
+<p>and on GitHub:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">push</span> <span class="n">upstream</span> <span class="p">:</span><span class="n">refs</span><span class="o">/</span><span class="n">tags</span><span class="o">/</span><span class="n">v5</span><span class="mf">.0.1</span>
+</pre></div>
+</div>
+<p>Make any fixes by adding commits to the release branch (no need to remove
+previous commits) e.g. via pull requests to the release branch, backports,
+or direct commits on the release branch, as appropriate. Once you are
+ready to try and release again, create the tag, then force push the tag
+to GitHub to overwrite the previous one.</p>
+<p>Once the release is done, follow the <a class="reference internal" href="#post-release-procedure"><span class="std std-ref">Post-Release procedures</span></a>.</p>
+</div>
+<div class="section" id="common-procedures">
+<h2>Common procedures<a class="headerlink" href="#common-procedures" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="backporting-fixes-from-main">
+<span id="release-procedure-bug-fix-backport"></span><h3>Backporting fixes from main<a class="headerlink" href="#backporting-fixes-from-main" title="Permalink to this headline">¶</a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The changelog script in <a class="reference external" href="https://github.com/astropy/astropy-tools/">astropy-tools</a>
+(<code class="docutils literal notranslate"><span class="pre">pr_consistency</span></code> scripts in particular) does not know about minor releases, thus please be careful.
+For example, let’s say we have two branches (<code class="docutils literal notranslate"><span class="pre">main</span></code> and <code class="docutils literal notranslate"><span class="pre">v5.0.x</span></code>).
+Both 5.0 and 5.0.1 releases will come out of the same v5.0.x branch.
+If a PR for 5.0.1 is merged into <code class="docutils literal notranslate"><span class="pre">main</span></code> before 5.0 is released,
+it should not be backported into v5.0.x branch until after 5.0 is
+released, despite complaining from the aforementioned script.
+This situation only arises in a very narrow time frame after 5.0
+freeze but before its release.</p>
+</div>
+<p>Most pull requests will be backported automatically by a backport bot, which
+opens pull requests with the backports aganist the release branch. Make sure
+that any such pull requests are merged in before starting the release process
+for a new bugfix release.</p>
+<p>In some cases, some pull requests or in some cases direct commits to <code class="docutils literal notranslate"><span class="pre">main</span></code>
+will need to be backported manually. This is done using the <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">cherry-pick</span></code>
+command, which applies the diff from a single commit like a patch.  For the sake
+of example, say the current bug fix branch is ‘v5.0.x’, and that a bug was fixed
+in main in a commit <code class="docutils literal notranslate"><span class="pre">abcd1234</span></code>.  In order to backport the fix, checkout the
+v5.0.x branch (it’s also good to make sure it’s in sync with the <a class="reference external" href="https://github.com/astropy/astropy">astropy core
+repository</a>) and cherry-pick the appropriate commit:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git checkout v5.0.x
+$ git pull upstream v5.0.x
+$ git cherry-pick abcd1234
+</pre></div>
+</div>
+<p>Sometimes a cherry-pick does not apply cleanly, since the bug fix branch
+represents a different line of development.  This can be resolved like any
+other merge conflict:  Edit the conflicted files by hand, and then run
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span></code> and accept the default commit message.  If the fix being
+cherry-picked has an associated changelog entry in a separate commit make
+sure to backport that as well.</p>
+<p>What if the issue required more than one commit to fix?  There are a few
+possibilities for this.  The easiest is if the fix came in the form of a
+pull request that was merged into the main branch.  Whenever GitHub merges
+a pull request it generates a merge commit in the main branch.  This merge
+commit represents the <em>full</em> difference of all the commits in the pull request
+combined.  What this means is that it is only necessary to cherry-pick the
+merge commit (this requires adding the <code class="docutils literal notranslate"><span class="pre">-m</span> <span class="pre">1</span></code> option to the cherry-pick
+command).  For example, if <code class="docutils literal notranslate"><span class="pre">5678abcd</span></code> is a merge commit:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git checkout v5.0.x
+$ git pull upstream v5.0.x
+$ git cherry-pick -m 1 5678abcd
+</pre></div>
+</div>
+<p>In fact, because Astropy emphasizes a pull request-based workflow, this is the
+<em>most</em> common scenario for backporting bug fixes, and the one requiring the
+least thought.  However, if you’re not dealing with backporting a fix that was
+not brought in as a pull request, read on.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="workflow/additional_git_topics.html#merge-commits-and-cherry-picks"><span class="std std-ref">Merge commits and cherry picks</span></a> for further explanation of the
+cherry-pick command and how it works with merge commits.</p>
+</div>
+<p>If not cherry-picking a merge commit there are still other options for dealing
+with multiple commits.  The simplest, though potentially tedious, is to
+run the cherry-pick command once for each commit in the correct order.
+However, as of Git 1.7.2 it is possible to merge a range of commits like so:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git cherry-pick 1234abcd..56789def
+</pre></div>
+</div>
+<p>This works fine so long as the commits you want to pick are actually congruous
+with each other.  In most cases this will be the case, though some bug fixes
+will involve followup commits that need to back backported as well.  Most bug
+fixes will have an issues associated with it in the issue tracker, so make sure
+to reference all commits related to that issue in the commit message.  That way
+it’s harder for commits that need to be backported from getting lost.</p>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Release procedure for the astropy core package</a><ul>
+<li><a class="reference internal" href="#start-of-a-new-release-cycle-feature-freeze-and-branching">Start of a new release cycle - feature freeze and branching</a></li>
+<li><a class="reference internal" href="#releasing-the-first-major-release-candidate">Releasing the first major release candidate</a><ul>
+<li><a class="reference internal" href="#restricting-changes-to-the-release-branch">Restricting changes to the release branch</a></li>
+<li><a class="reference internal" href="#updating-the-what-s-new-and-contributors">Updating the What’s new and contributors</a></li>
+<li><a class="reference internal" href="#ensure-continuous-integration-and-intensive-tests-pass">Ensure continuous integration and intensive tests pass</a></li>
+<li><a class="reference internal" href="#additional-notes">Additional notes</a></li>
+<li><a class="reference internal" href="#tagging-the-first-release-candidate">Tagging the first release candidate</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#releasing-subsequent-release-candidates">Releasing subsequent release candidates</a></li>
+<li><a class="reference internal" href="#releasing-the-final-version-of-the-major-release">Releasing the final version of the major release</a><ul>
+<li><a class="reference internal" href="#rendering-the-changelog">Rendering the changelog</a></li>
+<li><a class="reference internal" href="#checking-the-changelog">Checking the changelog</a></li>
+<li><a class="reference internal" href="#tagging-the-final-release">Tagging the final release</a></li>
+<li><a class="reference internal" href="#post-release-procedures">Post-Release procedures</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#maintaining-bug-fix-releases">Maintaining Bug Fix Releases</a></li>
+<li><a class="reference internal" href="#common-procedures">Common procedures</a><ul>
+<li><a class="reference internal" href="#backporting-fixes-from-main">Backporting fixes from main</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/development/releasing.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

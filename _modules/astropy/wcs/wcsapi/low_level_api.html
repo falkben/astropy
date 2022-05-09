@@ -1,0 +1,463 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.wcs.wcsapi.low_level_api &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" >Module code</a> &#187;</li>
+      <li><a href="../../wcs.html" accesskey="U">astropy.wcs</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.wcs.wcsapi.low_level_api</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">abc</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;BaseLowLevelWCS&#39;</span><span class="p">,</span> <span class="s1">&#39;validate_physical_types&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="BaseLowLevelWCS"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.BaseLowLevelWCS.html#astropy.wcs.wcsapi.BaseLowLevelWCS">[docs]</a><span class="k">class</span> <span class="nc">BaseLowLevelWCS</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract base class for the low-level WCS interface.</span>
+
+<span class="sd">    This is described in `APE 14: A shared Python interface for World Coordinate</span>
+<span class="sd">    Systems &lt;https://doi.org/10.5281/zenodo.1188875&gt;`_.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">pixel_n_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The number of axes in the pixel coordinate system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">world_n_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The number of axes in the world coordinate system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">world_axis_physical_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        An iterable of strings describing the physical type for each world axis.</span>
+
+<span class="sd">        These should be names from the VO UCD1+ controlled Vocabulary</span>
+<span class="sd">        (http://www.ivoa.net/documents/latest/UCDlist.html). If no matching UCD</span>
+<span class="sd">        type exists, this can instead be ``&quot;custom:xxx&quot;``, where ``xxx`` is an</span>
+<span class="sd">        arbitrary string.  Alternatively, if the physical type is</span>
+<span class="sd">        unknown/undefined, an element can be `None`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">world_axis_units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        An iterable of strings given the units of the world coordinates for each</span>
+<span class="sd">        axis.</span>
+
+<span class="sd">        The strings should follow the `IVOA VOUnit standard</span>
+<span class="sd">        &lt;http://ivoa.net/documents/VOUnits/&gt;`_ (though as noted in the VOUnit</span>
+<span class="sd">        specification document, units that do not follow this standard are still</span>
+<span class="sd">        allowed, but just not recommended).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BaseLowLevelWCS.pixel_to_world_values"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.BaseLowLevelWCS.html#astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_to_world_values">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">pixel_to_world_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">pixel_arrays</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert pixel coordinates to world coordinates.</span>
+
+<span class="sd">        This method takes `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_n_dim` scalars or arrays as</span>
+<span class="sd">        input, and pixel coordinates should be zero-based. Returns</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_n_dim` scalars or arrays in units given by</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_axis_units`. Note that pixel coordinates are</span>
+<span class="sd">        assumed to be 0 at the center of the first pixel in each dimension. If a</span>
+<span class="sd">        pixel is in a region where the WCS is not defined, NaN can be returned.</span>
+<span class="sd">        The coordinates should be specified in the ``(x, y)`` order, where for</span>
+<span class="sd">        an image, ``x`` is the horizontal coordinate and ``y`` is the vertical</span>
+<span class="sd">        coordinate.</span>
+
+<span class="sd">        If `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_n_dim` is ``1``, this</span>
+<span class="sd">        method returns a single scalar or array, otherwise a tuple of scalars or</span>
+<span class="sd">        arrays is returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseLowLevelWCS.array_index_to_world_values"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.BaseLowLevelWCS.html#astropy.wcs.wcsapi.BaseLowLevelWCS.array_index_to_world_values">[docs]</a>    <span class="k">def</span> <span class="nf">array_index_to_world_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">index_arrays</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert array indices to world coordinates.</span>
+
+<span class="sd">        This is the same as `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_to_world_values` except that</span>
+<span class="sd">        the indices should be given in ``(i, j)`` order, where for an image</span>
+<span class="sd">        ``i`` is the row and ``j`` is the column (i.e. the opposite order to</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_to_world_values`).</span>
+
+<span class="sd">        If `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_n_dim` is ``1``, this</span>
+<span class="sd">        method returns a single scalar or array, otherwise a tuple of scalars or</span>
+<span class="sd">        arrays is returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_to_world_values</span><span class="p">(</span><span class="o">*</span><span class="n">index_arrays</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="BaseLowLevelWCS.world_to_pixel_values"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.BaseLowLevelWCS.html#astropy.wcs.wcsapi.BaseLowLevelWCS.world_to_pixel_values">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">world_to_pixel_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">world_arrays</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert world coordinates to pixel coordinates.</span>
+
+<span class="sd">        This method takes `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_n_dim` scalars or arrays as</span>
+<span class="sd">        input in units given by `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_axis_units`. Returns</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_n_dim` scalars or arrays. Note that pixel</span>
+<span class="sd">        coordinates are assumed to be 0 at the center of the first pixel in each</span>
+<span class="sd">        dimension. If a world coordinate does not have a matching pixel</span>
+<span class="sd">        coordinate, NaN can be returned.  The coordinates should be returned in</span>
+<span class="sd">        the ``(x, y)`` order, where for an image, ``x`` is the horizontal</span>
+<span class="sd">        coordinate and ``y`` is the vertical coordinate.</span>
+
+<span class="sd">        If `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_n_dim` is ``1``, this</span>
+<span class="sd">        method returns a single scalar or array, otherwise a tuple of scalars or</span>
+<span class="sd">        arrays is returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="BaseLowLevelWCS.world_to_array_index_values"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.BaseLowLevelWCS.html#astropy.wcs.wcsapi.BaseLowLevelWCS.world_to_array_index_values">[docs]</a>    <span class="k">def</span> <span class="nf">world_to_array_index_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">world_arrays</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert world coordinates to array indices.</span>
+
+<span class="sd">        This is the same as `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_to_pixel_values` except that</span>
+<span class="sd">        the indices should be returned in ``(i, j)`` order, where for an image</span>
+<span class="sd">        ``i`` is the row and ``j`` is the column (i.e. the opposite order to</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_to_world_values`). The indices should be</span>
+<span class="sd">        returned as rounded integers.</span>
+
+<span class="sd">        If `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_n_dim` is ``1``, this</span>
+<span class="sd">        method returns a single scalar or array, otherwise a tuple of scalars or</span>
+<span class="sd">        arrays is returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pixel_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_to_pixel_values</span><span class="p">(</span><span class="o">*</span><span class="n">world_arrays</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_n_dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">pixel_arrays</span> <span class="o">=</span> <span class="p">(</span><span class="n">pixel_arrays</span><span class="p">,)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pixel_arrays</span> <span class="o">=</span> <span class="n">pixel_arrays</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">array_indices</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">pixel</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int_</span><span class="p">)</span> <span class="k">for</span> <span class="n">pixel</span> <span class="ow">in</span> <span class="n">pixel_arrays</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">array_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_n_dim</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">array_indices</span></div>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">world_axis_object_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A list with `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_n_dim` elements giving information</span>
+<span class="sd">        on constructing high-level objects for the world coordinates.</span>
+
+<span class="sd">        Each element of the list is a tuple with three items:</span>
+
+<span class="sd">        * The first is a name for the world object this world array</span>
+<span class="sd">          corresponds to, which *must* match the string names used in</span>
+<span class="sd">          `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_axis_object_classes`. Note that names might</span>
+<span class="sd">          appear twice because two world arrays might correspond to a single</span>
+<span class="sd">          world object (e.g. a celestial coordinate might have both “ra” and</span>
+<span class="sd">          “dec” arrays, which correspond to a single sky coordinate object).</span>
+
+<span class="sd">        * The second element is either a string keyword argument name or a</span>
+<span class="sd">          positional index for the corresponding class from</span>
+<span class="sd">          `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_axis_object_classes`.</span>
+
+<span class="sd">        * The third argument is a string giving the name of the property</span>
+<span class="sd">          to access on the corresponding class from</span>
+<span class="sd">          `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_axis_object_classes` in</span>
+<span class="sd">          order to get numerical values. Alternatively, this argument can be a</span>
+<span class="sd">          callable Python object that takes a high-level coordinate object and</span>
+<span class="sd">          returns the numerical values suitable for passing to the low-level</span>
+<span class="sd">          WCS transformation methods.</span>
+
+<span class="sd">        See the document</span>
+<span class="sd">        `APE 14: A shared Python interface for World Coordinate Systems</span>
+<span class="sd">        &lt;https://doi.org/10.5281/zenodo.1188875&gt;`_ for examples.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">world_axis_object_classes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A dictionary giving information on constructing high-level objects for</span>
+<span class="sd">        the world coordinates.</span>
+
+<span class="sd">        Each key of the dictionary is a string key from</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_axis_object_components`, and each value is a</span>
+<span class="sd">        tuple with three elements or four elements:</span>
+
+<span class="sd">        * The first element of the tuple must be a class or a string specifying</span>
+<span class="sd">          the fully-qualified name of a class, which will specify the actual</span>
+<span class="sd">          Python object to be created.</span>
+
+<span class="sd">        * The second element, should be a tuple specifying the positional</span>
+<span class="sd">          arguments required to initialize the class. If</span>
+<span class="sd">          `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_axis_object_components` specifies that the</span>
+<span class="sd">          world coordinates should be passed as a positional argument, this this</span>
+<span class="sd">          tuple should include `None` placeholders for the world coordinates.</span>
+
+<span class="sd">        * The third tuple element must be a dictionary with the keyword</span>
+<span class="sd">          arguments required to initialize the class.</span>
+
+<span class="sd">        * Optionally, for advanced use cases, the fourth element (if present)</span>
+<span class="sd">          should be a callable Python object that gets called instead of the</span>
+<span class="sd">          class and gets passed the positional and keyword arguments. It should</span>
+<span class="sd">          return an object of the type of the first element in the tuple.</span>
+
+<span class="sd">        Note that we don&#39;t require the classes to be Astropy classes since there</span>
+<span class="sd">        is no guarantee that Astropy will have all the classes to represent all</span>
+<span class="sd">        kinds of world coordinates. Furthermore, we recommend that the output be</span>
+<span class="sd">        kept as human-readable as possible.</span>
+
+<span class="sd">        The classes used here should have the ability to do conversions by</span>
+<span class="sd">        passing an instance as the first argument to the same class with</span>
+<span class="sd">        different arguments (e.g. ``Time(Time(...), scale=&#39;tai&#39;)``). This is</span>
+<span class="sd">        a requirement for the implementation of the high-level interface.</span>
+
+<span class="sd">        The second and third tuple elements for each value of this dictionary</span>
+<span class="sd">        can in turn contain either instances of classes, or if necessary can</span>
+<span class="sd">        contain serialized versions that should take the same form as the main</span>
+<span class="sd">        classes described above (a tuple with three elements with the fully</span>
+<span class="sd">        qualified name of the class, then the positional arguments and the</span>
+<span class="sd">        keyword arguments). For low-level API objects implemented in Python, we</span>
+<span class="sd">        recommend simply returning the actual objects (not the serialized form)</span>
+<span class="sd">        for optimal performance. Implementations should either always or never</span>
+<span class="sd">        use serialized classes to represent Python objects, and should indicate</span>
+<span class="sd">        which of these they follow using the</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.serialized_classes` attribute.</span>
+
+<span class="sd">        See the document</span>
+<span class="sd">        `APE 14: A shared Python interface for World Coordinate Systems</span>
+<span class="sd">        &lt;https://doi.org/10.5281/zenodo.1188875&gt;`_ for examples .</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="c1"># The following three properties have default fallback implementations, so</span>
+    <span class="c1"># they are not abstract.</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">array_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The shape of the data that the WCS applies to as a tuple of length</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_n_dim` in ``(row, column)``</span>
+<span class="sd">        order (the convention for arrays in Python).</span>
+
+<span class="sd">        If the WCS is valid in the context of a dataset with a particular</span>
+<span class="sd">        shape, then this property can be used to store the shape of the</span>
+<span class="sd">        data. This can be used for example if implementing slicing of WCS</span>
+<span class="sd">        objects. This is an optional property, and it should return `None`</span>
+<span class="sd">        if a shape is not known or relevant.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_shape</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pixel_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The shape of the data that the WCS applies to as a tuple of length</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_n_dim` in ``(x, y)``</span>
+<span class="sd">        order (where for an image, ``x`` is the horizontal coordinate and ``y``</span>
+<span class="sd">        is the vertical coordinate).</span>
+
+<span class="sd">        If the WCS is valid in the context of a dataset with a particular</span>
+<span class="sd">        shape, then this property can be used to store the shape of the</span>
+<span class="sd">        data. This can be used for example if implementing slicing of WCS</span>
+<span class="sd">        objects. This is an optional property, and it should return `None`</span>
+<span class="sd">        if a shape is not known or relevant.</span>
+
+<span class="sd">        If you are interested in getting a shape that is comparable to that of</span>
+<span class="sd">        a Numpy array, you should use</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.array_shape` instead.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pixel_bounds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The bounds (in pixel coordinates) inside which the WCS is defined,</span>
+<span class="sd">        as a list with `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_n_dim`</span>
+<span class="sd">        ``(min, max)`` tuples.</span>
+
+<span class="sd">        The bounds should be given in ``[(xmin, xmax), (ymin, ymax)]``</span>
+<span class="sd">        order. WCS solutions are sometimes only guaranteed to be accurate</span>
+<span class="sd">        within a certain range of pixel values, for example when defining a</span>
+<span class="sd">        WCS that includes fitted distortions. This is an optional property,</span>
+<span class="sd">        and it should return `None` if a shape is not known or relevant.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pixel_axis_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        An iterable of strings describing the name for each pixel axis.</span>
+
+<span class="sd">        If an axis does not have a name, an empty string should be returned</span>
+<span class="sd">        (this is the default behavior for all axes if a subclass does not</span>
+<span class="sd">        override this property). Note that these names are just for display</span>
+<span class="sd">        purposes and are not standardized.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_n_dim</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">world_axis_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        An iterable of strings describing the name for each world axis.</span>
+
+<span class="sd">        If an axis does not have a name, an empty string should be returned</span>
+<span class="sd">        (this is the default behavior for all axes if a subclass does not</span>
+<span class="sd">        override this property). Note that these names are just for display</span>
+<span class="sd">        purposes and are not standardized. For standardized axis types, see</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.world_axis_physical_types`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">world_n_dim</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">axis_correlation_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns an (`~astropy.wcs.wcsapi.BaseLowLevelWCS.world_n_dim`,</span>
+<span class="sd">        `~astropy.wcs.wcsapi.BaseLowLevelWCS.pixel_n_dim`) matrix that</span>
+<span class="sd">        indicates using booleans whether a given world coordinate depends on a</span>
+<span class="sd">        given pixel coordinate.</span>
+
+<span class="sd">        This defaults to a matrix where all elements are `True` in the absence</span>
+<span class="sd">        of any further information. For completely independent axes, the</span>
+<span class="sd">        diagonal would be `True` and all other entries `False`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">world_n_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_n_dim</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">serialized_classes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Indicates whether Python objects are given in serialized form or as</span>
+<span class="sd">        actual Python objects.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_as_mpl_axes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compatibility hook for Matplotlib and WCSAxes. With this method, one can</span>
+<span class="sd">        do::</span>
+
+<span class="sd">            from astropy.wcs import WCS</span>
+<span class="sd">            import matplotlib.pyplot as plt</span>
+<span class="sd">            wcs = WCS(&#39;filename.fits&#39;)</span>
+<span class="sd">            fig = plt.figure()</span>
+<span class="sd">            ax = fig.add_axes([0.15, 0.1, 0.8, 0.8], projection=wcs)</span>
+<span class="sd">            ...</span>
+
+<span class="sd">        and this will generate a plot with the correct WCS coordinates on the</span>
+<span class="sd">        axes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">astropy.visualization.wcsaxes</span> <span class="kn">import</span> <span class="n">WCSAxes</span>
+        <span class="k">return</span> <span class="n">WCSAxes</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;wcs&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">}</span></div>
+
+
+<span class="n">UCDS_FILE</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;ucds.txt&#39;</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">UCDS_FILE</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">VALID_UCDS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]])</span>
+
+
+<div class="viewcode-block" id="validate_physical_types"><a class="viewcode-back" href="../../../../api/astropy.wcs.wcsapi.validate_physical_types.html#astropy.wcs.wcsapi.validate_physical_types">[docs]</a><span class="k">def</span> <span class="nf">validate_physical_types</span><span class="p">(</span><span class="n">physical_types</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Validate a list of physical types against the UCD1+ standard</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">physical_type</span> <span class="ow">in</span> <span class="n">physical_types</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">physical_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+            <span class="n">physical_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALID_UCDS</span> <span class="ow">and</span>
+                <span class="ow">not</span> <span class="n">physical_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;custom:&#39;</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">physical_type</span><span class="si">}</span><span class="s2">&#39; is not a valid IOVA UCD1+ physical type. &quot;</span>
+                <span class="s2">&quot;It must be a string specified in the list (http://www.ivoa.net/documents/latest/UCDlist.html) &quot;</span>
+                <span class="s2">&quot;or if no matching type exists it can be any string prepended with &#39;custom:&#39;.&quot;</span>
+            <span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

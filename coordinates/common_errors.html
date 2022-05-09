@@ -1,0 +1,202 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Common mistakes &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Important Definitions" href="definitions.html" />
+    <link rel="prev" title="Usage Tips/Suggestions for Methods That Access Remote Resources" href="remote_methods.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="definitions.html" title="Important Definitions">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="remote_methods.html" title="Usage Tips/Suggestions for Methods That Access Remote Resources">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Astronomical Coordinate Systems (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.coordinates</span></code>)</a> &#187;</li>
+      
+      <li>Common mistakes</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="common-mistakes">
+<span id="astropy-coordinates-common-errors"></span><h1>Common mistakes<a class="headerlink" href="#common-mistakes" title="Permalink to this headline">¶</a></h1>
+<p>The following are some common sources of difficulty when using <a class="reference internal" href="index.html#module-astropy.coordinates" title="astropy.coordinates"><code class="xref py py-obj docutils literal notranslate"><span class="pre">coordinates</span></code></a>.</p>
+<div class="section" id="object-separation">
+<h2>Object Separation<a class="headerlink" href="#object-separation" title="Permalink to this headline">¶</a></h2>
+<p>When calculating the separation between objects, it is important to bear in mind that
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.separation" title="astropy.coordinates.SkyCoord.separation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">astropy.coordinates.SkyCoord.separation()</span></code></a> gives a different answer depending
+upon the order in which is used. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">SkyCoord</span><span class="p">,</span> <span class="n">GCRS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="s2">&quot;2010-05-22T00:00&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">moon</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="mf">104.29</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mf">23.51</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mf">359367.3</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">GCRS</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">t</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">star</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="mf">101.4</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mf">23.02</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s1">&#39;icrs&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">star</span><span class="o">.</span><span class="n">separation</span><span class="p">(</span><span class="n">moon</span><span class="p">)</span> 
+<span class="go">&lt;Angle 139.84211884 deg&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">moon</span><span class="o">.</span><span class="n">separation</span><span class="p">(</span><span class="n">star</span><span class="p">)</span> 
+<span class="go">&lt;Angle 2.70390995 deg&gt;</span>
+</pre></div>
+</div>
+<p>Why do these give such different answers?</p>
+<p>The reason is that <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord.separation" title="astropy.coordinates.SkyCoord.separation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">astropy.coordinates.SkyCoord.separation()</span></code></a> gives the separation as measured
+in the frame of the <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object. So <code class="docutils literal notranslate"><span class="pre">star.separation(moon)</span></code> gives the angular separation
+in the ICRS frame. This is the separation as it would appear from the Solar System Barycenter. For a
+geocentric observer, <code class="docutils literal notranslate"><span class="pre">moon.separation(star)</span></code> gives the correct answer, since <code class="docutils literal notranslate"><span class="pre">moon</span></code> is in a
+geocentric frame.</p>
+</div>
+<div class="section" id="altaz-calculations-for-earth-based-objects">
+<h2>AltAz calculations for Earth-based objects<a class="headerlink" href="#altaz-calculations-for-earth-based-objects" title="Permalink to this headline">¶</a></h2>
+<p>One might expect that the following code snippet would produce an altitude of exactly 90 degrees:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span><span class="p">,</span> <span class="n">AltAz</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="s1">&#39;J2010&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">obj</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">52</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">10.</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">home</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">52</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">0.</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">altaz_frame</span> <span class="o">=</span> <span class="n">AltAz</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">home</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">obj</span><span class="o">.</span><span class="n">get_itrs</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">altaz_frame</span><span class="p">)</span><span class="o">.</span><span class="n">alt</span> 
+<span class="go">&lt;Latitude 86.32878441 deg&gt;</span>
+</pre></div>
+</div>
+<p>Why is the result over three degrees away from the zenith? It is only possible to understand by taking a very careful
+look at what <code class="docutils literal notranslate"><span class="pre">obj.get_itrs(t)</span></code> returns. This call provides the ITRS position of the source <code class="docutils literal notranslate"><span class="pre">obj</span></code>. ITRS is
+a geocentric coordinate system, and includes the aberration of light. So the code above provides the ITRS position
+of a source that appears directly overhead <em>for an observer at the geocenter</em>.</p>
+<p>Due to aberration, the actual position of this source will be displaced from its apparent position, by an angle of
+approximately 20.5 arcseconds. Because this source is about one Earth radius away, it’s actual position is therefore
+around 600 metres away from where it appears to be. This 600 metre shift, for an object 10 km above the Earth’s surface
+is an angular difference of just over three degrees - which is why this object does not appear overhead for a topocentric
+observer - one on the surface of the Earth.</p>
+<p>The correct way to construct a <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> object for a source that is directly overhead a topocentric observer is
+as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span><span class="p">,</span> <span class="n">AltAz</span><span class="p">,</span> <span class="n">ITRS</span><span class="p">,</span> <span class="n">CIRS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="s1">&#39;J2010&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">obj</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">52</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">10.</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">home</span> <span class="o">=</span> <span class="n">EarthLocation</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="mi">52</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">0.</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">km</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Now we make a ITRS vector of a straight overhead object</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">itrs_vec</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">get_itrs</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">cartesian</span> <span class="o">-</span> <span class="n">home</span><span class="o">.</span><span class="n">get_itrs</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">cartesian</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Now we create a topocentric coordinate with this data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Any topocentric frame will work, we use CIRS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Start by transforming the ITRS vector to CIRS</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cirs_vec</span> <span class="o">=</span> <span class="n">ITRS</span><span class="p">(</span><span class="n">itrs_vec</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">CIRS</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">t</span><span class="p">))</span><span class="o">.</span><span class="n">cartesian</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Finally, make CIRS frame object with the correct data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cirs_topo</span> <span class="o">=</span> <span class="n">CIRS</span><span class="p">(</span><span class="n">cirs_vec</span><span class="p">,</span> <span class="n">obstime</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">home</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># convert to AltAz</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">aa</span> <span class="o">=</span> <span class="n">cirs_topo</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">AltAz</span><span class="p">(</span><span class="n">obstime</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">home</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">aa</span><span class="o">.</span><span class="n">alt</span> 
+<span class="go">&lt;Latitude 90. deg&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Common mistakes</a><ul>
+<li><a class="reference internal" href="#object-separation">Object Separation</a></li>
+<li><a class="reference internal" href="#altaz-calculations-for-earth-based-objects">AltAz calculations for Earth-based objects</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/coordinates/common_errors.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

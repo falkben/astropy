@@ -1,0 +1,206 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astropy.coordinates.builtin_frames.gcrs &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../../../../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="../../../index.html" >Module code</a> &#187;</li>
+      <li><a href="../builtin_frames.html" accesskey="U">astropy.coordinates.builtin_frames</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for astropy.coordinates.builtin_frames.gcrs</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">from</span> <span class="nn">astropy.utils.decorators</span> <span class="kn">import</span> <span class="n">format_doc</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.attributes</span> <span class="kn">import</span> <span class="p">(</span><span class="n">TimeAttribute</span><span class="p">,</span>
+                                            <span class="n">CartesianRepresentationAttribute</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">DEFAULT_OBSTIME</span><span class="p">,</span> <span class="n">EQUINOX_J2000</span>
+<span class="kn">from</span> <span class="nn">astropy.coordinates.baseframe</span> <span class="kn">import</span> <span class="n">base_doc</span>
+<span class="kn">from</span> <span class="nn">.baseradec</span> <span class="kn">import</span> <span class="n">BaseRADecFrame</span><span class="p">,</span> <span class="n">doc_components</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;GCRS&#39;</span><span class="p">,</span> <span class="s1">&#39;PrecessedGeocentric&#39;</span><span class="p">]</span>
+
+
+<span class="n">doc_footer_gcrs</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Other parameters</span>
+<span class="s2">    ----------------</span>
+<span class="s2">    obstime : `~astropy.time.Time`</span>
+<span class="s2">        The time at which the observation is taken.  Used for determining the</span>
+<span class="s2">        position of the Earth.</span>
+<span class="s2">    obsgeoloc : `~astropy.coordinates.CartesianRepresentation`, `~astropy.units.Quantity`</span>
+<span class="s2">        The position of the observer relative to the center-of-mass of the</span>
+<span class="s2">        Earth, oriented the same as BCRS/ICRS. Either [0, 0, 0],</span>
+<span class="s2">        `~astropy.coordinates.CartesianRepresentation`, or proper input for one,</span>
+<span class="s2">        i.e., a `~astropy.units.Quantity` with shape (3, ...) and length units.</span>
+<span class="s2">        Defaults to [0, 0, 0], meaning &quot;true&quot; GCRS.</span>
+<span class="s2">    obsgeovel : `~astropy.coordinates.CartesianRepresentation`, `~astropy.units.Quantity`</span>
+<span class="s2">        The velocity of the observer relative to the center-of-mass of the</span>
+<span class="s2">        Earth, oriented the same as BCRS/ICRS. Either [0, 0, 0],</span>
+<span class="s2">        `~astropy.coordinates.CartesianRepresentation`, or proper input for one,</span>
+<span class="s2">        i.e., a `~astropy.units.Quantity` with shape (3, ...) and velocity</span>
+<span class="s2">        units.  Defaults to [0, 0, 0], meaning &quot;true&quot; GCRS.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="GCRS"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.GCRS.html#astropy.coordinates.GCRS">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components</span><span class="p">,</span> <span class="n">footer</span><span class="o">=</span><span class="n">doc_footer_gcrs</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">GCRS</span><span class="p">(</span><span class="n">BaseRADecFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A coordinate or frame in the Geocentric Celestial Reference System (GCRS).</span>
+
+<span class="sd">    GCRS is distinct form ICRS mainly in that it is relative to the Earth&#39;s</span>
+<span class="sd">    center-of-mass rather than the solar system Barycenter.  That means this</span>
+<span class="sd">    frame includes the effects of aberration (unlike ICRS). For more background</span>
+<span class="sd">    on the GCRS, see the references provided in the</span>
+<span class="sd">    :ref:`astropy:astropy-coordinates-seealso` section of the documentation. (Of</span>
+<span class="sd">    particular note is Section 1.2 of</span>
+<span class="sd">    `USNO Circular 179 &lt;https://arxiv.org/abs/astro-ph/0602086&gt;`_)</span>
+
+<span class="sd">    This frame also includes frames that are defined *relative* to the Earth,</span>
+<span class="sd">    but that are offset (in both position and velocity) from the Earth.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">obstime</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_OBSTIME</span><span class="p">)</span>
+    <span class="n">obsgeoloc</span> <span class="o">=</span> <span class="n">CartesianRepresentationAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                                                 <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">obsgeovel</span> <span class="o">=</span> <span class="n">CartesianRepresentationAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                                                 <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span></div>
+
+
+<span class="c1"># The &quot;self-transform&quot; is defined in icrs_cirs_transformations.py, because in</span>
+<span class="c1"># the current implementation it goes through ICRS (like CIRS)</span>
+
+
+<span class="n">doc_footer_prec_geo</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Other parameters</span>
+<span class="s2">    ----------------</span>
+<span class="s2">    equinox : `~astropy.time.Time`</span>
+<span class="s2">        The (mean) equinox to precess the coordinates to.</span>
+<span class="s2">    obstime : `~astropy.time.Time`</span>
+<span class="s2">        The time at which the observation is taken.  Used for determining the</span>
+<span class="s2">        position of the Earth.</span>
+<span class="s2">    obsgeoloc : `~astropy.coordinates.CartesianRepresentation`, `~astropy.units.Quantity`</span>
+<span class="s2">        The position of the observer relative to the center-of-mass of the</span>
+<span class="s2">        Earth, oriented the same as BCRS/ICRS. Either [0, 0, 0],</span>
+<span class="s2">        `~astropy.coordinates.CartesianRepresentation`, or proper input for one,</span>
+<span class="s2">        i.e., a `~astropy.units.Quantity` with shape (3, ...) and length units.</span>
+<span class="s2">        Defaults to [0, 0, 0], meaning &quot;true&quot; Geocentric.</span>
+<span class="s2">    obsgeovel : `~astropy.coordinates.CartesianRepresentation`, `~astropy.units.Quantity`</span>
+<span class="s2">        The velocity of the observer relative to the center-of-mass of the</span>
+<span class="s2">        Earth, oriented the same as BCRS/ICRS. Either 0,</span>
+<span class="s2">        `~astropy.coordinates.CartesianRepresentation`, or proper input for one,</span>
+<span class="s2">        i.e., a `~astropy.units.Quantity` with shape (3, ...) and velocity</span>
+<span class="s2">        units. Defaults to [0, 0, 0], meaning &quot;true&quot; Geocentric.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="PrecessedGeocentric"><a class="viewcode-back" href="../../../../api/astropy.coordinates.builtin_frames.PrecessedGeocentric.html#astropy.coordinates.PrecessedGeocentric">[docs]</a><span class="nd">@format_doc</span><span class="p">(</span><span class="n">base_doc</span><span class="p">,</span> <span class="n">components</span><span class="o">=</span><span class="n">doc_components</span><span class="p">,</span> <span class="n">footer</span><span class="o">=</span><span class="n">doc_footer_prec_geo</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">PrecessedGeocentric</span><span class="p">(</span><span class="n">BaseRADecFrame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A coordinate frame defined in a similar manner as GCRS, but precessed to a</span>
+<span class="sd">    requested (mean) equinox.  Note that this does *not* end up the same as</span>
+<span class="sd">    regular GCRS even for J2000 equinox, because the GCRS orientation is fixed</span>
+<span class="sd">    to that of ICRS, which is not quite the same as the dynamical J2000</span>
+<span class="sd">    orientation.</span>
+
+<span class="sd">    The frame attributes are listed under **Other Parameters**</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">equinox</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">EQUINOX_J2000</span><span class="p">)</span>
+    <span class="n">obstime</span> <span class="o">=</span> <span class="n">TimeAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_OBSTIME</span><span class="p">)</span>
+    <span class="n">obsgeoloc</span> <span class="o">=</span> <span class="n">CartesianRepresentationAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">obsgeovel</span> <span class="o">=</span> <span class="n">CartesianRepresentationAttribute</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="o">/</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 09 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

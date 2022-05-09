@@ -1,0 +1,349 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Support for units and quantities &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Performance Tips" href="performance.html" />
+    <link rel="prev" title="Fitting Models to Data" href="fitting.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="performance.html" title="Performance Tips">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="fitting.html" title="Fitting Models to Data">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Models and Fitting (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling</span></code>)</a> &#187;</li>
+      
+      <li>Support for units and quantities</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="support-for-units-and-quantities">
+<span id="modeling-units"></span><h1>Support for units and quantities<a class="headerlink" href="#support-for-units-and-quantities" title="Permalink to this headline">¶</a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The functionality presented here was recently added. If you run into
+any issues, please don’t hesitate to open an issue in the <a class="reference external" href="https://github.com/astropy/astropy/issues">issue
+tracker</a>.</p>
+</div>
+<p>The <a class="reference internal" href="reference_api.html#module-astropy.modeling" title="astropy.modeling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.modeling</span></code></a> package includes partial support for the use of units and
+quantities in model parameters, models, and during fitting. At this time, only
+some of the built-in models (such as
+<a class="reference internal" href="../api/astropy.modeling.functional_models.Gaussian1D.html#astropy.modeling.functional_models.Gaussian1D" title="astropy.modeling.functional_models.Gaussian1D"><code class="xref py py-class docutils literal notranslate"><span class="pre">Gaussian1D</span></code></a>) support units, but this
+will be extended in future to all models where this is appropriate.</p>
+<div class="section" id="setting-parameters-to-quantities">
+<h2>Setting parameters to quantities<a class="headerlink" href="#setting-parameters-to-quantities" title="Permalink to this headline">¶</a></h2>
+<p>Models can take <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quantity</span></code></a> objects as parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling.models</span> <span class="kn">import</span> <span class="n">Gaussian1D</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span> <span class="o">=</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="mi">3</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="mi">2</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">3</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Jy</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Accessing the parameter then returns a Parameter object that contains the value
+and the unit:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span><span class="o">.</span><span class="n">mean</span>
+<span class="go">Parameter(&#39;mean&#39;, value=3.0, unit=m)</span>
+</pre></div>
+</div>
+<p>It is then possible to access the individual properties of the parameter:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span><span class="o">.</span><span class="n">mean</span><span class="o">.</span><span class="n">name</span>
+<span class="go">&#39;mean&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span><span class="o">.</span><span class="n">mean</span><span class="o">.</span><span class="n">value</span>
+<span class="go">3.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span><span class="o">.</span><span class="n">mean</span><span class="o">.</span><span class="n">unit</span>
+<span class="go">Unit(&quot;m&quot;)</span>
+</pre></div>
+</div>
+<p>If a parameter has been initialized as a Quantity, it should always be set to a
+quantity, but the units don’t have to be compatible with the initial ones:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span><span class="o">.</span><span class="n">mean</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span>  
+<span class="go">&lt;Gaussian1D(amplitude=3. Jy, mean=3. s, stddev=2. cm)&gt;</span>
+</pre></div>
+</div>
+<p>To change the value of a parameter and not the unit, simply set the value
+property:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span><span class="o">.</span><span class="n">mean</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span>  
+<span class="go">&lt;Gaussian1D(amplitude=3. Jy, mean=2. s, stddev=2. cm)&gt;</span>
+</pre></div>
+</div>
+<p>Setting a parameter which was originally set to a quantity to a scalar doesn’t
+work because it’s ambiguous whether the user means to change just the value and
+preserve the unit, or get rid of the unit:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g1</span><span class="o">.</span><span class="n">mean</span> <span class="o">=</span> <span class="mi">2</span>  
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">UnitsError </span>: <span class="n">The &#39;mean&#39; parameter should be given as a Quantity because it</span>
+<span class="go">was originally initialized as a Quantity</span>
+</pre></div>
+</div>
+<p>On the other hand, if a parameter previously defined without units is given a
+Quantity with a unit, this works because it is unambiguous:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g2</span> <span class="o">=</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g2</span><span class="o">.</span><span class="n">mean</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span>
+</pre></div>
+</div>
+<p>In other words, once units are attached to a parameter, they can’t be removed
+due to ambiguous meaning.</p>
+</div>
+<div class="section" id="evaluating-models-with-quantities">
+<h2>Evaluating models with quantities<a class="headerlink" href="#evaluating-models-with-quantities" title="Permalink to this headline">¶</a></h2>
+<p>Quantities can be passed to model during evaluation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g3</span> <span class="o">=</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="mi">3</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="mi">5</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">cm</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g3</span><span class="p">(</span><span class="mf">2.9</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>  
+<span class="go">&lt;Quantity 0.1353352832366122&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g3</span><span class="p">(</span><span class="mf">2.9</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">)</span>  
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">UnitsError </span>: <span class="n">Units of input &#39;x&#39;, s (time), could not be converted to</span>
+<span class="go">required input units of m (length)</span>
+</pre></div>
+</div>
+<p>In this case, since the mean and standard deviation have units, the value passed
+during evaluation also needs units:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g3</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>  
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">UnitsError </span>: <span class="n">Units of input &#39;x&#39;, (dimensionless), could not be converted to</span>
+<span class="go">required input units of m (length)</span>
+</pre></div>
+</div>
+<div class="section" id="equivalencies">
+<h3>Equivalencies<a class="headerlink" href="#equivalencies" title="Permalink to this headline">¶</a></h3>
+<p>Equivalencies require special care - a Gaussian defined in frequency space is
+not a Gaussian in wavelength space for example. For this reason, we don’t allow
+equivalencies to be attached to the parameters themselves. Instead, we take the
+approach of converting the input data to the parameter space, and any
+equivalencies should be applied at evaluation time to the data (not the
+parameters).</p>
+<p>Let’s consider a model that is Gaussian in wavelength space:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g4</span> <span class="o">=</span> <span class="n">Gaussian1D</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="mi">3</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">micron</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="mi">1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">micron</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">3</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Jy</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>By default, passing a frequency will not work:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g4</span><span class="p">(</span><span class="mf">1e2</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">THz</span><span class="p">)</span>  
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">UnitsError </span>: <span class="n">Units of input &#39;x&#39;, THz (frequency), could not be converted to</span>
+<span class="go">required input units of micron (length)</span>
+</pre></div>
+</div>
+<p>But you can pass a dictionary of equivalencies to the equivalencies argument
+(this needs to be a dictionary since some models can contain multiple inputs):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g4</span><span class="p">(</span><span class="mi">110</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">THz</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">spectral</span><span class="p">()})</span>  
+<span class="go">&lt;Quantity 2.888986819525229 Jy&gt;</span>
+</pre></div>
+</div>
+<p>The key of the dictionary should be the name of the inputs according to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g4</span><span class="o">.</span><span class="n">inputs</span>
+<span class="go">(&#39;x&#39;,)</span>
+</pre></div>
+</div>
+<p>It is also possible to set default equivalencies for the input parameters using
+the input_units_equivalencies property:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g4</span><span class="o">.</span><span class="n">input_units_equivalencies</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">spectral</span><span class="p">()}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g4</span><span class="p">(</span><span class="mi">110</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">THz</span><span class="p">)</span>  
+<span class="go">&lt;Quantity 2.888986819525229 Jy&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="fitting-models-with-units-to-data">
+<h2>Fitting models with units to data<a class="headerlink" href="#fitting-models-with-units-to-data" title="Permalink to this headline">¶</a></h2>
+<p>Fitting models with units to data with units should be seamless provided that
+the model supports fitting with units. To demonstrate this, we start off by
+generating synthetic data:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">micron</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="mf">2.5</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">micron</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">200</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">nm</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">mJy</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s1">&#39;ko&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Wavelength (microns)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Flux density (mJy)&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../modeling/units-1.png">png</a>, <a class="reference external" href="../modeling/units-1.svg">svg</a>, <a class="reference external" href="../modeling/units-1.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/units-1.png" class="plot-directive" src="../_images/units-1.png" />
+</div>
+<p>and we then define the initial guess for the fitting and we carry out the fit as
+we would without any units:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">astropy.modeling</span> <span class="kn">import</span> <span class="n">models</span><span class="p">,</span> <span class="n">fitting</span>
+
+<span class="n">g5</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Gaussian1D</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="mi">3</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">micron</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="mi">1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">micron</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Jy</span><span class="p">)</span>
+
+<span class="n">fitter</span> <span class="o">=</span> <span class="n">fitting</span><span class="o">.</span><span class="n">LevMarLSQFitter</span><span class="p">()</span>
+
+<span class="n">g5_fit</span> <span class="o">=</span> <span class="n">fitter</span><span class="p">(</span><span class="n">g5</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s1">&#39;ko&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g5_fit</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;r-&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Wavelength (microns)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Flux density (mJy)&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../modeling/units-2.png">png</a>, <a class="reference external" href="../modeling/units-2.svg">svg</a>, <a class="reference external" href="../modeling/units-2.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/units-2.png" class="plot-directive" src="../_images/units-2.png" />
+</div>
+<div class="section" id="fitting-with-equivalencies">
+<h3>Fitting with equivalencies<a class="headerlink" href="#fitting-with-equivalencies" title="Permalink to this headline">¶</a></h3>
+<p>Let’s now consider the case where the data is not equivalent to those of the
+parameters, but they are convertible via equivalencies. In this case, the
+equivalencies can either be passed via a dictionary as shown higher up for the
+evaluation examples:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">g6</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Gaussian1D</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="mi">110</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">THz</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="mi">10</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">THz</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">1</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Jy</span><span class="p">)</span>
+
+<span class="n">g6_fit</span> <span class="o">=</span> <span class="n">fitter</span><span class="p">(</span><span class="n">g6</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">spectral</span><span class="p">()})</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">g6_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">equivalencies</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">spectral</span><span class="p">()}),</span> <span class="s1">&#39;b-&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Wavelength (microns)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Flux density (mJy)&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="../modeling/units-3.png">png</a>, <a class="reference external" href="../modeling/units-3.svg">svg</a>, <a class="reference external" href="../modeling/units-3.pdf">pdf</a>)</p>
+<div class="figure align-default">
+<img alt="../_images/units-3.png" class="plot-directive" src="../_images/units-3.png" />
+</div>
+<p>In this case, the fit (in blue) is slightly worse, because a Gaussian in
+frequency space (blue) is not a Gaussian in wavelength space (red). As mentioned
+previously, you can also set input_units_equivalencies on the model itself to
+avoid having to pass extra arguments to the fitter:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">g6</span><span class="o">.</span><span class="n">input_units_equivalencies</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">spectral</span><span class="p">()}</span>
+<span class="n">g6_fit</span> <span class="o">=</span> <span class="n">fitter</span><span class="p">(</span><span class="n">g6</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="support-for-units-in-otherwise-unitless-models">
+<span id="units-mapping"></span><h2>Support for units in otherwise unitless models<a class="headerlink" href="#support-for-units-in-otherwise-unitless-models" title="Permalink to this headline">¶</a></h2>
+<p>Some models, like polynomials, do not work intrinsically with units. Instead,
+the <a class="reference internal" href="../api/astropy.modeling.Model.html#astropy.modeling.Model.coerce_units" title="astropy.modeling.core.Model"><code class="xref py py-meth docutils literal notranslate"><span class="pre">coerce_units()</span></code></a> method provides a way to add input and return units to
+unitless models by enclosing the unitless model with two instances of <a class="reference internal" href="../api/astropy.modeling.mappings.UnitsMapping.html#astropy.modeling.mappings.UnitsMapping" title="astropy.modeling.mappings.UnitsMapping"><code class="xref py py-class docutils literal notranslate"><span class="pre">UnitsMapping</span></code></a>.
+Internally the inputs are stripped of the units before passed
+to the model and units are attached to the result if <code class="docutils literal notranslate"><span class="pre">return_units</span></code> is specified.
+The method returns a new composite model:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.modeling</span> <span class="kn">import</span> <span class="n">models</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy</span> <span class="kn">import</span> <span class="n">units</span> <span class="k">as</span> <span class="n">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Polynomial1D</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">c0</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">c1</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new_model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">coerce_units</span><span class="p">(</span><span class="n">input_units</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">},</span> <span class="n">return_units</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">},</span>
+<span class="gp">... </span><span class="n">input_units_equivalencies</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span><span class="n">u</span><span class="o">.</span><span class="n">spectral</span><span class="p">()})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">new_model</span><span class="p">(</span><span class="mi">10</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Hz</span><span class="p">)</span>
+<span class="go">&lt;Quantity 21. s&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Support for units and quantities</a><ul>
+<li><a class="reference internal" href="#setting-parameters-to-quantities">Setting parameters to quantities</a></li>
+<li><a class="reference internal" href="#evaluating-models-with-quantities">Evaluating models with quantities</a><ul>
+<li><a class="reference internal" href="#equivalencies">Equivalencies</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#fitting-models-with-units-to-data">Fitting models with units to data</a><ul>
+<li><a class="reference internal" href="#fitting-with-equivalencies">Fitting with equivalencies</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#support-for-units-in-otherwise-unitless-models">Support for units in otherwise unitless models</a></li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/modeling/units.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

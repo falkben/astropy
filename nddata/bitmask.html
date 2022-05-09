@@ -1,0 +1,408 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Utility Functions for Handling Bit Masks and Mask Arrays &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Decorating Functions to Accept NDData Objects" href="decorator.html" />
+    <link rel="prev" title="Image Utilities" href="utils.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="decorator.html" title="Decorating Functions to Accept NDData Objects">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="utils.html" title="Image Utilities">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">N-Dimensional Datasets (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.nddata</span></code>)</a> &#187;</li>
+      
+      <li>Utility Functions for Handling Bit Masks and Mask Arrays</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="utility-functions-for-handling-bit-masks-and-mask-arrays">
+<span id="bitmask-details"></span><h1>Utility Functions for Handling Bit Masks and Mask Arrays<a class="headerlink" href="#utility-functions-for-handling-bit-masks-and-mask-arrays" title="Permalink to this headline">¶</a></h1>
+<p>It is common to use <a class="reference external" href="https://en.wikipedia.org/wiki/Bit_field">bit fields</a>,
+such as integer variables whose individual bits represent some attributes, to
+characterize the state of data. For example, Hubble Space Telescope (HST) uses
+arrays of bit fields to characterize data quality (DQ) of HST images. See, for
+example, DQ field values for <a class="reference external" href="https://www.stsci.edu/files/live/sites/www/files/home/hst/instrumentation/legacy/wfpc2/_documents/wfpc2_dhb.pdf">WFPC2 image data (see Table 3.3)</a> and <a class="reference external" href="https://hst-docs.stsci.edu/wfc3dhb/chapter-3-wfc3-data-calibration/3-3-ir-data-calibration-steps#id-3.3IRDataCalibrationSteps-3.3.1DataQualityInitialization">WFC3 image data (see Table 3.3)</a>.
+As you can see, the meaning assigned to various <em>bit flags</em> for the two
+instruments is generally different.</p>
+<p>Bit fields can be thought of as tightly packed collections of bit flags. Using
+<a class="reference external" href="https://en.wikipedia.org/wiki/Mask_(computing)">masking</a> we can “inspect”
+the status of individual bits.</p>
+<p>One common operation performed on bit field arrays is their conversion to
+boolean masks, for example, by assigning boolean <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a> (in the boolean
+mask) to those elements that correspond to non-zero-valued bit fields
+(bit fields with at least one bit set to <code class="docutils literal notranslate"><span class="pre">1</span></code>) or, oftentimes, by assigning
+<a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a> to elements whose corresponding bit fields have only <em>specific fields</em>
+set (to <code class="docutils literal notranslate"><span class="pre">1</span></code>). This more sophisticated analysis of bit fields can be
+accomplished using <em>bit masks</em> and the aforementioned masking operation.</p>
+<p>The <a class="reference internal" href="index.html#module-astropy.nddata.bitmask" title="astropy.nddata.bitmask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bitmask</span></code></a> module provides two functions that facilitate
+conversion of bit field arrays (i.e., DQ arrays) to boolean masks:
+<a class="reference internal" href="../api/astropy.nddata.bitmask.bitfield_to_boolean_mask.html#astropy.nddata.bitmask.bitfield_to_boolean_mask" title="astropy.nddata.bitmask.bitfield_to_boolean_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bitfield_to_boolean_mask</span></code></a> converts an input bit
+field array to a boolean mask using an input bit mask (or list of individual
+bit flags) and <a class="reference internal" href="../api/astropy.nddata.bitmask.interpret_bit_flags.html#astropy.nddata.bitmask.interpret_bit_flags" title="astropy.nddata.bitmask.interpret_bit_flags"><code class="xref py py-obj docutils literal notranslate"><span class="pre">interpret_bit_flags</span></code></a> creates a bit mask
+from an input list of individual bit flags.</p>
+<div class="section" id="creating-boolean-masks">
+<h2>Creating Boolean Masks<a class="headerlink" href="#creating-boolean-masks" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="overview">
+<h3>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference internal" href="../api/astropy.nddata.bitmask.bitfield_to_boolean_mask.html#astropy.nddata.bitmask.bitfield_to_boolean_mask" title="astropy.nddata.bitmask.bitfield_to_boolean_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bitfield_to_boolean_mask</span></code></a> by default assumes that
+all input bit fields that have at least one bit turned “ON” corresponds to
+“bad” data (i.e., pixels) and converts them to boolean <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a> in the output
+boolean mask (otherwise output boolean mask values are set to <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>).</p>
+<p>Often, for specific algorithms and situations, some bit flags are okay and
+can be ignored. <a class="reference internal" href="../api/astropy.nddata.bitmask.bitfield_to_boolean_mask.html#astropy.nddata.bitmask.bitfield_to_boolean_mask" title="astropy.nddata.bitmask.bitfield_to_boolean_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bitfield_to_boolean_mask</span></code></a> accepts
+lists of bit flags that <em>by default must be ignored</em> in the input bit fields
+when creating boolean masks.</p>
+<p>Fundamentally, <em>by default</em>, <a class="reference internal" href="../api/astropy.nddata.bitmask.bitfield_to_boolean_mask.html#astropy.nddata.bitmask.bitfield_to_boolean_mask" title="astropy.nddata.bitmask.bitfield_to_boolean_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bitfield_to_boolean_mask</span></code></a>
+performs the following operation:</p>
+<p id="main-eq"><code class="docutils literal notranslate"><span class="pre">(1)</span>&#160;&#160;&#160; <span class="pre">boolean_mask</span> <span class="pre">=</span> <span class="pre">(bitfield</span> <span class="pre">&amp;</span> <span class="pre">~bit_mask)</span> <span class="pre">!=</span> <span class="pre">0</span></code></p>
+<p>(Here <code class="docutils literal notranslate"><span class="pre">&amp;</span></code> is bitwise <code class="docutils literal notranslate"><span class="pre">and</span></code> while <code class="docutils literal notranslate"><span class="pre">~</span></code> is the bitwise <code class="docutils literal notranslate"><span class="pre">not</span></code>
+operation.) In the previous formula, <code class="docutils literal notranslate"><span class="pre">bit_mask</span></code> is a bit mask created from
+individual bit flags that need to be ignored in the bit field.</p>
+<div class="section" id="example">
+<h4>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<span id="table1"></span><table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Table 1: Examples of Boolean Mask Computations        (default parameters and 8-bit data type)</span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 21%" />
+<col style="width: 18%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Bit Field</p></th>
+<th class="head"><p>Bit Mask</p></th>
+<th class="head"><p>~(Bit Mask)</p></th>
+<th class="head"><p>Bit Field &amp;
+~(Bit Mask)</p></th>
+<th class="head"><p>Boolean Mask</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>11011001 (217)</p></td>
+<td><p>01010000 (80)</p></td>
+<td><p>10101111 (175)</p></td>
+<td><p>10001001 (137)</p></td>
+<td><p>True</p></td>
+</tr>
+<tr class="row-odd"><td><p>11011001 (217)</p></td>
+<td><p>10101111 (175)</p></td>
+<td><p>01010000 (80)</p></td>
+<td><p>01010000 (80)</p></td>
+<td><p>True</p></td>
+</tr>
+<tr class="row-even"><td><p>00001001 (9)</p></td>
+<td><p>01001001 (73)</p></td>
+<td><p>10110110 (182)</p></td>
+<td><p>00000000 (0)</p></td>
+<td><p>False</p></td>
+</tr>
+<tr class="row-odd"><td><p>00001001 (9)</p></td>
+<td><p>00000000 (0)</p></td>
+<td><p>11111111 (255)</p></td>
+<td><p>00001001 (9)</p></td>
+<td><p>True</p></td>
+</tr>
+<tr class="row-even"><td><p>00001001 (9)</p></td>
+<td><p>11111111 (255)</p></td>
+<td><p>00000000 (0)</p></td>
+<td><p>00000000 (0)</p></td>
+<td><p>False</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="specifying-bit-flags">
+<h3>Specifying Bit Flags<a class="headerlink" href="#specifying-bit-flags" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference internal" href="../api/astropy.nddata.bitmask.bitfield_to_boolean_mask.html#astropy.nddata.bitmask.bitfield_to_boolean_mask" title="astropy.nddata.bitmask.bitfield_to_boolean_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bitfield_to_boolean_mask</span></code></a> accepts either an integer
+bit mask or lists of bit flags. Lists of bit flags will be combined into a
+bit mask and can be provided either as a Python list of
+<strong>integer bit flag values</strong> or as a comma-separated (or <code class="docutils literal notranslate"><span class="pre">+</span></code>-separated)
+list of integer bit flag values. Consider the bit mask from the first example
+in <a class="reference internal" href="#table1">Table 1</a>. In this case <code class="docutils literal notranslate"><span class="pre">ignore_flags</span></code> can be set either to:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>An integer value bit mask 80</p></li>
+<li><p>A Python list indicating individual non-zero
+<em>bit flag values:</em> <code class="docutils literal notranslate"><span class="pre">[16,</span> <span class="pre">64]</span></code></p></li>
+<li><p>A string of comma-separated <em>bit flag values or mnemonic names</em>: <code class="docutils literal notranslate"><span class="pre">'16,64'</span></code>, <code class="docutils literal notranslate"><span class="pre">'CR,WARM'</span></code></p></li>
+<li><p>A string of <code class="docutils literal notranslate"><span class="pre">+</span></code>-separated <em>bit flag values or mnemonic names</em>: <code class="docutils literal notranslate"><span class="pre">'16+64'</span></code>, <code class="docutils literal notranslate"><span class="pre">'CR+WARM'</span></code></p></li>
+</ul>
+</div></blockquote>
+<div class="section" id="id1">
+<h4>Example<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
+<p>To specify bit flags:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.nddata</span> <span class="kn">import</span> <span class="n">bitmask</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bitmask</span><span class="o">.</span><span class="n">bitfield_to_boolean_mask</span><span class="p">(</span><span class="mi">217</span><span class="p">,</span> <span class="n">ignore_flags</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span>
+<span class="go">array(True...)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bitmask</span><span class="o">.</span><span class="n">bitfield_to_boolean_mask</span><span class="p">(</span><span class="mi">217</span><span class="p">,</span> <span class="n">ignore_flags</span><span class="o">=</span><span class="s1">&#39;16,64&#39;</span><span class="p">)</span>
+<span class="go">array(True...)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bitmask</span><span class="o">.</span><span class="n">bitfield_to_boolean_mask</span><span class="p">(</span><span class="mi">217</span><span class="p">,</span> <span class="n">ignore_flags</span><span class="o">=</span><span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">64</span><span class="p">])</span>
+<span class="go">array(True...)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bitmask</span><span class="o">.</span><span class="n">bitfield_to_boolean_mask</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="n">ignore_flags</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">64</span><span class="p">])</span>
+<span class="go">array(False...)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bitmask</span><span class="o">.</span><span class="n">bitfield_to_boolean_mask</span><span class="p">([</span><span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">73</span><span class="p">,</span> <span class="mi">217</span><span class="p">],</span> <span class="n">ignore_flags</span><span class="o">=</span><span class="s1">&#39;1,8,64&#39;</span><span class="p">)</span>
+<span class="go">array([False,  True, False,  True]...)</span>
+</pre></div>
+</div>
+<p>It is also possible to specify the type of the output mask:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bitmask</span><span class="o">.</span><span class="n">bitfield_to_boolean_mask</span><span class="p">([</span><span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">73</span><span class="p">,</span> <span class="mi">217</span><span class="p">],</span> <span class="n">ignore_flags</span><span class="o">=</span><span class="s1">&#39;1,8,64&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+<span class="go">array([0, 1, 0, 1], dtype=uint8)</span>
+</pre></div>
+</div>
+<p>In order to use lists of mnemonic bit flags names, one must provide a map,
+a subclass of <a class="reference internal" href="../api/astropy.nddata.bitmask.BitFlagNameMap.html#astropy.nddata.bitmask.BitFlagNameMap" title="astropy.nddata.bitmask.BitFlagNameMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BitFlagNameMap</span></code></a>, that can be
+used to map mnemonic names to bit flag values. Normally these maps should be
+provided by a third-party package supporting a specific instrument. Each bit
+flag in the map may also contain a string comment following the flag value.
+In the example below we define a simple mask map:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.nddata.bitmask</span> <span class="kn">import</span> <span class="n">BitFlagNameMap</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">ST_DQ</span><span class="p">(</span><span class="n">BitFlagNameMap</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">CR</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">... </span>    <span class="n">CLOUDY</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="gp">... </span>    <span class="n">RAINY</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;Dome closed&#39;</span>
+<span class="gp">... </span>    <span class="n">HOT</span> <span class="o">=</span> <span class="mi">32</span>
+<span class="gp">... </span>    <span class="n">DEAD</span> <span class="o">=</span> <span class="mi">64</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bitmask</span><span class="o">.</span><span class="n">bitfield_to_boolean_mask</span><span class="p">([</span><span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">73</span><span class="p">,</span> <span class="mi">217</span><span class="p">],</span> <span class="n">ignore_flags</span><span class="o">=</span><span class="s1">&#39;CR,RAINY,DEAD&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                                 <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">flag_name_map</span><span class="o">=</span><span class="n">ST_DQ</span><span class="p">)</span>
+<span class="go">array([0, 1, 0, 1], dtype=uint8)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="using-bit-flags-name-maps">
+<h3>Using Bit Flags Name Maps<a class="headerlink" href="#using-bit-flags-name-maps" title="Permalink to this headline">¶</a></h3>
+<p>In order to allow the use of mnemonic bit flag names to describe the flags
+to be taken into consideration or ignored when creating a <em>boolean</em> mask, we
+use bit flag name maps. These maps perform case-insensitive translation of
+mnemonic bit flag names to the corresponding integer value.</p>
+<p>Bit flag name maps are subclasses of <a class="reference internal" href="../api/astropy.nddata.bitmask.BitFlagNameMap.html#astropy.nddata.bitmask.BitFlagNameMap" title="astropy.nddata.bitmask.BitFlagNameMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BitFlagNameMap</span></code></a>
+and can be constructed in two ways, either by directly subclassing
+<a class="reference internal" href="../api/astropy.nddata.bitmask.BitFlagNameMap.html#astropy.nddata.bitmask.BitFlagNameMap" title="astropy.nddata.bitmask.BitFlagNameMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BitFlagNameMap</span></code></a>, e.g.,</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.nddata.bitmask</span> <span class="kn">import</span> <span class="n">BitFlagNameMap</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">ST_DQ</span><span class="p">(</span><span class="n">BitFlagNameMap</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">CR</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="gp">... </span>    <span class="n">CLOUDY</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="gp">... </span>    <span class="n">RAINY</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">ST_CAM1_DQ</span><span class="p">(</span><span class="n">ST_DQ</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">HOT</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="gp">... </span>    <span class="n">DEAD</span> <span class="o">=</span> <span class="mi">32</span>
+</pre></div>
+</div>
+<p>or by using the <a class="reference internal" href="../api/astropy.nddata.bitmask.extend_bit_flag_map.html#astropy.nddata.bitmask.extend_bit_flag_map" title="astropy.nddata.bitmask.extend_bit_flag_map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extend_bit_flag_map</span></code></a> class factory:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.nddata.bitmask</span> <span class="kn">import</span> <span class="n">extend_bit_flag_map</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ST_DQ</span> <span class="o">=</span> <span class="n">extend_bit_flag_map</span><span class="p">(</span><span class="s1">&#39;ST_DQ&#39;</span><span class="p">,</span> <span class="n">CR</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">CLOUDY</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">RAINY</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ST_CAM1_DQ</span> <span class="o">=</span> <span class="n">extend_bit_flag_map</span><span class="p">(</span><span class="s1">&#39;ST_CAM1_DQ&#39;</span><span class="p">,</span> <span class="n">ST_DQ</span><span class="p">,</span> <span class="n">HOT</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">DEAD</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Bit flag values must be integer numbers that are powers of 2.</p>
+</div>
+<p>Once constructed, bit flag values of a map cannot be modified, deleted, or
+added. Adding flags to a map is allowed only through subclassing using one of
+the two methods shown above or by adding lists of tuples of
+the form <code class="docutils literal notranslate"><span class="pre">('NAME',</span> <span class="pre">value)</span></code> to the class. This will create a new map class
+subclassed from the original map but containing the additional flags</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ST_CAM1_DQ</span> <span class="o">=</span> <span class="n">ST_DQ</span> <span class="o">+</span> <span class="p">[(</span><span class="s1">&#39;HOT&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;DEAD&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>would result in an equivalent map as in the subclassing or class factory
+examples shown above.</p>
+<p>Once a bit flag name map was created, the bit flag values can be accessed
+either as <em>case-insensitive</em> class attributes or keys in a dictionary:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ST_CAM1_DQ</span><span class="o">.</span><span class="n">cloudy</span>
+<span class="go">4</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ST_CAM1_DQ</span><span class="p">[</span><span class="s1">&#39;Rainy&#39;</span><span class="p">]</span>
+<span class="go">8</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="modifying-the-formula-for-creating-boolean-masks">
+<h3>Modifying the Formula for Creating Boolean Masks<a class="headerlink" href="#modifying-the-formula-for-creating-boolean-masks" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference internal" href="../api/astropy.nddata.bitmask.bitfield_to_boolean_mask.html#astropy.nddata.bitmask.bitfield_to_boolean_mask" title="astropy.nddata.bitmask.bitfield_to_boolean_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bitfield_to_boolean_mask</span></code></a> provides several parameters
+that can be used to modify the formula used to create boolean masks.</p>
+<div class="section" id="inverting-bit-masks">
+<h4>Inverting Bit Masks<a class="headerlink" href="#inverting-bit-masks" title="Permalink to this headline">¶</a></h4>
+<p>Sometimes it is more convenient to be able to specify those bit
+flags that <em>must be considered</em> when creating the boolean mask, and all other
+flags should be ignored.</p>
+<div class="section" id="id2">
+<h5>Example<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h5>
+<p>In <a class="reference internal" href="../api/astropy.nddata.bitmask.bitfield_to_boolean_mask.html#astropy.nddata.bitmask.bitfield_to_boolean_mask" title="astropy.nddata.bitmask.bitfield_to_boolean_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bitfield_to_boolean_mask</span></code></a> specifying bit flags that
+must be considered when creating the boolean mask can be accomplished by
+setting the parameter <code class="docutils literal notranslate"><span class="pre">flip_bits</span></code> to <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>. This effectively modifies
+<a class="reference internal" href="#main-eq">equation (1)</a> to:</p>
+<p id="modif-eq2"><code class="docutils literal notranslate"><span class="pre">(2)</span>&#160;&#160;&#160; <span class="pre">boolean_mask</span> <span class="pre">=</span> <span class="pre">(bitfield</span> <span class="pre">&amp;</span> <span class="pre">bit_mask)</span> <span class="pre">!=</span> <span class="pre">0</span></code></p>
+<p>So, instead of:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bitmask</span><span class="o">.</span><span class="n">bitfield_to_boolean_mask</span><span class="p">([</span><span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">73</span><span class="p">,</span> <span class="mi">217</span><span class="p">],</span> <span class="n">ignore_flags</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">64</span><span class="p">])</span>
+<span class="go">array([False,  True, False,  True]...)</span>
+</pre></div>
+</div>
+<p>You can obtain the same result as:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bitmask</span><span class="o">.</span><span class="n">bitfield_to_boolean_mask</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">73</span><span class="p">,</span> <span class="mi">217</span><span class="p">],</span> <span class="n">ignore_flags</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">128</span><span class="p">],</span> <span class="n">flip_bits</span><span class="o">=</span><span class="kc">True</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="go">array([False,  True, False,  True]...)</span>
+</pre></div>
+</div>
+<p>Note however, when <code class="docutils literal notranslate"><span class="pre">ignore_flags</span></code> is a comma-separated list of bit flag
+values, <code class="docutils literal notranslate"><span class="pre">flip_bits</span></code> cannot be set to either <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>. Instead,
+to flip bits of the bit mask formed from a string list of comma-separated
+bit flag values, you can prepend a single <code class="docutils literal notranslate"><span class="pre">~</span></code> to the list:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bitmask</span><span class="o">.</span><span class="n">bitfield_to_boolean_mask</span><span class="p">([</span><span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">73</span><span class="p">,</span> <span class="mi">217</span><span class="p">],</span> <span class="n">ignore_flags</span><span class="o">=</span><span class="s1">&#39;~2+4+16+32+128&#39;</span><span class="p">)</span>
+<span class="go">array([False,  True, False,  True]...)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="inverting-boolean-masks">
+<h4>Inverting Boolean Masks<a class="headerlink" href="#inverting-boolean-masks" title="Permalink to this headline">¶</a></h4>
+<p>Other times, it may be more convenient to obtain an inverted mask in which
+flagged data are converted to <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a> instead of <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>:</p>
+<p id="modif-eq3"><code class="docutils literal notranslate"><span class="pre">(3)</span>&#160;&#160;&#160; <span class="pre">boolean_mask</span> <span class="pre">=</span> <span class="pre">(bitfield</span> <span class="pre">&amp;</span> <span class="pre">~bit_mask)</span> <span class="pre">==</span> <span class="pre">0</span></code></p>
+<p>This can be accomplished by changing the <code class="docutils literal notranslate"><span class="pre">good_mask_value</span></code> parameter from
+its default value (<a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>) to <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>.</p>
+<div class="section" id="id3">
+<h5>Example<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h5>
+<p>To obtain an inverted mask in which flagged data are converted to <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>
+instead of <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bitmask</span><span class="o">.</span><span class="n">bitfield_to_boolean_mask</span><span class="p">([</span><span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">73</span><span class="p">,</span> <span class="mi">217</span><span class="p">],</span> <span class="n">ignore_flags</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">64</span><span class="p">],</span>
+<span class="gp">... </span>                                 <span class="n">good_mask_value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">array([ True, False,  True, False]...)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Utility Functions for Handling Bit Masks and Mask Arrays</a><ul>
+<li><a class="reference internal" href="#creating-boolean-masks">Creating Boolean Masks</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#specifying-bit-flags">Specifying Bit Flags</a><ul>
+<li><a class="reference internal" href="#id1">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#using-bit-flags-name-maps">Using Bit Flags Name Maps</a></li>
+<li><a class="reference internal" href="#modifying-the-formula-for-creating-boolean-masks">Modifying the Formula for Creating Boolean Masks</a><ul>
+<li><a class="reference internal" href="#inverting-bit-masks">Inverting Bit Masks</a><ul>
+<li><a class="reference internal" href="#id2">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#inverting-boolean-masks">Inverting Boolean Masks</a><ul>
+<li><a class="reference internal" href="#id3">Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/nddata/bitmask.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

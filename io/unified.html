@@ -1,0 +1,1421 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Unified File Read/Write Interface &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="FITS File Handling (astropy.io.fits)" href="fits/index.html" />
+    <link rel="prev" title="Distribution" href="../api/astropy.uncertainty.Distribution.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="fits/index.html" title="FITS File Handling (astropy.io.fits)">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="../api/astropy.uncertainty.Distribution.html" title="Distribution">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      
+      <li>Unified File Read/Write Interface</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="unified-file-read-write-interface">
+<span id="table-io"></span><h1>Unified File Read/Write Interface<a class="headerlink" href="#unified-file-read-write-interface" title="Permalink to this headline">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">astropy</span></code> provides a unified interface for reading and writing data in
+different formats. For many common cases this will streamline the process of
+file I/O and reduce the need to learn the separate details of all of the I/O
+packages within <code class="docutils literal notranslate"><span class="pre">astropy</span></code>. For details on the implementation see
+<a class="reference internal" href="registry.html#io-registry"><span class="std std-ref">I/O Registry (astropy.io.registry)</span></a>.</p>
+<div class="section" id="getting-started-with-image-i-o">
+<h2>Getting Started with Image I/O<a class="headerlink" href="#getting-started-with-image-i-o" title="Permalink to this headline">¶</a></h2>
+<p>Reading and writing image data in the unified I/O interface is supported
+though the <a class="reference internal" href="../api/astropy.nddata.CCDData.html#astropy.nddata.CCDData" title="astropy.nddata.CCDData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CCDData</span></code></a> class using FITS file format:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Read CCD image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ccd</span> <span class="o">=</span> <span class="n">CCDData</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;image.fits&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Write back CCD image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ccd</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;new_image.fits&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that the unit is stored in the <code class="docutils literal notranslate"><span class="pre">BUNIT</span></code> keyword in the header on saving,
+and is read from the header if it is present.</p>
+<p>Detailed help on the available keyword arguments for reading and writing
+can be obtained via the <code class="docutils literal notranslate"><span class="pre">help()</span></code> method as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">CCDData</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">help</span><span class="p">(</span><span class="s1">&#39;fits&#39;</span><span class="p">)</span>  <span class="c1"># Get help on the CCDData FITS reader</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CCDData</span><span class="o">.</span><span class="n">writer</span><span class="o">.</span><span class="n">help</span><span class="p">(</span><span class="s1">&#39;fits&#39;</span><span class="p">)</span>  <span class="c1"># Get help on the CCDData FITS writer</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="getting-started-with-table-i-o">
+<h2>Getting Started with Table I/O<a class="headerlink" href="#getting-started-with-table-i-o" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> class includes two methods,
+<a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.read" title="astropy.table.Table.read"><code class="xref py py-meth docutils literal notranslate"><span class="pre">read()</span></code></a> and
+<a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.write" title="astropy.table.Table.write"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code></a>, that make it possible to read from
+and write to files. A number of formats are automatically supported (see
+<a class="reference internal" href="#built-in-table-readers-writers">Built-in table readers/writers</a>) and new file formats and extensions can be
+registered with the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> class (see
+<a class="reference internal" href="registry.html#io-registry"><span class="std std-ref">I/O Registry (astropy.io.registry)</span></a>).</p>
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+<p>To use this interface, first import the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> class,
+then call the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a>
+<a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.read" title="astropy.table.Table.read"><code class="xref py py-meth docutils literal notranslate"><span class="pre">read()</span></code></a> method with the name of the file and
+the file format, for instance <code class="docutils literal notranslate"><span class="pre">'ascii.daophot'</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;photometry.dat&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ascii.daophot&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>It is possible to load tables directly from the Internet using URLs. For
+example, download tables from Vizier catalogues in CDS format
+(<code class="docutils literal notranslate"><span class="pre">'ascii.cds'</span></code>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;ftp://cdsarc.u-strasbg.fr/pub/cats/VII/253/snrs.dat&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="n">readme</span><span class="o">=</span><span class="s2">&quot;ftp://cdsarc.u-strasbg.fr/pub/cats/VII/253/ReadMe&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;ascii.cds&quot;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>For certain file formats the format can be automatically detected, for
+example, from the filename extension:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;table.tex&#39;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>For writing a table, the format can be explicitly specified:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;latex&#39;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>As for the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.read" title="astropy.table.Table.read"><code class="xref py py-meth docutils literal notranslate"><span class="pre">read()</span></code></a> method, the format may
+be automatically identified in some cases.</p>
+<p>The underlying file handler will also automatically detect various
+compressed data formats and transparently uncompress them as far as
+supported by the Python installation (see
+<a class="reference internal" href="../api/astropy.utils.data.get_readable_fileobj.html#astropy.utils.data.get_readable_fileobj" title="astropy.utils.data.get_readable_fileobj"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_readable_fileobj()</span></code></a>).</p>
+<p>For writing, you can also specify details about the <a class="reference internal" href="#id13">Table serialization
+methods</a> via the <code class="docutils literal notranslate"><span class="pre">serialize_method</span></code> keyword argument. This allows
+fine control of the way to write out certain columns, for instance
+writing an ISO format Time column as a pair of JD1/JD2 floating
+point values (for full resolution) or as a formatted ISO date string.</p>
+<p>Both the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.read" title="astropy.table.Table.read"><code class="xref py py-meth docutils literal notranslate"><span class="pre">read()</span></code></a> and
+<a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.write" title="astropy.table.Table.write"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code></a> methods can accept file paths of the form
+<code class="docutils literal notranslate"><span class="pre">~/data/file.csv</span></code> or <code class="docutils literal notranslate"><span class="pre">~username/data/file.csv</span></code>. These tilde-prefixed paths
+are expanded in the same way as is done by many command-line utilities, to
+represent the home directory of the current or specified user, respectively.</p>
+</div>
+<div class="section" id="getting-help-on-readers-and-writers">
+<h3>Getting Help on Readers and Writers<a class="headerlink" href="#getting-help-on-readers-and-writers" title="Permalink to this headline">¶</a></h3>
+<p>Each file format is handled by a specific reader or writer, and each of those
+functions will have its own set of arguments. For examples of
+this see the section <a class="reference internal" href="#built-in-table-readers-writers">Built-in table readers/writers</a>. This section also
+provides the full list of choices for the <code class="docutils literal notranslate"><span class="pre">format</span></code> argument.</p>
+<p>To get help on the available arguments for each format, use the <code class="docutils literal notranslate"><span class="pre">help()</span></code>
+method of the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.read" title="astropy.table.Table.read"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read</span></code></a> or <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.write" title="astropy.table.Table.write"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write</span></code></a>
+methods. Each of these calls prints a long help document which is divided
+into two sections, the generic read/write documentation (common to any
+call) and the format-specific documentation. For ASCII tables, the
+format-specific documentation includes the generic <a class="reference internal" href="ascii/index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code></a> package
+interface and then a description of the particular ASCII sub-format.</p>
+<p>In the examples below we do not show the long output:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">help</span><span class="p">(</span><span class="s1">&#39;fits&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">help</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">help</span><span class="p">(</span><span class="s1">&#39;ascii.latex&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Table</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">help</span><span class="p">(</span><span class="s1">&#39;hdf5&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Table</span><span class="o">.</span><span class="n">write</span><span class="o">.</span><span class="n">help</span><span class="p">(</span><span class="s1">&#39;csv&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="command-line-utility">
+<h3>Command-Line Utility<a class="headerlink" href="#command-line-utility" title="Permalink to this headline">¶</a></h3>
+<p>For convenience, the command-line tool <code class="docutils literal notranslate"><span class="pre">showtable</span></code> can be used to print the
+content of tables for the formats supported by the unified I/O interface.</p>
+<div class="section" id="example">
+<h4>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<p>To view the contents of a table on the command line:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ showtable astropy/io/fits/tests/data/table.fits
+
+ target V_mag
+------- -----
+NGC1001  11.1
+NGC1002  12.3
+NGC1003  15.2
+</pre></div>
+</div>
+<p>To get full documentation on the usage and available options, do <code class="docutils literal notranslate"><span class="pre">showtable</span>
+<span class="pre">--help</span></code>.</p>
+</div>
+</div>
+</div>
+<div class="section" id="built-in-table-readers-writers">
+<span id="built-in-readers-writers"></span><h2>Built-In Table Readers/Writers<a class="headerlink" href="#built-in-table-readers-writers" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> class has built-in support for various input
+and output formats including <a class="reference internal" href="#table-io-ascii"><span class="std std-ref">ASCII Formats</span></a>,
+-<a class="reference internal" href="#table-io-fits"><span class="std std-ref">FITS</span></a>, <a class="reference internal" href="#table-io-hdf5"><span class="std std-ref">HDF5</span></a>, <a class="reference internal" href="#table-io-pandas"><span class="std std-ref">Pandas</span></a>,
+<a class="reference internal" href="#table-io-parquet"><span class="std std-ref">Parquet</span></a>, and <a class="reference internal" href="#table-io-votable"><span class="std std-ref">VO Tables</span></a>.</p>
+<p>A full list of the supported formats and corresponding classes is shown in the
+table below. The <code class="docutils literal notranslate"><span class="pre">Write</span></code> column indicates those formats that support write
+functionality, and the <code class="docutils literal notranslate"><span class="pre">Suffix</span></code> column indicates the filename suffix
+indicating a particular format. If the value of <code class="docutils literal notranslate"><span class="pre">Suffix</span></code> is <code class="docutils literal notranslate"><span class="pre">auto</span></code>, the
+format is auto-detected from the file itself. Not all formats support auto-
+detection.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 21%" />
+<col style="width: 4%" />
+<col style="width: 5%" />
+<col style="width: 71%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Format</p></th>
+<th class="head"><p>Write</p></th>
+<th class="head"><p>Suffix</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ascii</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p>ASCII table in any supported format (uses guessing)</p></td>
+</tr>
+<tr class="row-odd"><td><p>ascii.aastex</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.AASTex.html#astropy.io.ascii.AASTex" title="astropy.io.ascii.AASTex"><code class="xref py py-class docutils literal notranslate"><span class="pre">AASTex</span></code></a>: AASTeX deluxetable used for AAS journals</p></td>
+</tr>
+<tr class="row-even"><td><p>ascii.basic</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.Basic.html#astropy.io.ascii.Basic" title="astropy.io.ascii.Basic"><code class="xref py py-class docutils literal notranslate"><span class="pre">Basic</span></code></a>: Basic table with custom delimiters</p></td>
+</tr>
+<tr class="row-odd"><td><p>ascii.cds</p></td>
+<td><p>No</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.Cds.html#astropy.io.ascii.Cds" title="astropy.io.ascii.Cds"><code class="xref py py-class docutils literal notranslate"><span class="pre">Cds</span></code></a>: CDS format table</p></td>
+</tr>
+<tr class="row-even"><td><p>ascii.commented_header</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.CommentedHeader.html#astropy.io.ascii.CommentedHeader" title="astropy.io.ascii.CommentedHeader"><code class="xref py py-class docutils literal notranslate"><span class="pre">CommentedHeader</span></code></a>: Column names in a commented line</p></td>
+</tr>
+<tr class="row-odd"><td><p>ascii.csv</p></td>
+<td><p>Yes</p></td>
+<td><p>.csv</p></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.Csv.html#astropy.io.ascii.Csv" title="astropy.io.ascii.Csv"><code class="xref py py-class docutils literal notranslate"><span class="pre">Csv</span></code></a>: Basic table with comma-separated values</p></td>
+</tr>
+<tr class="row-even"><td><p>ascii.daophot</p></td>
+<td><p>No</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.Daophot.html#astropy.io.ascii.Daophot" title="astropy.io.ascii.Daophot"><code class="xref py py-class docutils literal notranslate"><span class="pre">Daophot</span></code></a>: IRAF DAOphot format table</p></td>
+</tr>
+<tr class="row-odd"><td><p>ascii.ecsv</p></td>
+<td><p>Yes</p></td>
+<td><p>.ecsv</p></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.Ecsv.html#astropy.io.ascii.Ecsv" title="astropy.io.ascii.Ecsv"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ecsv</span></code></a>: Basic table with Enhanced CSV (supporting metadata)</p></td>
+</tr>
+<tr class="row-even"><td><p>ascii.fixed_width</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.FixedWidth.html#astropy.io.ascii.FixedWidth" title="astropy.io.ascii.FixedWidth"><code class="xref py py-class docutils literal notranslate"><span class="pre">FixedWidth</span></code></a>: Fixed width</p></td>
+</tr>
+<tr class="row-odd"><td><p>ascii.fixed_width_no_header</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.FixedWidthNoHeader.html#astropy.io.ascii.FixedWidthNoHeader" title="astropy.io.ascii.FixedWidthNoHeader"><code class="xref py py-class docutils literal notranslate"><span class="pre">FixedWidthNoHeader</span></code></a>: Fixed width with no header</p></td>
+</tr>
+<tr class="row-even"><td><p>ascii.fixed_width_two_line</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.FixedWidthTwoLine.html#astropy.io.ascii.FixedWidthTwoLine" title="astropy.io.ascii.FixedWidthTwoLine"><code class="xref py py-class docutils literal notranslate"><span class="pre">FixedWidthTwoLine</span></code></a>: Fixed width with second header line</p></td>
+</tr>
+<tr class="row-odd"><td><p>ascii.html</p></td>
+<td><p>Yes</p></td>
+<td><p>.html</p></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.HTML.html#astropy.io.ascii.HTML" title="astropy.io.ascii.HTML"><code class="xref py py-class docutils literal notranslate"><span class="pre">HTML</span></code></a>: HTML table</p></td>
+</tr>
+<tr class="row-even"><td><p>ascii.ipac</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.Ipac.html#astropy.io.ascii.Ipac" title="astropy.io.ascii.Ipac"><code class="xref py py-class docutils literal notranslate"><span class="pre">Ipac</span></code></a>: IPAC format table</p></td>
+</tr>
+<tr class="row-odd"><td><p>ascii.latex</p></td>
+<td><p>Yes</p></td>
+<td><p>.tex</p></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.Latex.html#astropy.io.ascii.Latex" title="astropy.io.ascii.Latex"><code class="xref py py-class docutils literal notranslate"><span class="pre">Latex</span></code></a>: LaTeX table</p></td>
+</tr>
+<tr class="row-even"><td><p>ascii.mrt</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.Mrt.html#astropy.io.ascii.Mrt" title="astropy.io.ascii.Mrt"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mrt</span></code></a>: AAS Machine-Readable Table format</p></td>
+</tr>
+<tr class="row-odd"><td><p>ascii.no_header</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.NoHeader.html#astropy.io.ascii.NoHeader" title="astropy.io.ascii.NoHeader"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoHeader</span></code></a>: Basic table with no headers</p></td>
+</tr>
+<tr class="row-even"><td><p>ascii.qdp</p></td>
+<td><p>Yes</p></td>
+<td><p>.qdp</p></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.QDP.html#astropy.io.ascii.QDP" title="astropy.io.ascii.QDP"><code class="xref py py-class docutils literal notranslate"><span class="pre">QDP</span></code></a>: Quick and Dandy Plotter files</p></td>
+</tr>
+<tr class="row-odd"><td><p>ascii.rdb</p></td>
+<td><p>Yes</p></td>
+<td><p>.rdb</p></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.Rdb.html#astropy.io.ascii.Rdb" title="astropy.io.ascii.Rdb"><code class="xref py py-class docutils literal notranslate"><span class="pre">Rdb</span></code></a>: Tab-separated with a type definition header line</p></td>
+</tr>
+<tr class="row-even"><td><p>ascii.rst</p></td>
+<td><p>Yes</p></td>
+<td><p>.rst</p></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.RST.html#astropy.io.ascii.RST" title="astropy.io.ascii.RST"><code class="xref py py-class docutils literal notranslate"><span class="pre">RST</span></code></a>: reStructuredText simple format table</p></td>
+</tr>
+<tr class="row-odd"><td><p>ascii.sextractor</p></td>
+<td><p>No</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.SExtractor.html#astropy.io.ascii.SExtractor" title="astropy.io.ascii.SExtractor"><code class="xref py py-class docutils literal notranslate"><span class="pre">SExtractor</span></code></a>: SExtractor format table</p></td>
+</tr>
+<tr class="row-even"><td><p>ascii.tab</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../api/astropy.io.ascii.Tab.html#astropy.io.ascii.Tab" title="astropy.io.ascii.Tab"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tab</span></code></a>: Basic table with tab-separated values</p></td>
+</tr>
+<tr class="row-odd"><td><p>fits</p></td>
+<td><p>Yes</p></td>
+<td><p>auto</p></td>
+<td><p><a class="reference internal" href="fits/index.html#module-astropy.io.fits" title="astropy.io.fits"><code class="xref py py-mod docutils literal notranslate"><span class="pre">fits</span></code></a>: Flexible Image Transport System file</p></td>
+</tr>
+<tr class="row-even"><td><p>hdf5</p></td>
+<td><p>Yes</p></td>
+<td><p>auto</p></td>
+<td><p><a class="reference external" href="https://www.hdfgroup.org/HDF5/">HDF5</a>: Hierarchical Data Format binary file</p></td>
+</tr>
+<tr class="row-odd"><td><p>parquet</p></td>
+<td><p>Yes</p></td>
+<td><p>auto</p></td>
+<td><p><a class="reference external" href="https://parquet.apache.org/">Parquet</a>: Apache Parquet binary file</p></td>
+</tr>
+<tr class="row-even"><td><p>pandas.csv</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p>Wrapper around <code class="docutils literal notranslate"><span class="pre">pandas.read_csv()</span></code> and <code class="docutils literal notranslate"><span class="pre">pandas.to_csv()</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>pandas.fwf</p></td>
+<td><p>No</p></td>
+<td></td>
+<td><p>Wrapper around <code class="docutils literal notranslate"><span class="pre">pandas.read_fwf()</span></code> (fixed width format)</p></td>
+</tr>
+<tr class="row-even"><td><p>pandas.html</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p>Wrapper around <code class="docutils literal notranslate"><span class="pre">pandas.read_html()</span></code> and <code class="docutils literal notranslate"><span class="pre">pandas.to_html()</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>pandas.json</p></td>
+<td><p>Yes</p></td>
+<td></td>
+<td><p>Wrapper around <code class="docutils literal notranslate"><span class="pre">pandas.read_json()</span></code> and <code class="docutils literal notranslate"><span class="pre">pandas.to_json()</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>votable</p></td>
+<td><p>Yes</p></td>
+<td><p>auto</p></td>
+<td><p><a class="reference internal" href="votable/index.html#module-astropy.io.votable" title="astropy.io.votable"><code class="xref py py-mod docutils literal notranslate"><span class="pre">votable</span></code></a>: Table format used by Virtual Observatory (VO) initiative</p></td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="ascii-formats">
+<span id="table-io-ascii"></span><h3>ASCII Formats<a class="headerlink" href="#ascii-formats" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.read" title="astropy.table.Table.read"><code class="xref py py-meth docutils literal notranslate"><span class="pre">read()</span></code></a> and
+<a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.write" title="astropy.table.Table.write"><code class="xref py py-meth docutils literal notranslate"><span class="pre">write()</span></code></a> methods can be used to read and write formats
+supported by <a class="reference internal" href="ascii/index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code></a>.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">format='ascii'</span></code> in order to interface to the generic
+<a class="reference internal" href="../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> and <a class="reference internal" href="../api/astropy.io.ascii.write.html#astropy.io.ascii.write" title="astropy.io.ascii.write"><code class="xref py py-func docutils literal notranslate"><span class="pre">write()</span></code></a>
+functions from <a class="reference internal" href="ascii/index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code></a>. When reading a table, this means
+that all supported ASCII table formats will be tried in order to successfully
+parse the input.</p>
+<div class="section" id="id1">
+<h4>Examples<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
+<p>To read and write formats supported by <a class="reference internal" href="ascii/index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;astropy/io/ascii/tests/t/latex1.tex&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go">cola colb colc</span>
+<span class="go">---- ---- ----</span>
+<span class="go">   a    1    2</span>
+<span class="go">   b    3    4</span>
+</pre></div>
+</div>
+<p>When writing a table with <code class="docutils literal notranslate"><span class="pre">format='ascii'</span></code> the output is a basic
+character-delimited file with a single header line containing the
+column names.</p>
+<p>All additional arguments are passed to the <a class="reference internal" href="ascii/index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code></a>
+<a class="reference internal" href="../api/astropy.io.ascii.read.html#astropy.io.ascii.read" title="astropy.io.ascii.read"><code class="xref py py-func docutils literal notranslate"><span class="pre">read()</span></code></a> and <a class="reference internal" href="../api/astropy.io.ascii.write.html#astropy.io.ascii.write" title="astropy.io.ascii.write"><code class="xref py py-func docutils literal notranslate"><span class="pre">write()</span></code></a>
+functions. Further details are available in the sections on
+<a class="reference internal" href="ascii/read.html#io-ascii-read-parameters"><span class="std std-ref">Parameters for read()</span></a> and <a class="reference internal" href="ascii/write.html#io-ascii-write-parameters"><span class="std std-ref">Parameters for write()</span></a>. For
+example, to change the column delimiter and the output format for the <code class="docutils literal notranslate"><span class="pre">colc</span></code>
+column use:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ascii&#39;</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;|&#39;</span><span class="p">,</span> <span class="n">formats</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;colc&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="si">%0.2f</span><span class="s1">&#39;</span><span class="p">})</span>
+<span class="go">cola|colb|colc</span>
+<span class="go">a|1|2.00</span>
+<span class="go">b|3|4.00</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When specifying an ASCII table format using the unified interface, the
+format name is prefixed with <code class="docutils literal notranslate"><span class="pre">ascii</span></code> in order to identify the format as
+ASCII-based. Compare the table above to the <a class="reference internal" href="ascii/index.html#module-astropy.io.ascii" title="astropy.io.ascii"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.io.ascii</span></code></a> list of
+<a class="reference internal" href="ascii/index.html#supported-formats"><span class="std std-ref">supported formats</span></a> where the prefix is not
+needed. Therefore the following are equivalent:</p>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dat</span> <span class="o">=</span> <span class="n">ascii</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;file.dat&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;daophot&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dat</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;file.dat&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ascii.daophot&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition attention">
+<p class="admonition-title">Attention</p>
+<p><strong>ECSV is recommended</strong></p>
+<p>For writing and reading tables to ASCII in a way that fully reproduces the
+table data, types, and metadata (i.e., the table will “round-trip”), we
+highly recommend using the <a class="reference internal" href="ascii/ecsv.html#ecsv-format"><span class="std std-ref">ECSV Format</span></a>. This writes the actual data
+in a space-delimited format (the <code class="docutils literal notranslate"><span class="pre">basic</span></code> format) that any ASCII table
+reader can parse, but also includes metadata encoded in a comment block that
+allows full reconstruction of the original columns. This includes support
+for <a class="reference internal" href="ascii/ecsv.html#ecsv-format-mixin-columns"><span class="std std-ref">Mixin Columns</span></a> (such as
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> or <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a>) and
+<a class="reference internal" href="ascii/ecsv.html#ecsv-format-masked-columns"><span class="std std-ref">Multidimensional Columns</span></a>.</p>
+</div>
+</div>
+</div>
+<div class="section" id="fits">
+<span id="table-io-fits"></span><h3>FITS<a class="headerlink" href="#fits" title="Permalink to this headline">¶</a></h3>
+<p>Reading and writing tables in <a class="reference external" href="https://fits.gsfc.nasa.gov/">FITS</a> format is
+supported with <code class="docutils literal notranslate"><span class="pre">format='fits'</span></code>. In most cases, existing FITS files should be
+automatically identified as such based on the header of the file, but if not,
+or if writing to disk, then the format should be explicitly specified.</p>
+<div class="section" id="reading">
+<h4>Reading<a class="headerlink" href="#reading" title="Permalink to this headline">¶</a></h4>
+<p>If a FITS table file contains only a single table, then it can be read in
+with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;data.fits&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If more than one table is present in the file, you can select the HDU
+as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;data.fits&#39;</span><span class="p">,</span> <span class="n">hdu</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>In this case if the <code class="docutils literal notranslate"><span class="pre">hdu</span></code> argument is omitted, then the first table found
+will be read in and a warning will be emitted:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;data.fits&#39;</span><span class="p">)</span>  
+<span class="go">WARNING: hdu= was not specified but multiple tables are present, reading in first available table (hdu=1) [astropy.io.fits.connect]</span>
+</pre></div>
+</div>
+<p>You can also read a table from the HDUs of an in-memory FITS file. This will
+round-trip any <a class="reference internal" href="../table/mixin_columns.html#mixin-columns"><span class="std std-ref">Mixin Columns</span></a> that were written to that HDU, using the
+header information to reconstruct them:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">hdulist</span> <span class="o">=</span> <span class="n">astropy</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;data.fits&#39;</span><span class="p">)</span> 
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">hdulist</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>  
+</pre></div>
+</div>
+</div>
+<div class="section" id="writing">
+<h4>Writing<a class="headerlink" href="#writing" title="Permalink to this headline">¶</a></h4>
+<p>To write a table <code class="docutils literal notranslate"><span class="pre">t</span></code> to a new file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;new_table.fits&#39;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>If the file already exists and you want to overwrite it, then set the
+<code class="docutils literal notranslate"><span class="pre">overwrite</span></code> keyword:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;existing_table.fits&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>If you want to append a table to an existing file, set the <code class="docutils literal notranslate"><span class="pre">append</span></code>
+keyword:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;existing_table.fits&#39;</span><span class="p">,</span> <span class="n">append</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>Alternatively, you can use the convenience function
+<a class="reference internal" href="fits/api/tables.html#astropy.io.fits.table_to_hdu" title="astropy.io.fits.table_to_hdu"><code class="xref py py-func docutils literal notranslate"><span class="pre">table_to_hdu()</span></code></a> to create a single
+binary table HDU and insert or append that to an existing
+<a class="reference internal" href="fits/api/hdulists.html#astropy.io.fits.HDUList" title="astropy.io.fits.HDUList"><code class="xref py py-class docutils literal notranslate"><span class="pre">HDUList</span></code></a>.</p>
+<p>There is support for writing a table which contains <a class="reference internal" href="../table/mixin_columns.html#mixin-columns"><span class="std std-ref">Mixin Columns</span></a> such
+as <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> or <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SkyCoord</span></code></a>. This uses FITS
+<code class="docutils literal notranslate"><span class="pre">COMMENT</span></code> cards to capture additional information needed order to fully
+reconstruct the mixin columns when reading back from FITS. The information is a
+Python <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a> structure which is serialized using YAML.</p>
+</div>
+<div class="section" id="keywords">
+<h4>Keywords<a class="headerlink" href="#keywords" title="Permalink to this headline">¶</a></h4>
+<p>The FITS keywords associated with an HDU table are represented in the <code class="docutils literal notranslate"><span class="pre">meta</span></code>
+ordered dictionary attribute of a <a class="reference internal" href="../table/index.html#astropy-table"><span class="std std-ref">Table</span></a>. After reading
+a table you can view the available keywords in a readable format using:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This does not include the “internal” FITS keywords that are required to specify
+the FITS table properties (e.g., <code class="docutils literal notranslate"><span class="pre">NAXIS</span></code>, <code class="docutils literal notranslate"><span class="pre">TTYPE1</span></code>). <code class="docutils literal notranslate"><span class="pre">HISTORY</span></code> and
+<code class="docutils literal notranslate"><span class="pre">COMMENT</span></code> keywords are treated specially and are returned as a list of
+values.</p>
+<p>Conversely, the following shows examples of setting user keyword values for a
+table <code class="docutils literal notranslate"><span class="pre">t</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;MY_KEYWD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;my value&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;COMMENT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;First comment&#39;</span><span class="p">,</span> <span class="s1">&#39;Second comment&#39;</span><span class="p">,</span> <span class="s1">&#39;etc&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;my_table.fits&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The keyword names (e.g., <code class="docutils literal notranslate"><span class="pre">MY_KEYWD</span></code>) will be automatically capitalized prior
+to writing.</p>
+<p>At this time, the <code class="docutils literal notranslate"><span class="pre">meta</span></code> attribute of the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> class
+is an ordered dictionary and does not fully represent the structure of a
+FITS header (for example, keyword comments are dropped).</p>
+</div>
+<div class="section" id="tdispn-keyword">
+<span id="fits-astropy-native"></span><h4>TDISPn Keyword<a class="headerlink" href="#tdispn-keyword" title="Permalink to this headline">¶</a></h4>
+<p>TDISPn FITS keywords will map to and from the <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column</span></code></a> <code class="docutils literal notranslate"><span class="pre">format</span></code>
+attribute if the display format is convertible to and from a Python display
+format. Below are the rules used for both conversion directions.</p>
+<div class="section" id="tdispn-to-python-format-string">
+<h5>TDISPn to Python format string<a class="headerlink" href="#tdispn-to-python-format-string" title="Permalink to this headline">¶</a></h5>
+<p>TDISPn format characters are defined in the table below.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 84%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Format</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Aw</p></td>
+<td><p>Character</p></td>
+</tr>
+<tr class="row-odd"><td><p>Lw</p></td>
+<td><p>Logical</p></td>
+</tr>
+<tr class="row-even"><td><p>Iw.m</p></td>
+<td><p>Integer</p></td>
+</tr>
+<tr class="row-odd"><td><p>Bw.m</p></td>
+<td><p>Binary, integers only</p></td>
+</tr>
+<tr class="row-even"><td><p>Ow.m</p></td>
+<td><p>Octal, integers only</p></td>
+</tr>
+<tr class="row-odd"><td><p>Zw.m</p></td>
+<td><p>Hexadecimal, integers only</p></td>
+</tr>
+<tr class="row-even"><td><p>Fw.d</p></td>
+<td><p>Floating-point, fixed decimal notation</p></td>
+</tr>
+<tr class="row-odd"><td><p>Ew.dEe</p></td>
+<td><p>Floating-point, exponential notation</p></td>
+</tr>
+<tr class="row-even"><td><p>ENw.d</p></td>
+<td><p>Engineering; E format with exponent multiple of three</p></td>
+</tr>
+<tr class="row-odd"><td><p>ESw.d</p></td>
+<td><p>Scientific; same as EN but non-zero leading digit if not zero</p></td>
+</tr>
+<tr class="row-even"><td><p>Gw.dEe</p></td>
+<td><p>General; appears as F if significance not lost, also E</p></td>
+</tr>
+<tr class="row-odd"><td><p>Dw.dEe</p></td>
+<td><p>Floating-point, exponential notation, double precision</p></td>
+</tr>
+</tbody>
+</table>
+<p>Where w is the width in characters of displayed values, m is the minimum number
+of digits displayed, d is the number of digits to the right of decimal, and e
+is the number of digits in the exponent. The .m and Ee fields are optional.</p>
+<p>The A (character), L (logical), F (floating point), and G (general) display
+formats can be directly translated to Python format strings. The other formats
+need to be modified to match Python display formats.</p>
+<p>For the integer formats (I, B, O, and Z), the width (w) value is used to add
+space padding to the left of the column value. The minimum number (m) value is
+not used. For the E, G, D, EN, and ES formats (floating point exponential) the
+width (w) and precision (d) are both used, but the exponential (e) is not used.</p>
+</div>
+<div class="section" id="python-format-string-to-tdispn">
+<h5>Python format string to TDISPn<a class="headerlink" href="#python-format-string-to-tdispn" title="Permalink to this headline">¶</a></h5>
+<p>The conversion from Python format strings back to TDISPn is slightly more
+complicated.</p>
+<p>Python strings map to the TDISP format A if the Python formatting string does
+not contain right space padding. It will accept left space padding. The same
+applies to the logical format L.</p>
+<p>The integer formats (decimal integer, binary, octal, hexadecimal) map to the
+I, B, O, and Z TDISP formats respectively. Integer formats do not accept a
+zero padded format string or a format string with no left padding defined (a
+width is required in the TDISP format standard for the Integer formats).</p>
+<p>For all float and exponential values, zero padding is not accepted. There
+must be at least a width or precision defined. If only a width is defined,
+there is no precision set for the TDISPn format. If only a precision is
+defined, the width is set to the precision plus an extra padding value
+depending on format type, and both are set in the TDISPn format. Otherwise,
+if both a width and precision are present they are both set in the TDISPn
+format. A Python <code class="docutils literal notranslate"><span class="pre">f</span></code> or <code class="docutils literal notranslate"><span class="pre">F</span></code> map to TDISP F format. The Python <code class="docutils literal notranslate"><span class="pre">g</span></code> or
+<code class="docutils literal notranslate"><span class="pre">G</span></code> map to TDISP G format. The Python <code class="docutils literal notranslate"><span class="pre">e</span></code> and <code class="docutils literal notranslate"><span class="pre">E</span></code> map to TDISP E format.</p>
+</div>
+</div>
+<div class="section" id="masked-columns">
+<h4>Masked Columns<a class="headerlink" href="#masked-columns" title="Permalink to this headline">¶</a></h4>
+<p>Tables that contain <a class="reference internal" href="../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a> columns can be written to
+FITS. By default this will replace the masked data elements with certain
+sentinel values according to the FITS standard:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">NaN</span></code> for float columns.</p></li>
+<li><p>Value of <code class="docutils literal notranslate"><span class="pre">TNULLn</span></code> for integer columns, as defined by the column
+<code class="docutils literal notranslate"><span class="pre">fill_value</span></code> attribute.</p></li>
+<li><p>Null string for string columns (not currently implemented).</p></li>
+</ul>
+<p>When the file is read back those elements are marked as masked in the returned
+table, but see <a class="reference external" href="https://github.com/astropy/astropy/issues/4708">issue #4708</a>
+for problems in all three cases. It is possible to deactivate the masking with
+<code class="docutils literal notranslate"><span class="pre">mask_invalid=False</span></code>.</p>
+<p>The FITS standard has a few limitations:</p>
+<ul class="simple">
+<li><p>Not all data types are supported (e.g., logical / boolean).</p></li>
+<li><p>Integer columns require picking one value as the NULL indicator. If
+all possible values are represented in valid data (e.g., an unsigned
+int columns with all 256 possible values in valid data), then there
+is no way to represent missing data.</p></li>
+<li><p>The masked data values are permanently lost, precluding the possibility
+of later unmasking the values.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">astropy</span></code> provides a work-around for this limitation that users can choose to
+use. The key part is to use the <code class="docutils literal notranslate"><span class="pre">serialize_method='data_mask'</span></code> keyword
+argument when writing the table. This tells the FITS writer to split each masked
+column into two separate columns, one for the data and one for the mask.
+When it gets read back that process is reversed and the two columns are
+merged back into one masked column.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table.table_helpers</span> <span class="kn">import</span> <span class="n">simple_table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">simple_table</span><span class="p">(</span><span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span>
+<span class="go">&lt;Table masked=True length=3&gt;</span>
+<span class="go">  a      b     c     d</span>
+<span class="go">int64 float64 str1  bool</span>
+<span class="go">----- ------- ---- -----</span>
+<span class="go">   --     1.0    c    --</span>
+<span class="go">    2     2.0   -- False</span>
+<span class="go">    3      --    e  True</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;data.fits&#39;</span><span class="p">,</span> <span class="n">serialize_method</span><span class="o">=</span><span class="s1">&#39;data_mask&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;data.fits&#39;</span><span class="p">)</span>
+<span class="go">&lt;Table masked=True length=3&gt;</span>
+<span class="go">  a      b      c      d</span>
+<span class="go">int64 float64 bytes1  bool</span>
+<span class="go">----- ------- ------ -----</span>
+<span class="go">   --     1.0      c    --</span>
+<span class="go">    2     2.0     -- False</span>
+<span class="go">    3      --      e  True</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This option goes outside of the established FITS standard for
+representing missing data, so users should be careful about choosing this
+option, especially if other (non-<code class="docutils literal notranslate"><span class="pre">astropy</span></code>) users will be reading the
+file(s). Behind the scenes, <code class="docutils literal notranslate"><span class="pre">astropy</span></code> is converting the masked columns
+into two distinct data and mask columns, then writing metadata into
+<code class="docutils literal notranslate"><span class="pre">COMMENT</span></code> cards to allow reconstruction of the original data.</p>
+</div>
+</div>
+<div class="section" id="astropy-native-objects-mixin-columns">
+<h4><code class="docutils literal notranslate"><span class="pre">astropy</span></code> Native Objects (Mixin Columns)<a class="headerlink" href="#astropy-native-objects-mixin-columns" title="Permalink to this headline">¶</a></h4>
+<p>It is possible to store not only standard <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column</span></code></a> objects to a
+FITS table HDU, but also any <code class="docutils literal notranslate"><span class="pre">astropy</span></code> native objects
+(<a class="reference internal" href="../table/mixin_columns.html#mixin-columns"><span class="std std-ref">Mixin Columns</span></a>) within a <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table</span></code></a> or
+<a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QTable</span></code></a>. This includes <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a>,
+<a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Quantity</span></code></a>, <a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SkyCoord</span></code></a>, and many others.</p>
+<p>In general, a mixin column may contain multiple data components as well as
+object attributes beyond the standard Column attributes like <code class="docutils literal notranslate"><span class="pre">format</span></code> or
+<code class="docutils literal notranslate"><span class="pre">description</span></code>. Abiding by the rules set by the FITS standard requires the
+mapping of these data components and object attributes to the appropriate FITS
+table columns and keywords. Thus, a well defined protocol has been developed
+to allow the storage of these mixin columns in FITS while allowing the object to
+“round-trip” through the file with no loss of data or attributes.</p>
+<div class="section" id="quantity">
+<h5>Quantity<a class="headerlink" href="#quantity" title="Permalink to this headline">¶</a></h5>
+<p>A <a class="reference internal" href="../api/astropy.units.Quantity.html#astropy.units.Quantity" title="astropy.units.Quantity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Quantity</span></code></a> mixin column in a <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QTable</span></code></a> is
+represented in a FITS table using the <code class="docutils literal notranslate"><span class="pre">TUNITn</span></code> FITS column keyword to
+incorporate the unit attribute of Quantity. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">QTable</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">QTable</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">angstrom</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;my_table.fits&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">qt</span> <span class="o">=</span> <span class="n">QTable</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;my_table.fits&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">qt</span>
+<span class="go">&lt;QTable length=2&gt;</span>
+<span class="go">  col0</span>
+<span class="go">Angstrom</span>
+<span class="go">float64</span>
+<span class="go">--------</span>
+<span class="go">     1.0</span>
+<span class="go">     2.0</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="time">
+<h5>Time<a class="headerlink" href="#time" title="Permalink to this headline">¶</a></h5>
+<p><code class="docutils literal notranslate"><span class="pre">astropy</span></code> provides the following features for reading and writing <code class="docutils literal notranslate"><span class="pre">Time</span></code>:</p>
+<ul class="simple">
+<li><p>Writing and reading <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> Table columns to and from FITS
+tables.</p></li>
+<li><p>Reading time coordinate columns in FITS tables (compliant with the time
+standard) as <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> Table columns.</p></li>
+</ul>
+</div>
+<div class="section" id="writing-and-reading-astropy-time-columns">
+<h5>Writing and reading <code class="docutils literal notranslate"><span class="pre">astropy</span></code> Time columns<a class="headerlink" href="#writing-and-reading-astropy-time-columns" title="Permalink to this headline">¶</a></h5>
+<p>By default, a <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> mixin column within a <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table</span></code></a>
+or <a class="reference internal" href="../api/astropy.table.QTable.html#astropy.table.QTable" title="astropy.table.QTable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QTable</span></code></a> will be written to FITS in full precision. This will
+be done using the FITS time standard by setting the necessary FITS header
+keywords.</p>
+<p>The default behavior for reading a FITS table into a <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table</span></code></a>
+has historically been to convert all FITS columns to <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column</span></code></a>
+objects, which have closely matching properties. For some columns, however,
+closer native <code class="docutils literal notranslate"><span class="pre">astropy</span></code> representations are possible, and you can indicate
+these should be used by passing <code class="docutils literal notranslate"><span class="pre">astropy_native=True</span></code> (for backwards
+compatibility, this is not done by default). This will convert columns
+conforming to the FITS time standard to <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> instances,
+avoiding any loss of precision.</p>
+</div>
+<div class="section" id="id3">
+<h5>Example<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h5>
+<p>To read a FITS table into <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Time</span><span class="p">([</span><span class="mf">100.0</span><span class="p">,</span> <span class="mf">200.0</span><span class="p">],</span> <span class="n">scale</span><span class="o">=</span><span class="s1">&#39;tt&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;mjd&#39;</span><span class="p">,</span>
+<span class="gp">... </span>              <span class="n">location</span><span class="o">=</span><span class="n">EarthLocation</span><span class="p">(</span><span class="o">-</span><span class="mi">2446354</span><span class="p">,</span> <span class="mi">4237210</span><span class="p">,</span> <span class="mi">4077985</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;my_table.fits&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tm</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;my_table.fits&#39;</span><span class="p">,</span> <span class="n">astropy_native</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tm</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+<span class="go">&lt;Time object: scale=&#39;tt&#39; format=&#39;jd&#39; value=[ 2400100.5  2400200.5]&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tm</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">location</span>
+<span class="go">&lt;EarthLocation (-2446354.,  4237210.,  4077985.) m&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">all</span><span class="p">(</span><span class="n">tm</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">])</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>The same will work with <code class="docutils literal notranslate"><span class="pre">QTable</span></code>.</p>
+<p>In addition to binary table columns, various global time informational FITS
+keywords are treated specially with <code class="docutils literal notranslate"><span class="pre">astropy_native=True</span></code>. In particular,
+the keywords <code class="docutils literal notranslate"><span class="pre">DATE</span></code>, <code class="docutils literal notranslate"><span class="pre">DATE-*</span></code> (ISO 8601 datetime strings), and the <code class="docutils literal notranslate"><span class="pre">MJD-*</span></code>
+(MJD date values) will be returned as <code class="docutils literal notranslate"><span class="pre">Time</span></code> objects in the Table <code class="docutils literal notranslate"><span class="pre">meta</span></code>.
+For more details regarding the FITS time paper and the implementation,
+refer to <a class="reference internal" href="fits/usage/table.html#fits-time-column"><span class="std std-ref">FITS Tables with Time Columns</span></a>.</p>
+<p>Since not all FITS readers are able to use the FITS time standard, it is also
+possible to store <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> instances using the <code class="xref py py-obj docutils literal notranslate"><span class="pre">_time_format</span></code>.
+For this case, none of the special header keywords associated with the
+FITS time standard will be set. When reading this back into <code class="docutils literal notranslate"><span class="pre">astropy</span></code>, the
+column will be an ordinary Column instead of a <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> object.
+See the <a class="reference internal" href="#details">Details</a> section below for an example.</p>
+</div>
+<div class="section" id="reading-fits-standard-compliant-time-coordinate-columns-in-binary-tables">
+<h5>Reading FITS standard compliant time coordinate columns in binary tables<a class="headerlink" href="#reading-fits-standard-compliant-time-coordinate-columns-in-binary-tables" title="Permalink to this headline">¶</a></h5>
+<p>Reading FITS files which are compliant with the FITS time standard is supported
+by <code class="docutils literal notranslate"><span class="pre">astropy</span></code> by following the multifarious rules and conventions set by the
+standard. The standard was devised in order to describe time coordinates in
+an unambiguous and comprehensive manner and also to provide flexibility for its
+multiple use cases. Thus, while reading time coordinate columns in FITS-
+compliant files, multiple aspects of the standard are taken into consideration.</p>
+<p>Time coordinate columns strictly compliant with the two-vector JD subset of the
+standard (described in the <a class="reference internal" href="#details">Details</a> section below) can be read as native
+<a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> objects. The other subsets of the standard are also
+supported by <code class="docutils literal notranslate"><span class="pre">astropy</span></code>; a thorough examination of the FITS standard time-
+related keywords is done and the time data is interpreted accordingly.</p>
+<p>The standard describes the various components in the specification of time:</p>
+<ul class="simple">
+<li><p>Time coordinate frame</p></li>
+<li><p>Time unit</p></li>
+<li><p>Corrections, errors, etc.</p></li>
+<li><p>Durations</p></li>
+</ul>
+<p>The keywords used to specify times define these components. Using these
+keywords, time coordinate columns are identified and read as
+<a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> objects. Refer to <a class="reference internal" href="fits/usage/table.html#fits-time-column"><span class="std std-ref">FITS Tables with Time Columns</span></a> for the
+specification of these keywords and their description.</p>
+<p>There are two aspects of the standard that require special attention due to the
+subtleties involved while handling them. These are:</p>
+<ul class="simple">
+<li><p>Column named TIME with time unit</p></li>
+</ul>
+<p>A common convention found in existing FITS files is that a FITS binary
+table column with <code class="docutils literal notranslate"><span class="pre">TTYPEn</span> <span class="pre">=</span> <span class="pre">‘TIME’</span></code> represents a time coordinate column.
+Many astronomical data files, including official data products from major
+observatories, follow this convention that predates the FITS standard.
+The FITS time standard states that such a column will be controlled by
+the global time reference frame keywords, and this will still be compliant
+with the present standard.</p>
+<p>Using this convention which has been incorporated into the standard, <code class="docutils literal notranslate"><span class="pre">astropy</span></code>
+can read time coordinate columns from all such FITS tables as native
+<a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> objects. Common examples of FITS files following
+this convention are Chandra, XMM, and HST files.</p>
+</div>
+<div class="section" id="id4">
+<h5>Examples<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h5>
+<p>The following is an example of a Header extract of a Chandra event list:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">COMMENT</span>      <span class="o">----------</span> <span class="n">Globally</span> <span class="n">valid</span> <span class="n">key</span> <span class="n">words</span> <span class="o">----------------</span>
+<span class="n">DATE</span>    <span class="o">=</span> <span class="s1">&#39;2016-01-27T12:34:24&#39;</span> <span class="o">/</span> <span class="n">Date</span> <span class="ow">and</span> <span class="n">time</span> <span class="n">of</span> <span class="n">file</span> <span class="n">creation</span>
+<span class="n">TIMESYS</span> <span class="o">=</span> <span class="s1">&#39;TT      &#39;</span>           <span class="o">/</span> <span class="n">Time</span> <span class="n">system</span>
+<span class="n">MJDREF</span>  <span class="o">=</span>  <span class="mf">5.0814000000000E+04</span> <span class="o">/</span> <span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="n">MJD</span> <span class="n">zero</span> <span class="n">point</span> <span class="k">for</span> <span class="n">times</span>
+<span class="n">TIMEUNIT</span><span class="o">=</span> <span class="s1">&#39;s       &#39;</span>           <span class="o">/</span> <span class="n">Time</span> <span class="n">unit</span>
+<span class="n">TIMEREF</span> <span class="o">=</span> <span class="s1">&#39;LOCAL   &#39;</span>           <span class="o">/</span> <span class="n">Time</span> <span class="n">reference</span> <span class="p">(</span><span class="n">barycenter</span><span class="o">/</span><span class="n">local</span><span class="p">)</span>
+
+<span class="n">COMMENT</span>      <span class="o">----------</span> <span class="n">Time</span> <span class="n">Column</span> <span class="o">-----------------------</span>
+<span class="n">TTYPE1</span>  <span class="o">=</span> <span class="s1">&#39;time    &#39;</span>           <span class="o">/</span> <span class="n">S</span><span class="o">/</span><span class="n">C</span> <span class="n">TT</span> <span class="n">corresponding</span> <span class="n">to</span> <span class="n">mid</span><span class="o">-</span><span class="n">exposure</span>
+<span class="n">TFORM1</span>  <span class="o">=</span> <span class="s1">&#39;1D      &#39;</span>           <span class="o">/</span> <span class="nb">format</span> <span class="n">of</span> <span class="n">field</span>
+<span class="n">TUNIT1</span>  <span class="o">=</span> <span class="s1">&#39;s       &#39;</span>
+</pre></div>
+</div>
+<p>When reading such a FITS table with <code class="docutils literal notranslate"><span class="pre">astropy_native=True</span></code>, <code class="docutils literal notranslate"><span class="pre">astropy</span></code> checks
+whether the name of a column is “TIME”/ “time” (<code class="docutils literal notranslate"><span class="pre">TTYPEn</span> <span class="pre">=</span> <span class="pre">‘TIME’</span></code>) and
+whether its unit is a FITS recognized time unit (<code class="docutils literal notranslate"><span class="pre">TUNITn</span></code> is a time unit).</p>
+<p>For example, reading a Chandra event list which has the above mentioned header
+and the time coordinate column <code class="docutils literal notranslate"><span class="pre">time</span></code> as <code class="docutils literal notranslate"><span class="pre">[1,</span> <span class="pre">2]</span></code> will give:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span><span class="p">,</span> <span class="n">TimeDelta</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.utils.data</span> <span class="kn">import</span> <span class="n">get_pkg_data_filename</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chandra_events</span> <span class="o">=</span> <span class="n">get_pkg_data_filename</span><span class="p">(</span><span class="s1">&#39;data/chandra_time.fits&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                                       <span class="n">package</span><span class="o">=</span><span class="s1">&#39;astropy.io.fits.tests&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">native</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">chandra_events</span><span class="p">,</span> <span class="n">astropy_native</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">native</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span>  
+<span class="go">&lt;Time object: scale=&#39;tt&#39; format=&#39;mjd&#39; value=[57413.76033393 57413.76033393]&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">non_native</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">chandra_events</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># MJDREF  =  5.0814000000000E+04, TIMESYS = &#39;TT&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ref_time</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">non_native</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;MJDREF&#39;</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;mjd&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">scale</span><span class="o">=</span><span class="n">non_native</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;TIMESYS&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># TTYPE1  = &#39;time&#39;, TUNIT1 = &#39;s&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">delta_time</span> <span class="o">=</span> <span class="n">TimeDelta</span><span class="p">(</span><span class="n">non_native</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">all</span><span class="p">(</span><span class="n">ref_time</span> <span class="o">+</span> <span class="n">delta_time</span> <span class="o">==</span> <span class="n">native</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">])</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>By default, FITS table columns will be read as standard <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Column</span></code></a>
+objects without taking the FITS time standard into consideration.</p>
+<ul class="simple">
+<li><p>String time column in ISO 8601 Datetime format</p></li>
+</ul>
+<p>FITS uses a subset of ISO 8601 (which in itself does not imply a particular
+timescale) for several time-related keywords, such as DATE-xxx. Following the
+FITS standard, its values must be written as a character string in the
+following <code class="docutils literal notranslate"><span class="pre">datetime</span></code> format:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="o">+/-</span><span class="n">C</span><span class="p">]</span><span class="n">CCYY</span><span class="o">-</span><span class="n">MM</span><span class="o">-</span><span class="n">DD</span><span class="p">[</span><span class="n">Thh</span><span class="p">:</span><span class="n">mm</span><span class="p">:</span><span class="n">ss</span><span class="p">[</span><span class="o">.</span><span class="n">s</span><span class="o">...</span><span class="p">]]</span>
+</pre></div>
+</div>
+<p>A time coordinate column can be constructed using this representation of time.
+The following is an example of an ISO 8601 <code class="docutils literal notranslate"><span class="pre">datetime</span></code> format time column:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TIME</span>
+<span class="o">----</span>
+<span class="mi">1999</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span><span class="n">T00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+<span class="mi">1999</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span><span class="n">T00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">40</span>
+<span class="mi">1999</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">01</span><span class="n">T00</span><span class="p">:</span><span class="mi">01</span><span class="p">:</span><span class="mi">06</span>
+<span class="o">.</span>
+<span class="o">.</span>
+<span class="o">.</span>
+<span class="mi">1999</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">20</span><span class="n">T01</span><span class="p">:</span><span class="mi">10</span><span class="p">:</span><span class="mi">00</span>
+</pre></div>
+</div>
+<p>The criteria for identifying a time coordinate column in ISO 8601 format is as
+follows:</p>
+<p>A time column is identified using the time coordinate frame keywords as
+described in <a class="reference internal" href="fits/usage/table.html#fits-time-column"><span class="std std-ref">FITS Tables with Time Columns</span></a>. Once it has been identified, its datatype
+is checked in order to determine its representation format. Since ISO 8601
+<code class="docutils literal notranslate"><span class="pre">datetime</span></code> format is the only string representation of time, a time
+coordinate column having string datatype will be automatically read as a
+<a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> object with <code class="docutils literal notranslate"><span class="pre">format='fits'</span></code> (‘fits’ represents the FITS
+ISO 8601 format).</p>
+<p>As this format does not imply a particular timescale, it is determined using
+the timescale keywords in the header (<code class="docutils literal notranslate"><span class="pre">TCTYP</span></code> or <code class="docutils literal notranslate"><span class="pre">TIMESYS</span></code>) or their
+defaults. The other time coordinate information is also determined in the same
+way, using the time coordinate frame keywords. All ISO 8601 times are relative
+to a globally accepted zero point (year 0 corresponds to 1 BCE) and are thus
+not relative to the reference time keywords (MJDREF, JDREF, or DATEREF).
+Hence, these keywords will be ignored while dealing with ISO 8601 time columns.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Reading FITS files with time coordinate columns <em>may</em> fail. <code class="docutils literal notranslate"><span class="pre">astropy</span></code>
+supports a large subset of these files, but there are still some FITS files
+which are not compliant with any aspect of the standard. If you have such a
+file, please do not hesitate to let us know (by opening an issue in the
+<a class="reference external" href="https://github.com/astropy/astropy/issues">issue tracker</a>).</p>
+<p>Also, reading a column having <code class="docutils literal notranslate"><span class="pre">TTYPEn</span> <span class="pre">=</span> <span class="pre">‘TIME’</span></code> as <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a>
+will fail if <code class="docutils literal notranslate"><span class="pre">TUNITn</span></code> for the column is not a FITS-recognized time unit.</p>
+</div>
+</div>
+<div class="section" id="details">
+<h5>Details<a class="headerlink" href="#details" title="Permalink to this headline">¶</a></h5>
+<p>Time as a dimension in astronomical data presents challenges in its
+representation in FITS files. The standard has therefore been extended to
+describe rigorously the time coordinate in the <code class="docutils literal notranslate"><span class="pre">World</span> <span class="pre">Coordinate</span> <span class="pre">System</span></code>
+framework. Refer to <a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2015A%26A...574A..36R/">FITS WCS paper IV</a> for details.</p>
+<p>Allowing <code class="docutils literal notranslate"><span class="pre">Time</span></code> columns to be written as time coordinate
+columns in FITS tables thus involves storing time values in a way that
+ensures retention of precision and mapping the associated metadata to the
+relevant FITS keywords.</p>
+<p>In accordance with the standard, which states that in binary tables one may use
+pairs of doubles, the <code class="docutils literal notranslate"><span class="pre">astropy</span></code> Time column is written in such a table as a
+vector of two doubles <code class="docutils literal notranslate"><span class="pre">(TFORMn</span> <span class="pre">=</span> <span class="pre">‘2D’)</span> <span class="pre">(jd1,</span> <span class="pre">jd2)</span></code> where <code class="docutils literal notranslate"><span class="pre">JD</span> <span class="pre">=</span> <span class="pre">jd1</span> <span class="pre">+</span> <span class="pre">jd2</span></code>.
+This reproduces the time values to double-double precision and is the
+“lossless” version, exploiting the higher precision provided in binary tables.
+Note that <code class="docutils literal notranslate"><span class="pre">jd1</span></code> is always a half-integer or integer, while <code class="docutils literal notranslate"><span class="pre">abs(jd2)</span> <span class="pre">&lt;</span> <span class="pre">1</span></code>.
+“Round-tripping” of <code class="docutils literal notranslate"><span class="pre">astropy</span></code>-written FITS binary tables containing time
+coordinate columns has been partially achieved by mapping selected metadata,
+<code class="docutils literal notranslate"><span class="pre">scale</span></code> and singular <code class="docutils literal notranslate"><span class="pre">location</span></code> of <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a>, to corresponding
+keywords. Note that the arbitrary metadata allowed in <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table</span></code></a>
+objects within the <code class="docutils literal notranslate"><span class="pre">meta</span></code> dict is not written and will be lost.</p>
+</div>
+<div class="section" id="id5">
+<h5>Examples<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h5>
+<p>Consider the following Time column:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Time</span><span class="p">([</span><span class="mf">100.0</span><span class="p">,</span> <span class="mf">200.0</span><span class="p">],</span> <span class="n">scale</span><span class="o">=</span><span class="s1">&#39;tt&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;mjd&#39;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>The FITS standard requires an additional translation layer back into
+the desired format. The Time column <code class="docutils literal notranslate"><span class="pre">t['a']</span></code> will undergo the translation
+<code class="docutils literal notranslate"><span class="pre">Astropy</span> <span class="pre">Time</span> <span class="pre">--&gt;</span> <span class="pre">FITS</span> <span class="pre">--&gt;</span> <span class="pre">Astropy</span> <span class="pre">Time</span></code> which corresponds to the format
+conversion <code class="docutils literal notranslate"><span class="pre">mjd</span> <span class="pre">--&gt;</span> <span class="pre">(jd1,</span> <span class="pre">jd2)</span> <span class="pre">--&gt;</span> <span class="pre">jd</span></code>. Thus, the final conversion from
+<code class="docutils literal notranslate"><span class="pre">(jd1,</span> <span class="pre">jd2)</span></code> will require a software implementation which is fully compliant
+with the FITS time standard.</p>
+<p>Taking this into consideration, the functionality to read/write Time
+from/to FITS can be explicitly turned off, by opting to store the time
+representation values in the format specified by the <code class="docutils literal notranslate"><span class="pre">format</span></code> attribute
+of the <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> column, instead of the <code class="docutils literal notranslate"><span class="pre">(jd1,</span> <span class="pre">jd2)</span></code> format, with
+no extra metadata in the header. This is the “lossy” version, but can help
+with portability. For the above example, the FITS column corresponding
+to <code class="docutils literal notranslate"><span class="pre">t['a']</span></code> will then store <code class="docutils literal notranslate"><span class="pre">[100.0</span> <span class="pre">200.0]</span></code> instead of
+<code class="docutils literal notranslate"><span class="pre">[[</span> <span class="pre">2400100.5,</span> <span class="pre">0.</span> <span class="pre">],</span> <span class="pre">[</span> <span class="pre">2400200.5,</span> <span class="pre">0.</span> <span class="pre">]]</span></code>. This is done by setting the
+<a class="reference internal" href="#id13">Table serialization methods</a> for Time columns when writing, as in the
+following example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.coordinates</span> <span class="kn">import</span> <span class="n">EarthLocation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Time</span><span class="p">([</span><span class="mf">100.0</span><span class="p">,</span> <span class="mf">200.0</span><span class="p">],</span> <span class="n">scale</span><span class="o">=</span><span class="s1">&#39;tt&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;mjd&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;my_table.fits&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="n">serialize_method</span><span class="o">=</span><span class="p">{</span><span class="n">Time</span><span class="p">:</span> <span class="s1">&#39;formatted_value&#39;</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tm</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;my_table.fits&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tm</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+<span class="go">&lt;Column name=&#39;a&#39; dtype=&#39;float64&#39; length=2&gt;</span>
+<span class="go">100.0</span>
+<span class="go">200.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">all</span><span class="p">(</span><span class="n">tm</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">serialize_method</span></code> for Time columns is equal to
+<code class="docutils literal notranslate"><span class="pre">'jd1_jd2'</span></code>, that is, Time columns will be written in full precision.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">astropy</span></code> <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> object does not precisely map to the
+FITS time standard.</p>
+<ul>
+<li><p>FORMAT</p>
+<p>The FITS format considers only three formats: ISO 8601, JD, and MJD.
+<code class="docutils literal notranslate"><span class="pre">astropy</span></code> Time allows for many other formats like <code class="docutils literal notranslate"><span class="pre">unix</span></code> or <code class="docutils literal notranslate"><span class="pre">cxcsec</span></code>
+for representing the values.</p>
+<p>Hence, the <code class="docutils literal notranslate"><span class="pre">format</span></code> attribute of Time is not stored. After reading from
+FITS the user must set the <code class="docutils literal notranslate"><span class="pre">format</span></code> as desired.</p>
+</li>
+<li><p>LOCATION</p>
+<p>In the FITS standard, the reference position for a time coordinate is a
+scalar expressed via keywords. However, vectorized reference position or
+location can be supported by the <a class="reference external" href="https://fits.gsfc.nasa.gov/registry/greenbank.html">Green Bank Keyword Convention</a> which is a
+Registered FITS Convention. In <code class="docutils literal notranslate"><span class="pre">astropy</span></code> Time, location can be an array
+which is broadcastable to the Time values.</p>
+<p>Hence, vectorized <code class="docutils literal notranslate"><span class="pre">location</span></code> attribute of Time is stored and read
+following this convention.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="hdf5">
+<span id="table-io-hdf5"></span><h3>HDF5<a class="headerlink" href="#hdf5" title="Permalink to this headline">¶</a></h3>
+<p>Reading/writing from/to <a class="reference external" href="https://www.hdfgroup.org/HDF5/">HDF5</a> files is supported with <code class="docutils literal notranslate"><span class="pre">format='hdf5'</span></code> (this
+requires <a class="reference external" href="http://www.h5py.org/">h5py</a> to be installed). However, the <code class="docutils literal notranslate"><span class="pre">.hdf5</span></code> file extension is
+automatically recognized when writing files, and HDF5 files are automatically
+identified (even with a different extension) when reading in (using the first
+few bytes of the file to identify the format), so in most cases you will not
+need to explicitly specify <code class="docutils literal notranslate"><span class="pre">format='hdf5'</span></code>.</p>
+<p>Since HDF5 files can contain multiple tables, the full path to the table
+should be specified via the <code class="docutils literal notranslate"><span class="pre">path=</span></code> argument when reading and writing.</p>
+<div class="section" id="id7">
+<h4>Examples<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h4>
+<p>To read a table called <code class="docutils literal notranslate"><span class="pre">data</span></code> from an HDF5 file named <code class="docutils literal notranslate"><span class="pre">observations.hdf5</span></code>,
+you can do:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;observations.hdf5&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To read a table nested in a group in the HDF5 file, you can do:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;observations.hdf5&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;group/data&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To write a table to a new file, the path should also be specified:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;new_file.hdf5&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;updated_data&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>It is also possible to write a table to an existing file using <code class="docutils literal notranslate"><span class="pre">append=True</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;observations.hdf5&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;updated_data&#39;</span><span class="p">,</span> <span class="n">append</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>As with other formats, the <code class="docutils literal notranslate"><span class="pre">overwrite=True</span></code> argument is supported for
+overwriting existing files. To overwrite only a single table within an HDF5
+file that has multiple datasets, use <em>both</em> the <code class="docutils literal notranslate"><span class="pre">overwrite=True</span></code> and
+<code class="docutils literal notranslate"><span class="pre">append=True</span></code> arguments.</p>
+<p>Finally, when writing to HDF5 files, the <code class="docutils literal notranslate"><span class="pre">compression=</span></code> argument can be
+used to ensure that the data is compressed on disk:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;new_file.hdf5&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;updated_data&#39;</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="metadata-and-mixin-columns">
+<h4>Metadata and Mixin Columns<a class="headerlink" href="#metadata-and-mixin-columns" title="Permalink to this headline">¶</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">astropy</span></code> tables can contain metadata, both in the table <code class="docutils literal notranslate"><span class="pre">meta</span></code> attribute
+(which is an ordered dictionary of arbitrary key/value pairs), and within the
+columns, which each have attributes <code class="docutils literal notranslate"><span class="pre">unit</span></code>, <code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">description</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">meta</span></code>.</p>
+<p>By default, when writing a table to HDF5 the code will attempt to store each
+key/value pair within the table <code class="docutils literal notranslate"><span class="pre">meta</span></code> as HDF5 attributes of the table
+dataset. This will fail if the values within <code class="docutils literal notranslate"><span class="pre">meta</span></code> are not objects that can
+be stored as HDF5 attributes. In addition, if the table columns being stored
+have defined values for any of the above-listed column attributes, these
+metadata will <em>not</em> be stored and a warning will be issued.</p>
+<div class="section" id="serialize-meta">
+<h5>serialize_meta<a class="headerlink" href="#serialize-meta" title="Permalink to this headline">¶</a></h5>
+<p>To enable storing all table and column metadata to the HDF5 file, call
+the <code class="docutils literal notranslate"><span class="pre">write()</span></code> method with <code class="docutils literal notranslate"><span class="pre">serialize_meta=True</span></code>. This will store metadata
+in a separate HDF5 dataset, contained in the same file, which is named
+<code class="docutils literal notranslate"><span class="pre">&lt;path&gt;.__table_column_meta__</span></code>. Here <code class="docutils literal notranslate"><span class="pre">path</span></code> is the argument provided in
+the call to <code class="docutils literal notranslate"><span class="pre">write()</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;observations.hdf5&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">serialize_meta</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The table metadata are stored as a dataset of strings by serializing the
+metadata in YAML following the <a class="reference external" href="https://github.com/astropy/astropy-APEs/blob/main/APE6.rst#header-details">ECSV header format</a>
+definition. Since there are YAML parsers for most common languages, one can
+easily access and use the table metadata if reading the HDF5 in a non-astropy
+application.</p>
+<p>As of <code class="docutils literal notranslate"><span class="pre">astropy</span></code> 3.0, by specifying <code class="docutils literal notranslate"><span class="pre">serialize_meta=True</span></code> one can also store
+to HDF5 tables that contain <a class="reference internal" href="../table/mixin_columns.html#mixin-columns"><span class="std std-ref">Mixin Columns</span></a> such as <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> or
+<a class="reference internal" href="../api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="astropy.coordinates.SkyCoord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SkyCoord</span></code></a> columns.</p>
+</div>
+</div>
+</div>
+<div class="section" id="parquet">
+<span id="table-io-parquet"></span><h3>Parquet<a class="headerlink" href="#parquet" title="Permalink to this headline">¶</a></h3>
+<p>Reading and writing <a class="reference external" href="https://parquet.apache.org/">Parquet</a> files is supported with <code class="docutils literal notranslate"><span class="pre">format='parquet'</span></code>
+if the <a class="reference external" href="https://arrow.apache.org/docs/python/">pyarrow</a> package is installed. For writing, the file extensions <code class="docutils literal notranslate"><span class="pre">.parquet</span></code> or
+<code class="docutils literal notranslate"><span class="pre">.parq</span></code> will automatically imply the <code class="docutils literal notranslate"><span class="pre">'parquet'</span></code> format. For reading,
+Parquet files are automatically identified regardless of the extension
+if the first four bytes of the file are <code class="docutils literal notranslate"><span class="pre">b'PAR1'</span></code>.
+In many cases you do not need to explicitly specify <code class="docutils literal notranslate"><span class="pre">format='parquet'</span></code>,
+but it may be a good idea anyway if there is any ambiguity about the
+file format.</p>
+<p>Multiple-file Parquet datasets are not supported for reading and writing.</p>
+<div class="section" id="id9">
+<h4>Examples<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h4>
+<p>To read a table from a Parquet file named <code class="docutils literal notranslate"><span class="pre">observations.parquet</span></code>, you can do:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;observations.parquet&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To write a table to a new file, simply do:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;new_file.parquet&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>As with other formats, the <code class="docutils literal notranslate"><span class="pre">overwrite=True</span></code> argument is supported for
+overwriting existing files.</p>
+<p>One big advantage of the Parquet files is that each column is stored independently,
+and thus reading a subset of columns is fast and efficient.  To find out which
+columns are stored in a table without reading the data, use the <code class="docutils literal notranslate"><span class="pre">schema_only=True</span></code>
+as shown below. This returns a zero-length table with the appropriate columns:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">schema</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;observations.parquet&#39;</span><span class="p">,</span> <span class="n">schema_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To read only a subset of the columns, use the <code class="docutils literal notranslate"><span class="pre">include_names</span></code> and/or <code class="docutils literal notranslate"><span class="pre">exclude_names</span></code> keywords:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t_sub</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;observations.parquet&#39;</span><span class="p">,</span> <span class="n">include_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mjd&#39;</span><span class="p">,</span> <span class="s1">&#39;airmass&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="pandas">
+<span id="table-io-pandas"></span><h3>Pandas<a class="headerlink" href="#pandas" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">astropy</span></code> <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Table</span></code></a> supports the ability to read or write tables
+using some of the <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html">I/O methods</a>
+available within <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/index.html">pandas</a>. This interface thus provides convenient wrappers to
+the following functions / methods:</p>
+<table class="colwidths-given docutils align-default">
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Format name</p></th>
+<th class="head"><p>Data Description</p></th>
+<th class="head"><p>Reader</p></th>
+<th class="head"><p>Writer</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pandas.csv</span></code></p></td>
+<td><p><a class="reference external" href="https://en.wikipedia.org/wiki/Comma-separated_values">CSV</a></p></td>
+<td><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#io-read-csv-table">read_csv()</a></p></td>
+<td><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#io-store-in-csv">to_csv()</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pandas.json</span></code></p></td>
+<td><p><a class="reference external" href="http://www.json.org/">JSON</a></p></td>
+<td><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#io-json-reader">read_json()</a></p></td>
+<td><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#io-json-writer">to_json()</a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pandas.html</span></code></p></td>
+<td><p><a class="reference external" href="https://en.wikipedia.org/wiki/HTML">HTML</a></p></td>
+<td><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#io-read-html">read_html()</a></p></td>
+<td><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#io-html">to_html()</a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pandas.fwf</span></code></p></td>
+<td><p>Fixed Width</p></td>
+<td><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_fwf.html#pandas.read_fwf">read_fwf()</a></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Notes</strong>:</p>
+<ul class="simple">
+<li><p>There is no fixed-width writer in <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/index.html">pandas</a>.</p></li>
+<li><p>Reading HTML requires <a class="reference external" href="https://pypi.org/project/beautifulsoup4/">BeautifulSoup4</a> and
+<a class="reference external" href="https://pypi.org/project/html5lib/">html5lib</a> to be installed.</p></li>
+</ul>
+<p>When reading or writing a table, any keyword arguments apart from the
+<code class="docutils literal notranslate"><span class="pre">format</span></code> and file name are passed through to pandas, for instance:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;data.csv&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;pandas.csv&#39;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t2</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;data.csv&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;pandas.csv&#39;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="jsviewer">
+<span id="table-io-jsviewer"></span><h3>JSViewer<a class="headerlink" href="#jsviewer" title="Permalink to this headline">¶</a></h3>
+<p>Provides an interactive HTML export of a Table, like the
+<a class="reference internal" href="../api/astropy.io.ascii.HTML.html#astropy.io.ascii.HTML" title="astropy.io.ascii.HTML"><code class="xref py py-class docutils literal notranslate"><span class="pre">HTML</span></code></a> writer but using the <a class="reference external" href="https://www.datatables.net/">DataTables</a> library, which
+allow to visualize interactively an HTML table (with columns sorting, search,
+and pagination).</p>
+<div class="section" id="id11">
+<h4>Example<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h4>
+<p>To write a table <code class="docutils literal notranslate"><span class="pre">t</span></code> to a new file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;new_table.html&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;jsviewer&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Several additional parameters can be used:</p>
+<ul class="simple">
+<li><p><em>table_id</em>: the HTML ID of the <code class="docutils literal notranslate"><span class="pre">&lt;table&gt;</span></code> tag, defaults to <code class="docutils literal notranslate"><span class="pre">'table{id}'</span></code>
+where <code class="docutils literal notranslate"><span class="pre">id</span></code> is the ID of the Table object.</p></li>
+<li><p><em>max_lines</em>: maximum number of lines.</p></li>
+<li><p><em>table_class</em>: HTML classes added to the <code class="docutils literal notranslate"><span class="pre">&lt;table&gt;</span></code> tag, can be useful to
+customize the style of the table.</p></li>
+<li><p><em>jskwargs</em>: additional arguments passed to <a class="reference internal" href="../api/astropy.table.JSViewer.html#astropy.table.JSViewer" title="astropy.table.JSViewer"><code class="xref py py-class docutils literal notranslate"><span class="pre">JSViewer</span></code></a>.</p></li>
+<li><p><em>css</em>: CSS style, default to <code class="docutils literal notranslate"><span class="pre">astropy.table.jsviewer.DEFAULT_CSS</span></code>.</p></li>
+<li><p><em>htmldict</em>: additional arguments passed to <a class="reference internal" href="../api/astropy.io.ascii.HTML.html#astropy.io.ascii.HTML" title="astropy.io.ascii.HTML"><code class="xref py py-class docutils literal notranslate"><span class="pre">HTML</span></code></a>.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="vo-tables">
+<span id="table-io-votable"></span><h3>VO Tables<a class="headerlink" href="#vo-tables" title="Permalink to this headline">¶</a></h3>
+<p>Reading/writing from/to <a class="reference external" href="http://www.ivoa.net/documents/VOTable/">VO table</a>
+files is supported with <code class="docutils literal notranslate"><span class="pre">format='votable'</span></code>. In most cases, existing VO
+tables should be automatically identified as such based on the header of the
+file, but if not, or if writing to disk, then the format should be explicitly
+specified.</p>
+<div class="section" id="id12">
+<h4>Examples<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h4>
+<p>If a VO table file contains only a single table, then it can be read in with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;aj285677t3_votable.xml&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If more than one table is present in the file, an error will be raised,
+unless the table ID is specified via the <code class="docutils literal notranslate"><span class="pre">table_id=</span></code> argument:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;catalog.xml&#39;</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">ValueError</span>: <span class="n">Multiple tables found: table id should be set via the table_id= argument. The available tables are twomass, spitzer</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;catalog.xml&#39;</span><span class="p">,</span> <span class="n">table_id</span><span class="o">=</span><span class="s1">&#39;twomass&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To write to a new file, the ID of the table should also be specified (unless
+<code class="docutils literal notranslate"><span class="pre">t.meta['ID']</span></code> is defined):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;new_catalog.xml&#39;</span><span class="p">,</span> <span class="n">table_id</span><span class="o">=</span><span class="s1">&#39;updated_table&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;votable&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>When writing, the <code class="docutils literal notranslate"><span class="pre">compression=True</span></code> argument can be used to force
+compression of the data on disk, and the <code class="docutils literal notranslate"><span class="pre">overwrite=True</span></code> argument can be
+used to overwrite an existing file.</p>
+</div>
+</div>
+</div>
+<div class="section" id="table-serialization-methods">
+<span id="id13"></span><h2>Table Serialization Methods<a class="headerlink" href="#table-serialization-methods" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">astropy</span></code> supports fine-grained control of the way to write out (serialize)
+the columns in a Table. For instance, if you are writing an ISO format
+Time column to an ECSV ASCII table file, you may want to write this as a pair
+of JD1/JD2 floating point values for full resolution (perfect “round-trip”),
+or as a formatted ISO date string so that the values are easily readable by
+your other applications.</p>
+<p>The default method for serialization depends on the format (FITS, ECSV, HDF5).
+For instance HDF5 is a binary format and so it would make sense to store a Time
+object as JD1/JD2, while ECSV is a flat ASCII format and commonly you
+would want to see the date in the same format as the Time object. The defaults
+also reflect an attempt to minimize compatibility issues between <code class="docutils literal notranslate"><span class="pre">astropy</span></code>
+versions. For instance, it was possible to write Time columns to ECSV as
+formatted strings in a version prior to the ability to write as JD1/JD2
+pairs, so the current default for ECSV is to write as formatted strings.</p>
+<p>The two classes which have configurable serialization methods are
+<a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> and <a class="reference internal" href="../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a>. See the sections
+on Time <a class="reference internal" href="#details">Details</a> and <a class="reference internal" href="#masked-columns">Masked columns</a>, respectively, for additional
+information. The defaults for each format are listed below:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 15%" />
+<col style="width: 49%" />
+<col style="width: 37%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Format</p></th>
+<th class="head"><p>Time</p></th>
+<th class="head"><p>MaskedColumn</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>FITS</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">jd1_jd2</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null_value</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>ECSV</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">formatted_value</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">null_value</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>HDF5</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">jd1_jd2</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">data_mask</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>YAML</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">jd2_jd2</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="id14">
+<h3>Examples<a class="headerlink" href="#id14" title="Permalink to this headline">¶</a></h3>
+<p>Start by making a table with a Time column and masked column:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">sys</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.time</span> <span class="kn">import</span> <span class="n">Time</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">MaskedColumn</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;tm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Time</span><span class="p">([</span><span class="s1">&#39;2000-01-01&#39;</span><span class="p">,</span> <span class="s1">&#39;2000-01-02&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;mc1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MaskedColumn</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="n">mask</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;mc2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MaskedColumn</span><span class="p">([</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span> <span class="n">mask</span><span class="o">=</span><span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span>
+<span class="go">&lt;Table masked=True length=2&gt;</span>
+<span class="go">           tm             mc1     mc2</span>
+<span class="go">         object         float64 float64</span>
+<span class="go">----------------------- ------- -------</span>
+<span class="go">2000-01-01 00:00:00.000      --     3.0</span>
+<span class="go">2000-01-02 00:00:00.000     2.0      --</span>
+</pre></div>
+</div>
+<p>Now specify that you want all <a class="reference internal" href="../api/astropy.time.Time.html#astropy.time.Time" title="astropy.time.Time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Time</span></code></a> columns written as JD1/JD2
+and the <code class="docutils literal notranslate"><span class="pre">mc1</span></code> column written as a data/mask pair and write to ECSV:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">serialize_method</span> <span class="o">=</span> <span class="p">{</span><span class="n">Time</span><span class="p">:</span> <span class="s1">&#39;jd1_jd2&#39;</span><span class="p">,</span> <span class="s1">&#39;mc1&#39;</span><span class="p">:</span> <span class="s1">&#39;data_mask&#39;</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;ascii.ecsv&#39;</span><span class="p">,</span> <span class="n">serialize_method</span><span class="o">=</span><span class="n">serialize_method</span><span class="p">)</span>
+<span class="go"># %ECSV 0.9</span>
+<span class="go"> ...</span>
+<span class="go"># schema: astropy-2.0</span>
+<span class="go"> tm.jd1    tm.jd2  mc1  mc1.mask  mc2</span>
+<span class="go">2451544.0    0.5   1.0   True     3.0</span>
+<span class="go">2451546.0   -0.5   2.0   False     &quot;&quot;</span>
+</pre></div>
+</div>
+<p>(Spaces added for clarity)</p>
+<p>Notice that the <code class="docutils literal notranslate"><span class="pre">tm</span></code> column has been replaced by the <code class="docutils literal notranslate"><span class="pre">tm.jd1</span></code> and <code class="docutils literal notranslate"><span class="pre">tm.jd2</span></code>
+columns, and likewise a new column <code class="docutils literal notranslate"><span class="pre">mc1.mask</span></code> has appeared and it explicitly
+contains the mask values. When this table is read back with the <code class="docutils literal notranslate"><span class="pre">ascii.ecsv</span></code>
+reader then the original columns are reconstructed.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">serialize_method</span></code> argument can be set in two different ways:</p>
+<ul class="simple">
+<li><p>As a single string like <code class="docutils literal notranslate"><span class="pre">data_mask</span></code>. This value then applies to every
+column, and is a convenient strategy for a masked table with no Time columns.</p></li>
+<li><p>As a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, where the key can be either a single column name or a class (as
+shown in the example above), and the value is the corresponding serialization
+method.</p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Unified File Read/Write Interface</a><ul>
+<li><a class="reference internal" href="#getting-started-with-image-i-o">Getting Started with Image I/O</a></li>
+<li><a class="reference internal" href="#getting-started-with-table-i-o">Getting Started with Table I/O</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#getting-help-on-readers-and-writers">Getting Help on Readers and Writers</a></li>
+<li><a class="reference internal" href="#command-line-utility">Command-Line Utility</a><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#built-in-table-readers-writers">Built-In Table Readers/Writers</a><ul>
+<li><a class="reference internal" href="#ascii-formats">ASCII Formats</a><ul>
+<li><a class="reference internal" href="#id1">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#fits">FITS</a><ul>
+<li><a class="reference internal" href="#reading">Reading</a></li>
+<li><a class="reference internal" href="#writing">Writing</a></li>
+<li><a class="reference internal" href="#keywords">Keywords</a></li>
+<li><a class="reference internal" href="#tdispn-keyword">TDISPn Keyword</a><ul>
+<li><a class="reference internal" href="#tdispn-to-python-format-string">TDISPn to Python format string</a></li>
+<li><a class="reference internal" href="#python-format-string-to-tdispn">Python format string to TDISPn</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#masked-columns">Masked Columns</a></li>
+<li><a class="reference internal" href="#astropy-native-objects-mixin-columns"><code class="docutils literal notranslate"><span class="pre">astropy</span></code> Native Objects (Mixin Columns)</a><ul>
+<li><a class="reference internal" href="#quantity">Quantity</a></li>
+<li><a class="reference internal" href="#time">Time</a></li>
+<li><a class="reference internal" href="#writing-and-reading-astropy-time-columns">Writing and reading <code class="docutils literal notranslate"><span class="pre">astropy</span></code> Time columns</a></li>
+<li><a class="reference internal" href="#id3">Example</a></li>
+<li><a class="reference internal" href="#reading-fits-standard-compliant-time-coordinate-columns-in-binary-tables">Reading FITS standard compliant time coordinate columns in binary tables</a></li>
+<li><a class="reference internal" href="#id4">Examples</a></li>
+<li><a class="reference internal" href="#details">Details</a></li>
+<li><a class="reference internal" href="#id5">Examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#hdf5">HDF5</a><ul>
+<li><a class="reference internal" href="#id7">Examples</a></li>
+<li><a class="reference internal" href="#metadata-and-mixin-columns">Metadata and Mixin Columns</a><ul>
+<li><a class="reference internal" href="#serialize-meta">serialize_meta</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#parquet">Parquet</a><ul>
+<li><a class="reference internal" href="#id9">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pandas">Pandas</a></li>
+<li><a class="reference internal" href="#jsviewer">JSViewer</a><ul>
+<li><a class="reference internal" href="#id11">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#vo-tables">VO Tables</a><ul>
+<li><a class="reference internal" href="#id12">Examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#table-serialization-methods">Table Serialization Methods</a><ul>
+<li><a class="reference internal" href="#id14">Examples</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/io/unified.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>

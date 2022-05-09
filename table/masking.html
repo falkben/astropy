@@ -1,0 +1,323 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Masking and Missing Values &#8212; Astropy v5.2.dev94+gb1133d712.d20220509</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/plot_directive.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <script type="text/javascript" src="../_static/copybutton.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Reading and Writing Table Objects" href="io.html" />
+    <link rel="prev" title="Table Indexing" href="indexing.html" />
+  
+  <meta name="robots" content="noindex, nofollow">
+  
+  
+    <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+
+
+  </head><body>
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">astro</span><span id="logotext2">py</span><span id="logotext3">:docs</span></a>
+  <ul>
+    
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="io.html" title="Reading and Writing Table Objects">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="indexing.html" title="Table Indexing">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">Astropy v5.2.dev94+gb1133d712.d20220509</a>
+	 &#187;
+      </li>
+      <li><a href="index.html" accesskey="U">Data Tables (<code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table</span></code>)</a> &#187;</li>
+      
+      <li>Masking and Missing Values</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="masking-and-missing-values">
+<span id="id1"></span><h1>Masking and Missing Values<a class="headerlink" href="#masking-and-missing-values" title="Permalink to this headline">¶</a></h1>
+<p>The <a class="reference internal" href="index.html#module-astropy.table" title="astropy.table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table</span></code></a> package provides support for masking and missing values in
+a table by using the <code class="docutils literal notranslate"><span class="pre">numpy.ma</span></code> <a class="reference external" href="https://numpy.org/doc/stable/reference/maskedarray.html">masked array</a> package to define
+masked columns and by supporting <a class="reference internal" href="mixin_columns.html#mixin-columns"><span class="std std-ref">Mixin Columns</span></a> that provide masking.
+This allows handling tables with missing or invalid entries in much the same
+manner as for standard (unmasked) tables. It is useful to be familiar with the
+<a class="reference external" href="https://numpy.org/doc/stable/reference/maskedarray.generic.html">masked array documentation</a>
+when using masked tables within <a class="reference internal" href="index.html#module-astropy.table" title="astropy.table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">astropy.table</span></code></a>.</p>
+<p>In a nutshell, the concept is to define a boolean mask that mirrors
+the structure of a column data array. Wherever a mask value is
+<a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">True</span></code></a>, the corresponding entry is considered to be missing or invalid.
+Operations involving column or row access and slicing are unchanged.
+The key difference is that arithmetic or reduction operations involving
+columns or column slices follow the rules for <a class="reference external" href="https://numpy.org/doc/stable/reference/maskedarray.generic.html#operations-on-masked-arrays">operations
+on masked arrays</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Reduction operations like <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.sum.html#numpy.sum" title="(in NumPy v1.22)"><code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.sum()</span></code></a> or <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.mean.html#numpy.mean" title="(in NumPy v1.22)"><code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.mean()</span></code></a> follow the
+convention of ignoring masked (invalid) values. This differs from
+the behavior of the floating point <code class="docutils literal notranslate"><span class="pre">NaN</span></code>, for which the sum of an
+array including one or more <code class="docutils literal notranslate"><span class="pre">NaN's</span></code> will result in <code class="docutils literal notranslate"><span class="pre">NaN</span></code>.</p>
+<p>For more information see NumPy Enhancement Proposals <a class="reference external" href="https://numpy.org/neps/nep-0024-missing-data-2.html">24</a>, <a class="reference external" href="https://numpy.org/neps/nep-0025-missing-data-3.html">25</a>, and <a class="reference external" href="https://numpy.org/neps/nep-0026-missing-data-summary.html">26</a>.</p>
+</div>
+<div class="section" id="table-creation">
+<h2>Table Creation<a class="headerlink" href="#table-creation" title="Permalink to this headline">¶</a></h2>
+<p>A masked table can be created in several ways:</p>
+<p><strong>Create a table with one or more columns as a MaskedColumn object</strong></p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">astropy.table</span> <span class="kn">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">Column</span><span class="p">,</span> <span class="n">MaskedColumn</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">MaskedColumn</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;i4&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Column</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;i8&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Table</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">])</span>
+<span class="go">&lt;Table length=2&gt;</span>
+<span class="go">  a     b</span>
+<span class="go">int32 int64</span>
+<span class="go">----- -----</span>
+<span class="go">    1     3</span>
+<span class="go">   --     4</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-class docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a> is the masked analog of the <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-class docutils literal notranslate"><span class="pre">Column</span></code></a> class and provides the
+interface for creating and manipulating a column of masked data. The
+<a class="reference internal" href="../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-class docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a> class inherits from <a class="reference external" href="https://numpy.org/doc/stable/reference/maskedarray.baseclass.html#numpy.ma.MaskedArray" title="(in NumPy v1.22)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ma.MaskedArray</span></code></a>, in contrast
+to <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-class docutils literal notranslate"><span class="pre">Column</span></code></a> which inherits from <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>. This distinction is the main reason
+there are different classes for these two cases.</p>
+<p>Notice that masked entries in the table output are shown as <code class="docutils literal notranslate"><span class="pre">--</span></code>.</p>
+<p><strong>Create a table with one or more columns as a NumPy MaskedArray</strong></p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p><strong>Create a table from list data containing numpy.ma.masked</strong></p>
+<p>You can use the <a class="reference external" href="https://numpy.org/doc/stable/reference/maskedarray.baseclass.html#numpy.ma.masked" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ma.masked</span></code></a> constant to indicate masked or invalid data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked</span><span class="p">,</span> <span class="s1">&#39;val&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Table</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">))</span>
+<span class="go">&lt;Table length=2&gt;</span>
+<span class="go">  a     b</span>
+<span class="go">float64 str3</span>
+<span class="go">------- ----</span>
+<span class="go">    1.0   --</span>
+<span class="go">    --  val</span>
+</pre></div>
+</div>
+<p>Initializing from lists with embedded <a class="reference external" href="https://numpy.org/doc/stable/reference/maskedarray.baseclass.html#numpy.ma.masked" title="(in NumPy v1.22)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ma.masked</span></code></a> elements is
+considerably slower than using <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ma.array.html#numpy.ma.array" title="(in NumPy v1.22)"><code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.ma.array()</span></code></a> or <a class="reference internal" href="../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-class docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a>
+directly, so if performance is a concern you should use the latter methods if
+possible.</p>
+<p><strong>Add a MaskedColumn object to an existing table</strong></p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">MaskedColumn</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">mask</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span>
+</pre></div>
+</div>
+<p><strong>Add a new row to an existing table and specify a mask argument</strong></p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">Column</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">Column</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">add_row</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="n">mask</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><strong>Create a new table object and specify masked=True</strong></p>
+<p>If <code class="docutils literal notranslate"><span class="pre">masked=True</span></code> is provided when creating the table then every column will
+be created as a <a class="reference internal" href="../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-class docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a>, and new columns will always be added as a
+<a class="reference internal" href="../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-class docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Table</span><span class="p">([(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)],</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">),</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;i4&#39;</span><span class="p">,</span> <span class="s1">&#39;i8&#39;</span><span class="p">))</span>
+<span class="go">&lt;Table masked=True length=2&gt;</span>
+<span class="go">  a     b</span>
+<span class="go">int32 int64</span>
+<span class="go">----- -----</span>
+<span class="go">    1     3</span>
+<span class="go">    2     4</span>
+</pre></div>
+</div>
+<p><strong>Convert an existing table to a masked table</strong></p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">]])</span>  <span class="c1"># standard (unmasked) table</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># convert to masked table</span>
+</pre></div>
+</div>
+<p>This operation will convert every <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-class docutils literal notranslate"><span class="pre">Column</span></code></a> to <a class="reference internal" href="../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-class docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a> and ensure that any
+subsequently added columns are masked.</p>
+</div>
+<div class="section" id="table-access">
+<h2>Table Access<a class="headerlink" href="#table-access" title="Permalink to this headline">¶</a></h2>
+<p>Nearly all of the standard methods for accessing and modifying data
+columns, rows, and individual elements also apply to masked tables.</p>
+<p>There is a difference however regarding the <a class="reference internal" href="../api/astropy.table.Row.html#astropy.table.Row" title="astropy.table.Row"><code class="xref py py-class docutils literal notranslate"><span class="pre">Row</span></code></a> objects that are obtained by
+indexing a single row of a table. For standard tables, two such rows can be
+compared for equality, but for masked tables this comparison will produce an
+exception:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">ValueError</span>: <span class="n">Unable to compare rows for masked table due to numpy.ma bug</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="masking-and-filling">
+<h2>Masking and Filling<a class="headerlink" href="#masking-and-filling" title="Permalink to this headline">¶</a></h2>
+<p>Both the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table" title="astropy.table.Table"><code class="xref py py-class docutils literal notranslate"><span class="pre">Table</span></code></a> and <a class="reference internal" href="../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-class docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a> classes provide attributes and methods to
+support manipulating tables with missing or invalid data.</p>
+<div class="section" id="mask">
+<h3>Mask<a class="headerlink" href="#mask" title="Permalink to this headline">¶</a></h3>
+<p>The mask for a column can be viewed and modified via the <code class="docutils literal notranslate"><span class="pre">mask</span></code> attribute:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Table</span><span class="p">([(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)],</span> <span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">),</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>  <span class="c1"># Modify column mask (boolean array)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>  <span class="c1"># Modify column mask (boolean array)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+<span class="go"> a   b</span>
+<span class="go">--- ---</span>
+<span class="go">  1  --</span>
+<span class="go"> --   4</span>
+</pre></div>
+</div>
+<p>Masked entries are shown as <code class="docutils literal notranslate"><span class="pre">--</span></code> when the table is printed. You can
+view the mask directly, either at the column or table level:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mask</span>
+<span class="go">array([False,  True]...)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="o">.</span><span class="n">mask</span>
+<span class="go">&lt;Table length=2&gt;</span>
+<span class="go">  a     b</span>
+<span class="go"> bool  bool</span>
+<span class="go">----- -----</span>
+<span class="go">False  True</span>
+<span class="go"> True False</span>
+</pre></div>
+</div>
+<p>To get the indices of masked elements, use an expression like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>  
+<span class="go">array([1])</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="filling">
+<h3>Filling<a class="headerlink" href="#filling" title="Permalink to this headline">¶</a></h3>
+<p>The entries which are masked (i.e., missing or invalid) can be replaced with
+specified fill values. Filling a <a class="reference internal" href="../api/astropy.table.MaskedColumn.html#astropy.table.MaskedColumn" title="astropy.table.MaskedColumn"><code class="xref py py-class docutils literal notranslate"><span class="pre">MaskedColumn</span></code></a> produces a <a class="reference internal" href="../api/astropy.table.Column.html#astropy.table.Column" title="astropy.table.Column"><code class="xref py py-class docutils literal notranslate"><span class="pre">Column</span></code></a>. Each
+column in a masked table has a <code class="docutils literal notranslate"><span class="pre">fill_value</span></code> attribute that specifies the
+default fill value for that column. To perform the actual replacement operation
+the <a class="reference internal" href="../api/astropy.table.Table.html#astropy.table.Table.filled" title="astropy.table.Table.filled"><code class="xref py py-meth docutils literal notranslate"><span class="pre">filled()</span></code></a> method is called. This takes an
+optional argument which can override the default column <code class="docutils literal notranslate"><span class="pre">fill_value</span></code>
+attribute.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">fill_value</span> <span class="o">=</span> <span class="o">-</span><span class="mi">99</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">fill_value</span> <span class="o">=</span> <span class="mi">33</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">filled</span><span class="p">())</span>
+<span class="go"> a   b</span>
+<span class="go">--- ---</span>
+<span class="go">  1  33</span>
+<span class="go">-99   4</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">filled</span><span class="p">())</span>
+<span class="go"> a</span>
+<span class="go">---</span>
+<span class="go">  1</span>
+<span class="go">-99</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="mi">999</span><span class="p">))</span>
+<span class="go"> a</span>
+<span class="go">---</span>
+<span class="go">  1</span>
+<span class="go">999</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="mi">1000</span><span class="p">))</span>
+<span class="go"> a    b</span>
+<span class="go">---- ----</span>
+<span class="go">   1 1000</span>
+<span class="go">1000    4</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">Masking and Missing Values</a><ul>
+<li><a class="reference internal" href="#table-creation">Table Creation</a></li>
+<li><a class="reference internal" href="#table-access">Table Access</a></li>
+<li><a class="reference internal" href="#masking-and-filling">Masking and Filling</a><ul>
+<li><a class="reference internal" href="#mask">Mask</a></li>
+<li><a class="reference internal" href="#filling">Filling</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/table/masking.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2011–2022, The Astropy Developers.<br/>
+    Created using <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> 3.5.4. &nbsp;
+    Last built 08 May 2022. <br/>
+  </p>
+</footer>
+  </body>
+</html>
