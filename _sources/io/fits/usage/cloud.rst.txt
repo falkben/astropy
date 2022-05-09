@@ -33,8 +33,8 @@ HTTP protocol.  Most web servers support serving portions of files in this way.
 For example, let's assume you want to retrieve data from a large image obtained
 by the Hubble Space Telescope available at the following url::
 
-    # Download link for a large Hubble archive image (213 MB)
-    url = "https://mast.stsci.edu/api/v0.1/Download/file/?uri=mast:HST/product/j8pu0y010_drc.fits"
+    >>> # Download link for a large Hubble archive image (213 MB)
+    >>> url = "https://mast.stsci.edu/api/v0.1/Download/file/?uri=mast:HST/product/j8pu0y010_drc.fits"
 
 This file can be opened by passing the url to `astropy.io.fits.open`.
 By default, Astropy will download the entire file to local disc before opening
@@ -48,19 +48,19 @@ For example:
 
 .. doctest-remote-data::
 
-    from astropy.io import fits
-
-    # `fits.open` will download the primary header
-    with fits.open(url, use_fsspec=True, lazy_load_hdus=True) as hdul:
-
-        # Download a single header
-        header = hdul[1].header
-
-        # Download a single data array
-        image = hdul[1].data
-
-        # Download a 10-by-20 pixel cutout by using .section
-        cutout = hdul[2].section[10:20, 30:50]
+    >>> from astropy.io import fits
+    ...
+    >>> # `fits.open` will download the primary header
+    >>> with fits.open(url, use_fsspec=True, lazy_load_hdus=True) as hdul:
+    ...
+    ...     # Download a single header
+    ...     header = hdul[1].header
+    ...
+    ...     # Download a single data array
+    ...     image = hdul[1].data
+    ...
+    ...     # Download a 10-by-20 pixel cutout by using .section
+    ...     cutout = hdul[2].section[10:20, 30:50]
 
 The example above requires less time and memory than would be required to
 download the entire file. This is because ``fsspec`` is able to leverage
@@ -81,8 +81,8 @@ this page.
 .. note::
 
     The `ImageHDU.section` feature is only available for uncompressed FITS
-    image extensions.  Attempting to use ``.section`` on a compressed image
-    will yield an `AttributeError`.
+    image extensions.  Attempting to use ``.section`` on a compressed
+    image will yield an `AttributeError`.
 
 
 Subsetting FITS files hosted in Amazon S3 cloud storage
@@ -93,16 +93,19 @@ Amazon cloud storage, where it is stored in a
 `public S3 bucket <https://registry.opendata.aws/hst/>`__ at the following
 location::
 
-    s3_uri = "s3://stpubdata/hst/public/j8pu/j8pu0y010/j8pu0y010_drc.fits"
+    >>> s3_uri = "s3://stpubdata/hst/public/j8pu/j8pu0y010/j8pu0y010_drc.fits"
 
 With ``use_fsspec`` enabled, you can obtain a small cutout from a file stored
 in Amazon S3 cloud storage in the same way as above.  For example:
 
 .. doctest-remote-data::
-    # Download a small 10-by-20 pixel cutout from a FITS file stored in Amazon S3
-    with fits.open(s3_uri, use_fsspec=True, fsspec_kwargs={"anon": True}) as hdul:
-        cutout = hdul[1].section[10:20, 30:50]
+    >>> # Download a small 10-by-20 pixel cutout from a FITS file stored in Amazon S3
+    >>> with fits.open(s3_uri, use_fsspec=True, fsspec_kwargs={"anon": True}) as hdul:
+    ...     cutout = hdul[1].section[10:20, 30:50]
 
+
+Obtaining cutouts from Amazon S3 in this way may be particularly performant if
+your code is running on a server in the same Amazon cloud region as the data.
 
 .. note::
 
@@ -128,10 +131,10 @@ to provide your key as follows:
 
 .. doctest-skip::
 
-    fsspec_kwargs = {"key": "YOUR-SECRET-KEY-ID",
-                     "secret": "YOUR-SECRET-KEY"}
-    with fits.open(s3_uri, use_fsspec=True, fsspec_kwargs=fsspec_kwargs) as hdul:
-        cutout = hdul[2].section[10:20, 30:50]
+    >>> fsspec_kwargs = {"key": "YOUR-SECRET-KEY-ID",
+    ...                  "secret": "YOUR-SECRET-KEY"}
+    >>> with fits.open(s3_uri, use_fsspec=True, fsspec_kwargs=fsspec_kwargs) as hdul:
+    ...     cutout = hdul[2].section[10:20, 30:50]
 
 .. warning::
 
@@ -139,9 +142,6 @@ to provide your key as follows:
     may accidentally end up revealing your keys when you share your code with
     others. A better practice is to store your access keys via a configuration
     file or environment variables. See the ``s3fs`` documentation for guidance.
-
-
-..  Obtaining the cutout from Amazon S3 in this way may be particularly performant if your code is running on a server in the same Amazon cloud region as the data.
 
 
 Using :class:`~astropy.nddata.Cutout2D` with cloud-hosted FITS files
@@ -154,43 +154,44 @@ size rather than array coordinates. For this reason, Astropy provides the
 `astropy.nddata.Cutout2D` tool which makes it easy to obtain cutouts informed
 by an image's World Coordinate System (`~astropy.wcs.WCS`).
 
-This cutout tool can be used in combination with ``fsspec`` and `.section`.
+This cutout tool can be used in combination with ``fsspec`` and ``.section``.
 For example, assume you happen to know that the image we opened above contains
 a nice edge-on galaxy at the following position::
 
-    # Approximate location of an edge-on galaxy
-    from astropy.coordinates import SkyCoord
-    position = SkyCoord('10h01m41.13s 02d25m20.58s')
+    >>> # Approximate location of an edge-on galaxy
+    >>> from astropy.coordinates import SkyCoord
+    >>> position = SkyCoord('10h01m41.13s 02d25m20.58s')
 
 We also know that the radius of the galaxy is approximately 5 arcseconds::
 
-    # Approximate size of the galaxy
-    from astropy import units as u
-    size = 5*u.arcsec
+    >>> # Approximate size of the galaxy
+    >>> from astropy import units as u
+    >>> size = 5*u.arcsec
 
 Given this sky position and radius, we can use `~astropy.nddata.Cutout2D`
-in combination with ``use_fsspec=True`` and `.section` as follows:
+in combination with ``use_fsspec=True`` and ``.section`` as follows:
 
 .. doctest-remote-data::
-    from astropy.nddata import Cutout2D
-    from astropy.wcs import WCS
+    >>> from astropy.nddata import Cutout2D
+    >>> from astropy.wcs import WCS
+    ...
+    >>> with fits.open(s3_uri, use_fsspec=True) as hdul:
+    ...     wcs = WCS(hdul[1].header)
+    ...     cutout = Cutout2D(hdul[1].section,  # use `.section` rather than `.data`!
+    ...                       position=position,
+    ...                       size=size,
+    ...                       wcs=wcs)
 
-    with fits.open(s3_uri, use_fsspec=True) as hdul:
-        wcs = WCS(hdul[1].header)
-        cutout = Cutout2D(hdul[1].section,  # use `.section` rather than `.data`!
-                          position=position,
-                          size=size,
-                          wcs=wcs)
+As a final step, you can plot the cutout using Matplotlib as follows:
 
-As a final step, you can plot the cutout using Matplotlib as follows::
-
-    import matplotlib.pyplot as plt
-    from astropy.visualization import astropy_mpl_style
-
-    plt.style.use(astropy_mpl_style)
-    plt.figure()
-    plt.imshow(cutout.data, cmap='gray')
-    plt.colorbar()
+.. doctest-remote-data::
+    >>> import matplotlib.pyplot as plt
+    >>> from astropy.visualization import astropy_mpl_style
+    ...
+    >>> plt.style.use(astropy_mpl_style)
+    >>> plt.figure()
+    >>> plt.imshow(cutout.data, cmap='gray')
+    >>> plt.colorbar()
 
 See :ref:`cutout_images` for more details on this feature.
 
@@ -237,22 +238,26 @@ Configuring the ``fsspec`` block size and download strategy
 -----------------------------------------------------------
 
 The ``fsspec`` package supports different data reading and caching strategies
-which aim to minimize the number of network requests.  In general, fsspec
-will attempt to download data in large contiguous blocks, similar to the
-*read ahead* strategy that is employed by operating systems when they load
-local files.
+which aim to find a balance between the number of network requests on one hand
+and the total amount of data transferred on the other hand.  By default, fsspec
+will attempt to download data in large contiguous blocks using a buffered
+*read ahead* strategy, similar to the strategy that is employed when operating
+systems load local files into memory.
 
-You can tune the performance of fsspec's download strategy by passing custom
+You can tune the performance of fsspec's buffering strategy by passing custom
 ``block_size`` and ``cache_type`` parameters to `fsspec.open`.  You can pass
 these parameters via the ``fsspec_kwargs`` argument of `astropy.io.fits.open`.
-For example:
+For example, we can configure fsspec to make buffered reads with a minimum
+``block_size`` of 1 MB as follows:
 
 .. doctest-remote-data::
 
-    # Access remote data using HTTP requests at least 1 MB or more in size
-    fsspec_kwargs = {"block_size": 1_000_000, "cache_type": "bytes"}
-    with fits.open(url, use_fsspec=True, fsspec_kwargs=fsspec_kwargs) as hdul:
-        cutout = hdul[1].section[10:20, 30:50]
+    >>> fsspec_kwargs = {"block_size": 1_000_000, "cache_type": "bytes"}
+    >>> with fits.open(url, use_fsspec=True, fsspec_kwargs=fsspec_kwargs) as hdul:
+    ...     cutout = hdul[1].section[10:20, 30:50]
+
+The ideal configuration will depend on the latency and throughput of the
+network, as well as the exact shape and volume of the data you seek to obtain.
 
 See the `fsspec documentation <https://filesystem-spec.readthedocs.io>`__
 for more information on its options.
