@@ -20,7 +20,7 @@ import numpy as np
 from .util import (isreadable, iswritable, isfile, fileobj_name,
                    fileobj_closed, fileobj_mode, _array_from_file,
                    _array_to_file, _write_string)
-from astropy.utils.data import download_file, _is_url
+from astropy.utils.data import download_file, _is_url, _requires_fsspec, get_readable_fileobj
 from astropy.utils.decorators import classproperty
 from astropy.utils.exceptions import AstropyUserWarning
 from astropy.utils.misc import NOT_OVERWRITING_MSG
@@ -29,10 +29,6 @@ from astropy.utils.misc import NOT_OVERWRITING_MSG
 from astropy.utils.compat.optional_deps import HAS_BZ2
 if HAS_BZ2:
     import bz2
-
-from astropy.utils.compat.optional_deps import HAS_FSSPEC
-if HAS_FSSPEC:
-    import fsspec
 
 # Maps astropy.io.fits-specific file mode names to the appropriate file
 # modes to use for the underlying raw files.
@@ -108,7 +104,7 @@ class _File:
     """
 
     def __init__(self, fileobj=None, mode=None, memmap=None, overwrite=False,
-                 cache=True, use_fsspec=None, fsspec_kwargs=None):
+                 cache=True, **kwargs):
         self.strict_memmap = bool(memmap)
         memmap = True if memmap is None else memmap
 
@@ -120,7 +116,6 @@ class _File:
         self.compression = None
         self.readonly = False
         self.writeonly = False
-        self.use_fsspec = use_fsspec
 
         # Should the object be closed on error: see
         # https://github.com/astropy/astropy/issues/6168
@@ -149,14 +144,15 @@ class _File:
         if mode is None:
             mode = 'readonly'
 
-        # Handle remote or cloud URIs with fsspec
-        if use_fsspec:
-            if not HAS_FSSPEC:
-                raise ModuleNotFoundError("please install `fsspec` to access this file")
-            if fsspec_kwargs is None:
-                fsspec_kwargs = {}
-            fileopen = fsspec.open(fileobj, **fsspec_kwargs)
-            fileobj = fileopen.open()
+        # Handle cloud-hosted files using the optional ``fsspec`` dependency
+        if (kwargs.get('use_fsspec') or _requires_fsspec(fileobj)) and mode != "ostream":
+            # Note: we don't use `get_readable_fileobj` as a context manager
+            # because io.fits takes care of closing files itself
+            fileobj = get_readable_fileobj(fileobj,
+                                           encoding="binary",
+                                           use_fsspec=kwargs.get('use_fsspec'),
+                                           fsspec_kwargs=kwargs.get('fsspec_kwargs'),
+                                           close_files=False).__enter__()
 
         # Handle raw URLs
         if (isinstance(fileobj, (str, bytes)) and
