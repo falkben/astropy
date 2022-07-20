@@ -290,20 +290,23 @@ def get_readable_fileobj(name_or_obj, encoding=None, cache=False,
         # use configfile default
         remote_timeout = conf.remote_timeout
 
+    # Have `use_fsspec` default to ``True`` if the user passed an Amazon S3
+    # or Google Cloud Storage URI.
     if use_fsspec is None and _requires_fsspec(name_or_obj):
         use_fsspec = True
 
     if use_fsspec:
         if not isinstance(name_or_obj, str):
-            raise TypeError("`name` must be a string when `use_fsspec=True`")
+            raise TypeError("`name_or_obj` must be a string when `use_fsspec=True`")
         # For s3:// paths, it is useful to have fsspec default to `anon=True`
         # because Hubble/JWST's data archive is available via a public S3 buckets.
         # Accessing a public bucket without credentials raises a
         # `NoCredentialsError` unless `anon=True` is passed explicitely.
         if fsspec_kwargs is None:
-            fsspec_kwargs = {}
             if name_or_obj.startswith("s3://"):
-                fsspec_kwargs['anon'] = True
+                fsspec_kwargs{'anon': True}
+            else:
+                fsspec_kwargs = {}
 
     # name_or_obj could be an os.PathLike object
     if isinstance(name_or_obj, os.PathLike):
@@ -311,13 +314,12 @@ def get_readable_fileobj(name_or_obj, encoding=None, cache=False,
 
     # Get a file object to the content
     if isinstance(name_or_obj, str):
-        # Use the fsspec package to open remote files (e.g. Amazon S3)
+        # Use fsspec to open certain cloud-hosted files (e.g., AWS S3, Google Cloud Storage)
         if use_fsspec or _requires_fsspec(name_or_obj):
             if not HAS_FSSPEC:
-                raise ModuleNotFoundError("please install `fsspec` to access this file")
+                raise ModuleNotFoundError("please install `fsspec` to open this file")
             import fsspec  # local import because it is a niche dependency
-            fileopen = fsspec.open(name_or_obj, **fsspec_kwargs)
-            fileobj = fileopen.open()
+            fileobj = fsspec.open(name_or_obj, **fsspec_kwargs).open()
             close_fds.append(fileobj)
         else:
             is_url = _is_url(name_or_obj)
