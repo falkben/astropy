@@ -255,7 +255,7 @@ class HDUList(list, _Verify):
         # Special case: if the FITS file is located on a remote file system
         # and has not been fully read yet, we return a simplified repr to
         # avoid downloading the entire file.  We can tell that a file is remote
-        # from the fact that the ``fsspec`` package was used to open it.       
+        # from the fact that the ``fsspec`` package was used to open it.
         is_fsspec_file = self._file and "fsspec" in str(self._file._file.__class__.__bases__)
         if (not self._read_all and is_fsspec_file):
             return f"{type(self)} (partially read)"

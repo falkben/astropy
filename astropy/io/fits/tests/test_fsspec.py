@@ -57,7 +57,7 @@ def test_fsspec_http():
     # with fits.open(local_path) as hdul:
     #     hdul[1].data[1000:1002, 2000:2003]
     expected = np.array([[0.00600598, 0.00546154, 0.00134362],
-                         [0.00073434, 0.00825543, 0.0059365 ]])
+                         [0.00073434, 0.00825543, 0.0059365]])
     with fits.open(uri, use_fsspec=True) as hdul:
         # Do we retrieve the expected array?
         assert_allclose(hdul[1].section[1000:1002, 2000:2003], expected, atol=1e-7)
@@ -84,7 +84,7 @@ def test_fsspec_s3():
     # with fits.open(local_path) as hdul:
     #     hdul[1].data[1000:1002, 2000:2003]
     expected = np.array([[0.00600598, 0.00546154, 0.00134362],
-                         [0.00073434, 0.00825543, 0.0059365 ]])
+                         [0.00073434, 0.00825543, 0.0059365]])
     with fits.open(uri) as hdul:  # s3:// paths should default to use_fsspec=True
         # Do we retrieve the expected array?
         assert_allclose(hdul[1].section[1000:1002, 2000:2003], expected, atol=1e-7)
