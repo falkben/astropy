@@ -304,7 +304,7 @@ def get_readable_fileobj(name_or_obj, encoding=None, cache=False,
         # `NoCredentialsError` unless `anon=True` is passed explicitely.
         if fsspec_kwargs is None:
             if name_or_obj.startswith("s3://"):
-                fsspec_kwargs{'anon': True}
+                fsspec_kwargs = {'anon': True}
             else:
                 fsspec_kwargs = {}
 
