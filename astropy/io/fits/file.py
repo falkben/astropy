@@ -30,6 +30,7 @@ from astropy.utils.compat.optional_deps import HAS_BZ2
 if HAS_BZ2:
     import bz2
 
+
 # Maps astropy.io.fits-specific file mode names to the appropriate file
 # modes to use for the underlying raw files.
 IO_FITS_MODES = {
