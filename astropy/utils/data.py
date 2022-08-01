@@ -266,7 +266,7 @@ def get_readable_fileobj(name_or_obj, encoding=None, cache=False,
         .. versionadded:: 5.2
 
     close_files : bool, optional
-        Close the file object when exiting the context manager?
+        Close the file object when exiting the context manager.
         Default is `True`.
 
         .. versionadded:: 5.2
