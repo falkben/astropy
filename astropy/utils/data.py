@@ -315,7 +315,7 @@ def get_readable_fileobj(name_or_obj, encoding=None, cache=False,
     # Get a file object to the content
     if isinstance(name_or_obj, str):
         # Use fsspec to open certain cloud-hosted files (e.g., AWS S3, Google Cloud Storage)
-        if use_fsspec or _requires_fsspec(name_or_obj):
+        if use_fsspec:
             if not HAS_FSSPEC:
                 raise ModuleNotFoundError("please install `fsspec` to open this file")
             import fsspec  # local import because it is a niche dependency
