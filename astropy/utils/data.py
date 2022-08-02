@@ -172,7 +172,7 @@ def _is_inside(path, parent_path):
 @contextlib.contextmanager
 def get_readable_fileobj(name_or_obj, encoding=None, cache=False,
                          show_progress=True, remote_timeout=None,
-                         sources=None, http_headers=None,
+                         sources=None, http_headers=None, *,
                          use_fsspec=None, fsspec_kwargs=None,
                          close_files=True):
     """Yield a readable, seekable file-like object from a file or URL.
