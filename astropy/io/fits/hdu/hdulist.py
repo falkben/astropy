@@ -146,7 +146,7 @@ def fitsopen(name, mode='readonly', memmap=None, save_backup=False,
         (e.g. ``"fix+warn"``).  See :ref:`astropy:verify` for more info.
 
     use_fsspec : bool, optional
-        Use the ``fsspec`` library to open the file? Defaults to `False` unless
+        Use `fsspec.open` to open the file? Defaults to `False` unless
         ``name`` starts with the Amazon S3 storage prefix ``s3://``
         or the Google Cloud Storage prefix ``gs://``.  Can also be used for paths
         with other prefixes (e.g. ``http://``) but in this case you must

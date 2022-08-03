@@ -246,7 +246,7 @@ def get_readable_fileobj(name_or_obj, encoding=None, cache=False,
         is set by ``astropy.utils.data.conf.default_http_user_agent``.
 
     use_fsspec : bool, optional
-        Use the ``fsspec`` library to open the file? Defaults to `False` unless
+        Use `fsspec.open` to open the file? Defaults to `False` unless
         ``name_or_obj`` starts with the Amazon S3 storage prefix ``s3://``
         or the Google Cloud Storage prefix ``gs://``.  Can also be used for paths
         with other prefixes (e.g. ``http://``) but in this case you must
